@@ -6,6 +6,12 @@ permissions:
   contents: read
 jobs:
   check:
+    name: check-${{ matrix.shard }}
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        shard: [0, 1]
     runs-on: windows-latest
     timeout-minutes: 10
     steps:
@@ -24,4 +30,4 @@ jobs:
           npm ci --ignore-scripts --no-fund --no-audit
       # No actual document, approval, native COM action, or security DLL is used.
       - name: Lint and fixture-only regression checks
-        run: npm run check
+        run: npm run check -- --shard=${{ matrix.shard }}
