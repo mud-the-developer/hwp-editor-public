@@ -1,0 +1,48 @@
+# Local environments and generated/private document data
+.venv/
+node_modules/
+.ruff_cache/
+__pycache__/
+*.pyc
+work/
+# Generated personal EXEs, ZIPs, inventories and bundler cache (not source data)
+/build/
+/dist/
+# WPF design-time and compiler output; exact sources stay explicitly allowlisted.
+/native/**/obj/
+/native/**/bin/
+example/
+*.hwp
+*.hwpx
+*.pdf
+*.exe
+*.dll
+# Redistributable, hash-pinned WebView2 SDK/Loader inputs; keep their original notices.
+!/native/Dependencies/WebView2/1.0.4314.35/Microsoft.Web.WebView2.Core.dll
+!/native/Dependencies/WebView2/1.0.4314.35/Microsoft.Web.WebView2.Wpf.dll
+!/native/Dependencies/WebView2/1.0.4314.35/WebView2Loader.dll
+*.zip
+_review/
+approved-plan.json
+.apply-lock.json
+# Raw accumulated personal development notes stay local; reviewed summaries are in docs/.
+/DEVELOPMENT_HISTORY.md
+
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.pfx
+*.p12
+auth.json
+.pi/
+
+# Owner-supplied local Automation security package (never upload/bundle binaries)
+/보안모듈(Automation).zip
+
+# Local logs / OS files
+*.log
+.DS_Store
+Thumbs.db

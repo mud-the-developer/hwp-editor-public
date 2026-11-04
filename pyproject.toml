@@ -1,0 +1,13 @@
+[tool.ruff]
+target-version = "py311"
+extend-exclude = ["work", "example", ".venv", "node_modules"]
+
+[tool.ruff.lint]
+# Correctness first; do not reformat native editing/approval code for style.
+select = ["E9", "F", "B006", "B012"]
+
+[tool.pyright]
+# Resolve the existing source/test runtime used by PyInstaller; no check suppression.
+extraPaths = ["scripts", "tests"]
+venvPath = "."
+venv = ".venv"

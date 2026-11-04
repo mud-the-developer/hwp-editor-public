@@ -1,0 +1,172 @@
+{
+  "contract": "hwp-windows-dependencies-v2",
+  "components": [
+    {
+      "id": "powershell7",
+      "name": "PowerShell 7",
+      "version": "7.6.9",
+      "kind": "msi",
+      "url": "https://github.com/PowerShell/PowerShell/releases/download/v7.6.9/PowerShell-7.6.9-win-x64.msi",
+      "size": 117493760,
+      "sha256": "50d33c7494aaf82b987cfd4de3f232d04f91fdd4c0deeca8a669cced3e7cf8f9",
+      "release_url": "https://github.com/PowerShell/PowerShell/releases/tag/v7.6.9",
+      "license_files": [
+        "packaging/licenses/PowerShell-7.6.9-LICENSE.txt"
+      ]
+    },
+    {
+      "id": "d2coding_propo",
+      "name": "D2Coding Nerd Font Propo",
+      "version": "3.5.1",
+      "kind": "font_zip",
+      "url": "https://github.com/ryanoasis/nerd-fonts/releases/download/v3.5.1/D2Coding.zip",
+      "size": 20845325,
+      "sha256": "8d1597b1537afdc8f2f7c75036a8224bc837e6c248062b80013a13258258541d",
+      "release_url": "https://github.com/ryanoasis/nerd-fonts/releases/tag/v3.5.1",
+      "license_files": [
+        "packaging/licenses/D2Coding-Nerd-Font-3.5.1-LICENSE.txt",
+        "packaging/licenses/D2Coding-Nerd-Font-3.5.1-README.md",
+        "packaging/licenses/Nerd-Fonts-3.5.1-LICENSE.txt",
+        "packaging/licenses/Nerd-Fonts-3.5.1-Codicons-LICENSE.txt",
+        "packaging/licenses/Nerd-Fonts-3.5.1-Devicons-LICENSE.txt",
+        "packaging/licenses/Nerd-Fonts-3.5.1-Hack-LICENSE.txt",
+        "packaging/licenses/Nerd-Fonts-3.5.1-Font-Awesome-LICENSE.txt",
+        "packaging/licenses/Font-Awesome-Extension-09d8024-LICENCE.txt",
+        "packaging/licenses/Font-Logos-1.3.0-LICENSE.txt",
+        "packaging/licenses/Nerd-Fonts-3.5.1-MaterialDesign-LICENSE.txt",
+        "packaging/licenses/Nerd-Fonts-3.5.1-MaterialDesign-Apache-2.0.txt",
+        "packaging/licenses/Nerd-Fonts-3.5.1-Octicons-LICENSE.txt",
+        "packaging/licenses/Nerd-Fonts-3.5.1-Seti-LICENSE.txt",
+        "packaging/licenses/Nerd-Fonts-3.5.1-Pomicons-LICENSE.txt",
+        "packaging/licenses/Nerd-Fonts-3.5.1-Powerline-Extra-LICENSE.txt",
+        "packaging/licenses/Nerd-Fonts-3.5.1-Powerline-Symbols-LICENSE.txt",
+        "packaging/licenses/Nerd-Fonts-3.5.1-Power-Symbols-IEC-LICENSE.txt",
+        "packaging/licenses/Nerd-Fonts-3.5.1-Weather-Icons-OFL.txt",
+        "packaging/licenses/Nerd-Fonts-3.5.1-Weather-Icons-OFL-FAQ.txt"
+      ],
+      "font_family": "D2KodingLigature Nerd Font Propo",
+      "font_files": [
+        {
+          "member": "D2KodingLigatureNerdFontPropo-Regular.ttf",
+          "size": 6620984,
+          "sha256": "9eccfdc747249262e256c229c638df96fbccf9634c530e1bf82241773d0cfa95",
+          "registry_name": "D2KodingLigature Nerd Font Propo (TrueType)"
+        },
+        {
+          "member": "D2KodingLigatureNerdFontPropo-Bold.ttf",
+          "size": 6826184,
+          "sha256": "c5fbc0553cf38a851ebb7d0415b56a17d68398bb85732be763cceeb9aa0d3a22",
+          "registry_name": "D2KodingLigature Nerd Font Propo Bold (TrueType)"
+        }
+      ],
+      "notice_files": [
+        {
+          "member": "OFL.txt",
+          "size": 4511,
+          "sha256": "1807e8dec4d65f474cbf9be39f5e2254ecb81702babc320749e272ea66ffcc69"
+        },
+        {
+          "member": "README.md",
+          "size": 4724,
+          "sha256": "f135ce63db8bc15eb26f7942de046f17c6f31f40c6620d9e5b9bf155b88b475e"
+        }
+      ]
+    },
+    {
+      "id": "dotnet10",
+      "name": ".NET 10 Desktop Runtime x64",
+      "version": "10.0.14",
+      "kind": "exe",
+      "url": "https://download.microsoft.com/download/9b53b153-e93a-4c89-8049-c7381505cf80/8de343c4-257a-40b1-9af3-3d7782328bc5/windowsdesktop-runtime-10.0.14-win-x64.exe",
+      "size": 60035296,
+      "sha256": "91c2795a7b1e2480caa83fce9514dc2e2d21e277d9a297311faba6040bad7330",
+      "release_url": "https://dotnet.microsoft.com/en-us/download/dotnet/10.0",
+      "license_files": [
+        "packaging/licenses/DotNet-WindowsDesktop-10.0.14-LICENSE.txt"
+      ]
+    },
+    {
+      "id": "webview2",
+      "name": "Microsoft Edge WebView2 Runtime",
+      "version": "156.0.4314.58",
+      "kind": "exe",
+      "url": "https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/d5cc3c1c-bb59-4158-aedc-db0035e44466/MicrosoftEdgeWebView2RuntimeInstallerX64.exe",
+      "size": 215017168,
+      "sha256": "62863f0f0611a16ccf124b4f15650c3b66624504eba74d7cde1e2ae5d951249b",
+      "release_url": "https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution",
+      "license_files": [
+        "packaging/licenses/WebView2-Runtime-156.0.4314.58-EULA.html"
+      ]
+    },
+    {
+      "id": "omp_runtime",
+      "name": "Bun / oh-my-pi",
+      "version": "1.4.4 / 18.15.0",
+      "kind": "bun_omp",
+      "url": "https://registry.npmjs.org/@oh-my-pi/pi-coding-agent/-/pi-coding-agent-18.15.0.tgz",
+      "size": 14978439,
+      "sha256": "c935c4dd3b7a88acffdcd698f2499df90f869534e9b43fba8885ed60739bf465",
+      "release_url": "https://github.com/can1357/oh-my-pi/releases/tag/v18.15.0",
+      "runtime_assets": [
+        {
+          "id": "bun",
+          "url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-windows-x64.zip",
+          "size": 54731706,
+          "sha256": "cd2c0fccc78f3ede1f50ca827a15f063eda13d4d150a3d0674f4f6e323d864a5"
+        },
+        {
+          "id": "natives",
+          "url": "https://registry.npmjs.org/@oh-my-pi/pi-natives/-/pi-natives-18.15.0.tgz",
+          "size": 129772,
+          "sha256": "49eaf550b7660fc4f72ab234b532d1006a8380122a22c729019042620f8f5428"
+        },
+        {
+          "id": "win32",
+          "url": "https://registry.npmjs.org/@oh-my-pi/pi-natives-win32-x64/-/pi-natives-win32-x64-18.15.0.tgz",
+          "size": 46414765,
+          "sha256": "1b110b2e1444338308a1a47ff840357ecb8d0d9da45e693904f38c9634590b6b"
+        }
+      ],
+      "license_files": [
+        "packaging/licenses/Bun-1.4.4-LICENSE.md",
+        "packaging/licenses/OMP-18.15.0-LICENSE.txt",
+        "packaging/licenses/OMP-18.15.0-THIRD-PARTY-NOTICES.txt",
+        "packaging/licenses/OMP-Natives-18.15.0-LICENSE.txt",
+        "packaging/licenses/OMP-Natives-18.15.0-THIRD-PARTY-NOTICES.txt",
+        "packaging/licenses/OMP-Win32-x64-18.15.0-LICENSE.txt",
+        "packaging/licenses/OMP-Win32-x64-18.15.0-THIRD-PARTY-NOTICES.txt"
+      ]
+    }
+  ],
+  "license_files_sha256": {
+    "packaging/licenses/PowerShell-7.6.9-LICENSE.txt": "7c77a44a8acd9b41fdc209864a8016b3d430b5d0e09309818d5b7444336df744",
+    "packaging/licenses/D2Coding-Nerd-Font-3.5.1-LICENSE.txt": "1807e8dec4d65f474cbf9be39f5e2254ecb81702babc320749e272ea66ffcc69",
+    "packaging/licenses/D2Coding-Nerd-Font-3.5.1-README.md": "f135ce63db8bc15eb26f7942de046f17c6f31f40c6620d9e5b9bf155b88b475e",
+    "packaging/licenses/Font-Logos-1.3.0-LICENSE.txt": "88d9b4eb60579c191ec391ca04c16130572d7eedc4a86daa58bf28c6e14c9bcd",
+    "packaging/licenses/Nerd-Fonts-3.5.1-LICENSE.txt": "1f6ad4edae6479aaace3112ede5279a23284ae54b2a34db66357aef5f64df160",
+    "packaging/licenses/Nerd-Fonts-3.5.1-Codicons-LICENSE.txt": "d6239afa918961b465b07bf7411cbe34ff6685854f58553db7966f4881a0211f",
+    "packaging/licenses/Nerd-Fonts-3.5.1-Font-Awesome-LICENSE.txt": "de784a808496d49f5f80dd9d1d6e9a51cff712cfbc339e7c25155631ae3cdb5d",
+    "packaging/licenses/Font-Awesome-Extension-09d8024-LICENCE.txt": "b47b15d771c4507a75ff65beca3a78168d6af4cca9b45177a1aa817139c64ba5",
+    "packaging/licenses/Nerd-Fonts-3.5.1-MaterialDesign-LICENSE.txt": "3bae6305bcaa6d10219b999f65c342034c2d40b1c0e8567fa08605e73ccba829",
+    "packaging/licenses/Nerd-Fonts-3.5.1-Octicons-LICENSE.txt": "4f886642f9e8d99eeadd484acdac011c3fde8a338faf52f5ca1408c13b9a9b63",
+    "packaging/licenses/Nerd-Fonts-3.5.1-Pomicons-LICENSE.txt": "cb4797a9745683f287c28833db596e9d68ec43082d59359b3a49c504f0f610ce",
+    "packaging/licenses/Nerd-Fonts-3.5.1-Powerline-Extra-LICENSE.txt": "544307a58e6826c24145b2af1c3578b53e2e21ae0e6c67ab4c6abd544304d26a",
+    "packaging/licenses/Nerd-Fonts-3.5.1-Powerline-Symbols-LICENSE.txt": "46d5355e4734468135d8e4a30d0916292cc4df2b3ec30aa68c866f82497933be",
+    "packaging/licenses/Nerd-Fonts-3.5.1-Weather-Icons-OFL.txt": "69cdedc8a4f57a30d68e4f045af8b9cce0ec3b1a6e7eec1ad41737c894f26790",
+    "packaging/licenses/Nerd-Fonts-3.5.1-Weather-Icons-OFL-FAQ.txt": "8acd621722e71dc89de0087a264497b8964d240eedc53677f6344ab20ce36fd7",
+    "packaging/licenses/Nerd-Fonts-3.5.1-Devicons-LICENSE.txt": "121194741d4a915b9f5890fdd6dd95121f9b1f816517c792358d72d7c838d664",
+    "packaging/licenses/Nerd-Fonts-3.5.1-Seti-LICENSE.txt": "d4d2d888c6a0a220a7b0e2d6013cf37539b0e05ef937002b3b33bdb364575b88",
+    "packaging/licenses/Nerd-Fonts-3.5.1-Power-Symbols-IEC-LICENSE.txt": "11aef1cdf2d58d822e6857e2574870ccc59d4900052bf5c098e319d750e7ac3d",
+    "packaging/licenses/Nerd-Fonts-3.5.1-Hack-LICENSE.txt": "1f61bb7c790c59b4b0ecdf304628b94e42ae4c8020094a8c3da73381ab212623",
+    "packaging/licenses/Nerd-Fonts-3.5.1-MaterialDesign-Apache-2.0.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+    "packaging/licenses/DotNet-WindowsDesktop-10.0.14-LICENSE.txt": "ae48df11a335dc1a615f4f938b69cba73bcf4485c4f97af49b38efb0f216353b",
+    "packaging/licenses/WebView2-Runtime-156.0.4314.58-EULA.html": "ce6fa83e57c338256e5cabe9e1eea83076c271b0fdb253408213eeb08859d7b6",
+    "packaging/licenses/Bun-1.4.4-LICENSE.md": "362fe32c954ec829240bd7429c53d705eef08c6bfa45ffc2d02005f857cba4dd",
+    "packaging/licenses/OMP-18.15.0-LICENSE.txt": "16c45f9d667442781f03fa198914cc39abcaa48ec5ed8f644643e554ca2fbf63",
+    "packaging/licenses/OMP-18.15.0-THIRD-PARTY-NOTICES.txt": "c8bdf2c6601a5af7dc96bf6e9ad0f49c459402a7606943c9ed64c1d81760ecc2",
+    "packaging/licenses/OMP-Natives-18.15.0-LICENSE.txt": "90179611795093ae17d4a6bc6e06da450a8e54bbeb147a065b4127e1e4b407a7",
+    "packaging/licenses/OMP-Natives-18.15.0-THIRD-PARTY-NOTICES.txt": "a30f302aa403f7ecb1009caf8e565876b10d03782d420689e91ff0092b041ddf",
+    "packaging/licenses/OMP-Win32-x64-18.15.0-LICENSE.txt": "90179611795093ae17d4a6bc6e06da450a8e54bbeb147a065b4127e1e4b407a7",
+    "packaging/licenses/OMP-Win32-x64-18.15.0-THIRD-PARTY-NOTICES.txt": "a30f302aa403f7ecb1009caf8e565876b10d03782d420689e91ff0092b041ddf"
+  }
+}

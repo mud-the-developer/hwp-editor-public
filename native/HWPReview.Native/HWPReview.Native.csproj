@@ -1,0 +1,86 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PlatformTarget>x64</PlatformTarget>
+    <SelfContained>false</SelfContained>
+    <UseAppHost>false</UseAppHost>
+    <RuntimeFrameworkVersion>10.0.0</RuntimeFrameworkVersion>
+    <RollForward>LatestPatch</RollForward>
+    <TargetLatestRuntimePatch>false</TargetLatestRuntimePatch>
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultApplicationDefinition>false</EnableDefaultApplicationDefinition>
+    <EnableDefaultPageItems>false</EnableDefaultPageItems>
+    <EnableDefaultNoneItems>false</EnableDefaultNoneItems>
+    <StartupObject>HWPReview.Native.Program</StartupObject>
+    <AssemblyName>HWPReview.Native</AssemblyName>
+    <RootNamespace>HWPReview.Native</RootNamespace>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Deterministic>true</Deterministic>
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <RestoreIgnoreFailedSources>false</RestoreIgnoreFailedSources>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="OwnedHostClient.cs" />
+    <Compile Include="ReportApi.cs" />
+    <Compile Include="MainWindow.cs" />
+    <Compile Include="AppIcons.cs" />
+    <Compile Include="SourceMentionCompletion.cs" />
+    <Compile Include="ConPtySession.cs" />
+    <Compile Include="OmpTerminalPane.cs" />
+    <Compile Include="HwpxDocumentPane.cs" />
+    <Compile Include="OmpInstalledRuntime.cs" />
+    <Compile Include="OmpSessionBridge.cs" />
+    <Page Include="Styles.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.Web.WebView2.Core">
+      <HintPath>..\Dependencies\WebView2\1.0.4314.35\Microsoft.Web.WebView2.Core.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Microsoft.Web.WebView2.Wpf">
+      <HintPath>..\Dependencies\WebView2\1.0.4314.35\Microsoft.Web.WebView2.Wpf.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Content Include="..\Dependencies\WebView2\1.0.4314.35\WebView2Loader.dll" Link="WebView2Loader.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Dependencies\WebView2\1.0.4314.35\LICENSE.txt" Link="Licenses\WebView2\LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\Dependencies\WebView2\1.0.4314.35\NOTICE.txt" Link="Licenses\WebView2\NOTICE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\packaging\omp-runtime.json" Link="omp-runtime.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="Bridge\omp-bridge.mjs" Link="bridge\omp-bridge.mjs" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="TerminalAssets\index.html" Link="terminal\index.html" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="TerminalAssets\terminal.js" Link="terminal\terminal.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="TerminalAssets\terminal.css" Link="terminal\terminal.css" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="TerminalAssets\vendor\xterm\xterm.js" Link="terminal\vendor\xterm\xterm.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="TerminalAssets\vendor\xterm\xterm.css" Link="terminal\vendor\xterm\xterm.css" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="TerminalAssets\vendor\xterm\LICENSE" Link="terminal\vendor\xterm\LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="TerminalAssets\vendor\xterm\package.json" Link="terminal\vendor\xterm\package.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="TerminalAssets\vendor\addon-fit\addon-fit.js" Link="terminal\vendor\addon-fit\addon-fit.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="TerminalAssets\vendor\addon-fit\LICENSE" Link="terminal\vendor\addon-fit\LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="TerminalAssets\vendor\addon-fit\package.json" Link="terminal\vendor\addon-fit\package.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="TerminalAssets\vendor\unicode-graphemes\addon-unicode-graphemes.js" Link="terminal\vendor\unicode-graphemes\addon-unicode-graphemes.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="TerminalAssets\vendor\unicode-graphemes\LICENSE" Link="terminal\vendor\unicode-graphemes\LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="TerminalAssets\vendor\unicode-graphemes\package.json" Link="terminal\vendor\unicode-graphemes\package.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\packaging\hwpx-renderer-dependencies.json" Link="hwpx-renderer-dependencies.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="ViewerAssets\index.html" Link="viewer\index.html" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="ViewerAssets\viewer.js" Link="viewer\viewer.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="ViewerAssets\viewer.css" Link="viewer\viewer.css" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="ViewerAssets\svg-safety.js" Link="viewer\svg-safety.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="ViewerAssets\vendor\rhwp\rhwp.js" Link="viewer\vendor\rhwp\rhwp.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="ViewerAssets\vendor\rhwp\rhwp_bg.wasm" Link="viewer\vendor\rhwp\rhwp_bg.wasm" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="ViewerAssets\vendor\rhwp\LICENSE" Link="viewer\vendor\rhwp\LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="ViewerAssets\vendor\rhwp\package.json" Link="viewer\vendor\rhwp\package.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="..\..\packaging\icon-dependencies.json" Link="icon-dependencies.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="IconAssets\lucide\*.svg" Link="Licenses\Lucide\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="IconAssets\lucide\LICENSE" Link="Licenses\Lucide\LICENSE" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

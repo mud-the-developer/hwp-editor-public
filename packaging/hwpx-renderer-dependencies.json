@@ -1,0 +1,76 @@
+{
+  "schema": "hwp-local-hwpx-renderer-dependencies-v1",
+  "name": "@rhwp/core",
+  "version": "0.8.7",
+  "declared_license": "MIT",
+  "registry": "https://registry.npmjs.org/@rhwp/core/0.8.7",
+  "tarball": "https://registry.npmjs.org/@rhwp/core/-/core-0.8.7.tgz",
+  "integrity": "sha512-qgNpY9aclCvy9D7cPnpuplu42kUFZCCPhdjAS5HBso4Z4XeHG3uchYdUleQBoas/zEuwfJ7H4/ulepqdL/LXDA==",
+  "tarball_sha256": "30e8a17400583570afec9169baeef3f0785e023e2a51344ed44eb8539a60e6a6",
+  "git_head": "1a76570e833917d15817415a53c09ad61ab3203f",
+  "source": "https://github.com/edwardkim/rhwp/tree/1a76570e833917d15817415a53c09ad61ab3203f",
+  "acquisition": "Direct pinned HTTPS tarball; SHA512 SRI verified before reading members; no package manager or lifecycle execution. Selected original bytes are unmodified. No fonts bundled.",
+  "selected_files_sha256": {
+    "native/HWPReview.Native/ViewerAssets/vendor/rhwp/rhwp.js": "70cde06a369fa7fd4fc8bc8f3d6acaee158596ba1a116a2c72159002b0b5654e",
+    "native/HWPReview.Native/ViewerAssets/vendor/rhwp/rhwp_bg.wasm": "54cf95014312e605c51b98eb9021247ea79ef2bbd0a7080e11c011d0246e3989",
+    "native/HWPReview.Native/ViewerAssets/vendor/rhwp/LICENSE": "1c3a7d5643b163a3ead4965e1bea33b832caee5bfca265efe42afcd7bc696b5b",
+    "native/HWPReview.Native/ViewerAssets/vendor/rhwp/package.json": "10e52b7af04064a00457be9c4648698bb4a017e971dd5c76897c7689a00230cd"
+  },
+  "preferred_source_material": {
+    "source_commit": "1a76570e833917d15817415a53c09ad61ab3203f",
+    "classification": "Curated original core Rust/workspace/build inputs and literal static includes; not an unmodified full upstream repository archive",
+    "core_archive": {
+      "filename": "rhwp-0.8.7-preferred-source-curated.zip",
+      "bytes": 14872848,
+      "sha256": "f5bd9bc72131a92baffd601a2a33dc3175061b8260abd8b808f7eebbdbfd92ae",
+      "members": 3578,
+      "member_index": "RHWP-PREFERRED-SOURCE-MEMBERS.json",
+      "member_index_sha256": "af5c840c55bf9341c56b53b94bcc7190640cf6575be0a23d172761d5af1a6e56"
+    },
+    "registry_sources": {
+      "filename": "rhwp-0.8.7-rust-dependency-source-curated.zip",
+      "bytes": 19213717,
+      "sha256": "a6c2e8967cf3724bd88264c5a73c5303c4272cb86b39d1cb725e293fac1e0169",
+      "original_checksum_verified_archives": 173,
+      "members": 8486,
+      "member_index": "RHWP-CRATE-SOURCE-MEMBERS.json",
+      "member_index_sha256": "8cee1344bfd1f201964ba52f9b4ce0fe02eec7f9e2f8356c68c51f6ff2b5673d",
+      "scope": "Conservative WASM-rooted Cargo.lock graph; not actual linked-WASM inventory; five test/example font/PDF binaries omitted, required core-source bytes preserved"
+    },
+    "build_inputs": [
+      "Cargo.toml",
+      "Cargo.lock",
+      "build.rs",
+      "rust-toolchain.toml",
+      "crates/",
+      "src/",
+      "vendor/svg2pdf/",
+      ".github/workflows/npm-publish.yml",
+      ".github/actions/install-wasm-pack/action.yml",
+      "scripts/prepare-npm.sh",
+      "scripts/wasm-pack-locked.sh"
+    ],
+    "toolchain": "Rust1.93.1; wasm32-unknown-unknown; wasm-pack0.15.0; original npm workflow wasm-pack build --target web --release then prepare-npm.sh",
+    "runtime_package": {
+      "filename": "core-0.8.7.tgz",
+      "bytes": 4514017,
+      "sha256": "30e8a17400583570afec9169baeef3f0785e023e2a51344ed44eb8539a60e6a6",
+      "integrity": "sha512-qgNpY9aclCvy9D7cPnpuplu42kUFZCCPhdjAS5HBso4Z4XeHG3uchYdUleQBoas/zEuwfJ7H4/ulepqdL/LXDA=="
+    },
+    "template_fixture": {
+      "path": "saved/blank2010.hwp",
+      "git_blob_sha1": "e8b886f370f6801188696aede9115fea31433774",
+      "sha256": "43f472751fafefb8c66b0f831660ebed51e443a46bebe44c75bba918154ce4c9",
+      "bytes": 13824,
+      "source": "src/document_core/commands/document.rs:1774",
+      "scope": "Inert original upstream EMPTY source-build fixture; flags1, one empty paragraph, no BinData/embedded fonts/signature streams; contains upstream creator metadata. Not a user report or app font installation/runtime asset."
+    },
+    "excluded": "Unrelated upstream apps and real sample/report/font binaries; optional-target/test fixture includes are indexed, not represented as present",
+    "reconstruction": "not_verified; no source/toolchain execution, install or hook. Preferred source acquisition is not a reproduced npm WASM binary or legal/recipient-delivery certification."
+  },
+  "additional_notices": {
+    "packaging/licenses/rhwp-0.8.7-THIRD-PARTY-LICENSES.txt": "bb40fa5d0fa44bf2ff8b2b5dd7085562b58557a69eaa08b6bb5a4fc94252af88",
+    "packaging/licenses/Volexity-hwp-extract-e5f8b5e-LICENSE.txt": "082dfc368e85781c31cdb1077afc0aaa89a2e7c3a5ade4af316fe3c3a6af263b",
+    "packaging/licenses/rhwp-0.8.7-rust-dependency-NOTICES.txt": "717d1d412b5ef2ea4e0f98b07e99107869ac4ab1a47fb849954f0b6d0a33cedb"
+  }
+}

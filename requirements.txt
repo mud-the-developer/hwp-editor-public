@@ -1,0 +1,4 @@
+olefile==0.47
+# CVE-2026-3029: first fixed version; install only with owner approval.
+PyMuPDF==1.26.7
+pywin32==311; sys_platform == 'win32'

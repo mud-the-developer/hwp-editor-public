@@ -1,0 +1,112 @@
+{
+  "schema": "hwp-omp-runtime-baseline-v1",
+  "package_version": "18.15.0",
+  "files": [
+    {
+      "relative_path": "bin/omp.exe",
+      "size": 8192,
+      "sha256": "a88b6c93260ec1296613d3be63c9b0173a67bf31ddc44512c74322607a86a0c1"
+    },
+    {
+      "relative_path": "bin/omp.bunx",
+      "size": 152,
+      "sha256": "3b4f9996e5d3ae7eeeb8a1131a8cb16cb7f17ce3f9218f312a01056915bfe7bc"
+    },
+    {
+      "relative_path": "bin/bun.exe",
+      "size": 115281496,
+      "sha256": "cb1d8e6564e655e49d30cead359750a1cbbd12f42651caa4b62244d7bd93c244"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-coding-agent/package.json",
+      "size": 16993,
+      "sha256": "f36334ffbaed7b68e59c2c5b8b45610b9beaa91a960572a5ce4a582eb50c84b1"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-coding-agent/dist/CHANGELOG-a7paazjm.md",
+      "size": 261216,
+      "sha256": "652e0a5b52c160e0cd5e3c42373c25d910286b87f998a4e1ae59cf9c255d1566"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-coding-agent/dist/cli.js",
+      "size": 18060922,
+      "sha256": "b255d21b1eed5c04483cf7e127e33a12d2155af20a8d01961ac2619fef0e1b5d"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-coding-agent/dist/docs-index.generated.txt",
+      "size": 1491253,
+      "sha256": "8b0e33dfa9fa98c6604cfaeb9a3867790c69707b155282ea50e6b43e869b4607"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-coding-agent/dist/models.json-3tsbab79.zst",
+      "size": 182139,
+      "sha256": "b8e3e0483f061e4d59b4a8c5f670054f10be70f82984d173783ff9461f82951d"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-coding-agent/dist/rules.json-6b4dpgdf.zst",
+      "size": 63616,
+      "sha256": "ffea629d5fa5f01309eb68fda9d9fae3999f0db9dd588054e61cc88300064521"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-natives/package.json",
+      "size": 3405,
+      "sha256": "4898b246716910697878b2a073a1fdeb03fab33e7ef231570d4a4645de1be28b"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-natives/native/clipboard.js",
+      "size": 555,
+      "sha256": "8a8e33cc33432713820c7c965af14012439d941d4f2914677a17cec910acc08d"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-natives/native/desktop-adapter.js",
+      "size": 1407,
+      "sha256": "047ea57a9b79ad06e27a1152c4012d0372d48e83441732ea3f597609746ae3ac"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-natives/native/desktop.js",
+      "size": 1247,
+      "sha256": "3b152517eadaf12664cbd8c7dbbf9cfd1ac8d4bc9b30744a4c7e47731a81ed98"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-natives/native/embedded-addon.js",
+      "size": 720,
+      "sha256": "ad94332d9b1ba71dac4c3bc394c35aea2e0e4cf2280bc1c2ba42aba3fb237fc1"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-natives/native/index.js",
+      "size": 16352,
+      "sha256": "4c962d070f2f36a2996c36ea4cf27b4a3e7607d03555a4079e55542efdf7f9c7"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-natives/native/loader-state.js",
+      "size": 34793,
+      "sha256": "a93e489ab8a7a0c26ff88c80f5cd07a04c7295dd9f714aaf2f0fa00583a354e0"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-natives/native/path.js",
+      "size": 892,
+      "sha256": "716fe783105dc03fc5deaab32a4f0470ba366e663ae77de42c5760144855bf99"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-natives/native/vcs.js",
+      "size": 7090,
+      "sha256": "15d83e293be39a2e1a046362959a95292e7eb99d29d95a59fe01e338b1fd3a9a"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-natives/native/version-sentinel.js",
+      "size": 3740,
+      "sha256": "926c11315b5ff843b6cf236c866a12e9ddbf25824db267334c1323a6736cc7be"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-natives-win32-x64/package.json",
+      "size": 464,
+      "sha256": "a1028504a55473f320ea8a3f0f40393e2999b6bbf7c88d9cd3528da248cbfdb0"
+    },
+    {
+      "relative_path": "install/global/node_modules/@oh-my-pi/pi-natives-win32-x64/pi_natives.win32-x64-baseline.node",
+      "size": 123908608,
+      "sha256": "b49c7e8e4939bd76001b9036e5985f75302bcdbe9b52f74def8b3f8629dab90c"
+    }
+  ],
+  "native_addon_relative_path": "install/global/node_modules/@oh-my-pi/pi-natives-win32-x64/pi_natives.win32-x64-baseline.node"
+}

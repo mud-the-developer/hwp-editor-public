@@ -1,0 +1,53 @@
+{
+  "schema": "hwp-native-terminal-dependencies-v1",
+  "user_authorized": "GUI 안에 실제 OMP TUI; SDK/assets acquisition only, no OS runtime installation",
+  "webview2": {
+    "version": "1.0.4314.35",
+    "package_url": "https://api.nuget.org/v3-flatcontainer/microsoft.web.webview2/1.0.4314.35/microsoft.web.webview2.1.0.4314.35.nupkg",
+    "package_sha256": "90778deb1b77e36292828b4b5833c9255c27533f40e0ddd55891ae718944edc4",
+    "license": "BSD-3-Clause text in original package LICENSE.txt; NOTICE retained",
+    "runtime": "Existing separately installed WebView2 Runtime; not redistributed/installed by this dependency acquisition"
+  },
+  "xterm": {
+    "version": "6.0.0",
+    "package_url": "https://registry.npmjs.org/@xterm/xterm/-/xterm-6.0.0.tgz",
+    "integrity": "sha512-TQwDdQGtwwDt+2cgKDLn0IRaSxYu1tSUjgKarSDkUM0ZNiSRXFpjxEsvc/Zgc5kq5omJ+V0a8/kIM2WD3sMOYg==",
+    "sha256": "908e66e04af6c8dc6b00dd3b54de088e2e81e5ed866284fd6c2fb3c2d1c7a3f6",
+    "license": "MIT; original LICENSE retained"
+  },
+  "addon_fit": {
+    "version": "0.11.0",
+    "package_url": "https://registry.npmjs.org/@xterm/addon-fit/-/addon-fit-0.11.0.tgz",
+    "integrity": "sha512-jYcgT6xtVYhnhgxh3QgYDnnNMYTcf8ElbxxFzX0IZo+vabQqSPAjC3c1wJrKB5E19VwQei89QCiZZP86DCPF7g==",
+    "sha256": "26003b4517a132b64e4ff228fd88a5fda3fff5e606c76093f6dcff772e9ecec0",
+    "license": "MIT; original LICENSE retained"
+  },
+  "unicode_graphemes": {
+    "version": "0.4.0",
+    "package_url": "https://registry.npmjs.org/@xterm/addon-unicode-graphemes/-/addon-unicode-graphemes-0.4.0.tgz",
+    "integrity": "sha512-9+/CqwbKcnlkJU4d3wIgO+wjsL8f6vyz+UwUWLu6nADQz8Gr8ONqGCJfdDjIdI+yYZLABQqQy47FzEM6AWELjw==",
+    "sha256": "293ff2ccc3f8fb0297606f2a135e7649fb20bc6d99806f8615d3a19fbcf16fc6",
+    "license": "MIT; original LICENSE retained",
+    "experimental": true,
+    "scope": "Fixed xterm6 Unicode15 grapheme/cell-width provider, needed to match native OMP emoji/grapheme cursor geometry. Upstream labels experimental; exact target cases require actual rendered-width proof."
+  },
+  "selected_files_sha256": {
+    "native/Dependencies/WebView2/1.0.4314.35/Microsoft.Web.WebView2.Core.dll": "acdd517b951829f763d1255f32df1e6a936cb8623a7ebff6b8b24172dede6bd6",
+    "native/Dependencies/WebView2/1.0.4314.35/Microsoft.Web.WebView2.Wpf.dll": "6fb5e54de6d5a27c069e0bbb9601cc8215130c634deb79856e03979d290dab15",
+    "native/Dependencies/WebView2/1.0.4314.35/WebView2Loader.dll": "d3fce90bdeecb08596e377dea6a316354dd8949e32ff09b89d51be00c14e21b6",
+    "native/Dependencies/WebView2/1.0.4314.35/LICENSE.txt": "0af8f1b807512aae39c2ac1aa4d0cae65cabecb6fd554b8439a5162a0d6eca55",
+    "native/Dependencies/WebView2/1.0.4314.35/NOTICE.txt": "106423785c5b7eba0a8e61d1837f2132e9c828e20ad530f565d981c1df60dd90",
+    "native/HWPReview.Native/TerminalAssets/vendor/xterm/xterm.js": "14903579ff54664cd72f8e8699e6961a6272c21863ec1c3b118cdc8af5d4a972",
+    "native/HWPReview.Native/TerminalAssets/vendor/xterm/xterm.css": "854a7c0fb70e8b1a083c16797ab827299fb18744f5ad34f227b48337e33293c6",
+    "native/HWPReview.Native/TerminalAssets/vendor/xterm/LICENSE": "b569f629d00f2626a8100df2a1798210535621e42164dfd426a6fe5aac7b0ccd",
+    "native/HWPReview.Native/TerminalAssets/vendor/xterm/package.json": "f5a0dde40a146d6c7a86b22daf6e5740517e5d708ec1d162197e0445431d8f4f",
+    "native/HWPReview.Native/TerminalAssets/vendor/addon-fit/addon-fit.js": "ba3ea256ce0620a0992a197d6c9baea64823fc93d8da07a9e366ca9943c18527",
+    "native/HWPReview.Native/TerminalAssets/vendor/addon-fit/LICENSE": "e256f01188af527e4d06d21d06fbf785ae9c50d4b328bf03cbe0ba7f0aa4228f",
+    "native/HWPReview.Native/TerminalAssets/vendor/addon-fit/package.json": "2f1016c5683f76ac1250c466afc29164bc82da7c2ef224c7d5ab83397edf1637",
+    "native/HWPReview.Native/TerminalAssets/vendor/unicode-graphemes/addon-unicode-graphemes.js": "8e7f926f4def5733a190b80cff5cbaa550404e143b0750962f7d756138203cb8",
+    "native/HWPReview.Native/TerminalAssets/vendor/unicode-graphemes/LICENSE": "a26afeeba9ab0a19502a73df658d8fb09186d0906c81af6c04d334064971e81f",
+    "native/HWPReview.Native/TerminalAssets/vendor/unicode-graphemes/package.json": "ee10d5603022e76ebd3b83b64bb5f37e3e104f7b49f794f59dd4540607c4da8f"
+  },
+  "provenance": "Pinned official HTTPS package archives, no lifecycle scripts/build hooks executed; original archives retained as release source material outside real document folders",
+  "native_omp": "External installed native executable, not bundled with auth/config or binaries"
+}

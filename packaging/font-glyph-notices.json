@@ -1,0 +1,543 @@
+{
+  "contract": "hwp-font-glyph-notices-v1",
+  "nerd_fonts": {
+    "version": "3.5.1",
+    "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+    "metadata_url": "https://api.github.com/repos/ryanoasis/nerd-fonts/git/trees/v3.5.1?recursive=1"
+  },
+  "notices": [
+    {
+      "component": "Nerd Fonts aggregate",
+      "declared_upstream_version": "3.5.1",
+      "notice_path": "packaging/licenses/Nerd-Fonts-3.5.1-LICENSE.txt",
+      "source_repository": "ryanoasis/nerd-fonts",
+      "source_ref": "v3.5.1",
+      "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+      "source_path": "LICENSE",
+      "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/LICENSE",
+      "git_blob_sha1": "d163912b383cac468b3052e60ad4998e80046cc7",
+      "byte_count": 6200,
+      "sha256": "1f6ad4edae6479aaace3112ede5279a23284ae54b2a34db66357aef5f64df160"
+    },
+    {
+      "component": "Codicons",
+      "declared_upstream_version": "0.0.45",
+      "notice_path": "packaging/licenses/Nerd-Fonts-3.5.1-Codicons-LICENSE.txt",
+      "source_repository": "ryanoasis/nerd-fonts",
+      "source_ref": "v3.5.1",
+      "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+      "source_path": "src/glyphs/codicons/LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/codicons/LICENSE.txt",
+      "git_blob_sha1": "085c3ca0c4920beedbf179f7987e705aec84115b",
+      "byte_count": 19047,
+      "sha256": "d6239afa918961b465b07bf7411cbe34ff6685854f58553db7966f4881a0211f"
+    },
+    {
+      "component": "Font Awesome",
+      "declared_upstream_version": "6.5.1",
+      "notice_path": "packaging/licenses/Nerd-Fonts-3.5.1-Font-Awesome-LICENSE.txt",
+      "source_repository": "ryanoasis/nerd-fonts",
+      "source_ref": "v3.5.1",
+      "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+      "source_path": "src/glyphs/font-awesome/LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/font-awesome/LICENSE.txt",
+      "git_blob_sha1": "cc557ece45db3719d26f8f6e0182d89651b76062",
+      "byte_count": 7427,
+      "sha256": "de784a808496d49f5f80dd9d1d6e9a51cff712cfbc339e7c25155631ae3cdb5d"
+    },
+    {
+      "component": "MaterialDesign",
+      "declared_upstream_version": "Oct 6, 2022",
+      "notice_path": "packaging/licenses/Nerd-Fonts-3.5.1-MaterialDesign-LICENSE.txt",
+      "source_repository": "ryanoasis/nerd-fonts",
+      "source_ref": "v3.5.1",
+      "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+      "source_path": "src/glyphs/materialdesign/LICENSE",
+      "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/materialdesign/LICENSE",
+      "git_blob_sha1": "382f8a138afaaefe9ca2cfa80d33317f7814d997",
+      "byte_count": 992,
+      "sha256": "3bae6305bcaa6d10219b999f65c342034c2d40b1c0e8567fa08605e73ccba829"
+    },
+    {
+      "component": "Octicons",
+      "declared_upstream_version": "18.3.0",
+      "notice_path": "packaging/licenses/Nerd-Fonts-3.5.1-Octicons-LICENSE.txt",
+      "source_repository": "ryanoasis/nerd-fonts",
+      "source_ref": "v3.5.1",
+      "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+      "source_path": "src/glyphs/octicons/LICENSE",
+      "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/octicons/LICENSE",
+      "git_blob_sha1": "163074d5b43ac314f9db311945cb4c19fd0c3d44",
+      "byte_count": 1068,
+      "sha256": "4f886642f9e8d99eeadd484acdac011c3fde8a338faf52f5ca1408c13b9a9b63"
+    },
+    {
+      "component": "Pomicons",
+      "declared_upstream_version": "1.001",
+      "notice_path": "packaging/licenses/Nerd-Fonts-3.5.1-Pomicons-LICENSE.txt",
+      "source_repository": "ryanoasis/nerd-fonts",
+      "source_ref": "v3.5.1",
+      "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+      "source_path": "src/glyphs/pomicons/LICENSE",
+      "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/pomicons/LICENSE",
+      "git_blob_sha1": "5dd70fa0e0bc67c638079585bdb8d56e0648ff87",
+      "byte_count": 4395,
+      "sha256": "cb4797a9745683f287c28833db596e9d68ec43082d59359b3a49c504f0f610ce"
+    },
+    {
+      "component": "Powerline Extra",
+      "declared_upstream_version": "1.200",
+      "notice_path": "packaging/licenses/Nerd-Fonts-3.5.1-Powerline-Extra-LICENSE.txt",
+      "source_repository": "ryanoasis/nerd-fonts",
+      "source_ref": "v3.5.1",
+      "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+      "source_path": "src/glyphs/powerline-extra/LICENSE",
+      "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/powerline-extra/LICENSE",
+      "git_blob_sha1": "c71d82753460a6c580966fd5f5a3da268ed5a974",
+      "byte_count": 1072,
+      "sha256": "544307a58e6826c24145b2af1c3578b53e2e21ae0e6c67ab4c6abd544304d26a"
+    },
+    {
+      "component": "Powerline Symbols",
+      "declared_upstream_version": "1.000 (ca 2013)",
+      "notice_path": "packaging/licenses/Nerd-Fonts-3.5.1-Powerline-Symbols-LICENSE.txt",
+      "source_repository": "ryanoasis/nerd-fonts",
+      "source_ref": "v3.5.1",
+      "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+      "source_path": "src/glyphs/powerline-symbols/LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/powerline-symbols/LICENSE.txt",
+      "git_blob_sha1": "23b2ab298f959223a99ce8f9a7f7fb50e6c9ed39",
+      "byte_count": 1132,
+      "sha256": "46d5355e4734468135d8e4a30d0916292cc4df2b3ec30aa68c866f82497933be"
+    },
+    {
+      "component": "Weather Icons",
+      "declared_upstream_version": "2.0.10 (1.100)",
+      "notice_path": "packaging/licenses/Nerd-Fonts-3.5.1-Weather-Icons-OFL.txt",
+      "source_repository": "ryanoasis/nerd-fonts",
+      "source_ref": "v3.5.1",
+      "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+      "source_path": "src/glyphs/weather-icons/OFL.txt",
+      "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/weather-icons/OFL.txt",
+      "git_blob_sha1": "fd295ff85e40801883186c705e94f9e504d9f96c",
+      "byte_count": 4692,
+      "sha256": "69cdedc8a4f57a30d68e4f045af8b9cce0ec3b1a6e7eec1ad41737c894f26790"
+    },
+    {
+      "component": "Weather Icons",
+      "declared_upstream_version": "2.0.10 (1.100)",
+      "notice_path": "packaging/licenses/Nerd-Fonts-3.5.1-Weather-Icons-OFL-FAQ.txt",
+      "source_repository": "ryanoasis/nerd-fonts",
+      "source_ref": "v3.5.1",
+      "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+      "source_path": "src/glyphs/weather-icons/OFL-FAQ.txt",
+      "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/weather-icons/OFL-FAQ.txt",
+      "git_blob_sha1": "e058b7906f5184a4811843f59c369c4b1e33b17e",
+      "byte_count": 59071,
+      "sha256": "8acd621722e71dc89de0087a264497b8964d240eedc53677f6344ab20ce36fd7"
+    },
+    {
+      "component": "Devicons",
+      "declared_upstream_version": "2.17.0",
+      "source_repository": "devicons/devicon",
+      "source_commit": "54cfe13ac10eaa1ef817a343ab0a9437eb3c2e08",
+      "source_path": "LICENSE",
+      "url": "https://raw.githubusercontent.com/devicons/devicon/54cfe13ac10eaa1ef817a343ab0a9437eb3c2e08/LICENSE",
+      "git_blob_sha1": "fcc9b6677248224a60d060ccc6851eb420fa003d",
+      "byte_count": 1072,
+      "sha256": "121194741d4a915b9f5890fdd6dd95121f9b1f816517c792358d72d7c838d664",
+      "notice_path": "packaging/licenses/Nerd-Fonts-3.5.1-Devicons-LICENSE.txt"
+    },
+    {
+      "component": "Seti and original",
+      "declared_upstream_version": "0.8.1",
+      "source_repository": "jesseweed/seti-ui",
+      "source_commit": "6c358eb9ce5cc20bccd72cc4d7179fd485cd8fe7",
+      "source_path": "LICENSE.md",
+      "url": "https://raw.githubusercontent.com/jesseweed/seti-ui/6c358eb9ce5cc20bccd72cc4d7179fd485cd8fe7/LICENSE.md",
+      "git_blob_sha1": "0686d9e64771ecfe3d755fbc412be64a3a4b2a77",
+      "byte_count": 1054,
+      "sha256": "d4d2d888c6a0a220a7b0e2d6013cf37539b0e05ef937002b3b33bdb364575b88",
+      "notice_path": "packaging/licenses/Nerd-Fonts-3.5.1-Seti-LICENSE.txt"
+    },
+    {
+      "component": "Power Symbols IEC",
+      "declared_upstream_version": "Feb 2015",
+      "source_repository": "jloughry/Unicode",
+      "source_commit": "41bf268c900a42001696a09496e2468728fb4c7f",
+      "source_path": "LICENSE.txt",
+      "url": "https://raw.githubusercontent.com/jloughry/Unicode/41bf268c900a42001696a09496e2468728fb4c7f/LICENSE.txt",
+      "git_blob_sha1": "f2d63f66d2b770cd0bea2bd283fda802fe30eb2f",
+      "byte_count": 1078,
+      "sha256": "11aef1cdf2d58d822e6857e2574870ccc59d4900052bf5c098e319d750e7ac3d",
+      "notice_path": "packaging/licenses/Nerd-Fonts-3.5.1-Power-Symbols-IEC-LICENSE.txt",
+      "payload_identity_evidence": {
+        "nerd_fonts_path": "src/glyphs/Unicode_IEC_symbol_font.otf",
+        "upstream_path": "Unicode_IEC_symbol_font.otf",
+        "matching_git_blob_sha1": "4b84f6162c8ed329346307a1779c0e794b70ebb2",
+        "font_bytes_downloaded": false
+      }
+    },
+    {
+      "component": "extraglyphs (Hack source notice; exact extraction revision unresolved)",
+      "declared_upstream_version": "table: unspecified (-)",
+      "notice_path": "packaging/licenses/Nerd-Fonts-3.5.1-Hack-LICENSE.txt",
+      "source_repository": "ryanoasis/nerd-fonts",
+      "source_ref": "v3.5.1",
+      "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+      "source_path": "src/unpatched-fonts/Hack/LICENSE.md",
+      "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/unpatched-fonts/Hack/LICENSE.md",
+      "git_blob_sha1": "08927e504fce744f928c584c6e4a07328f2e94ed",
+      "byte_count": 3744,
+      "sha256": "1f61bb7c790c59b4b0ecdf304628b94e42ae4c8020094a8c3da73381ab212623"
+    },
+    {
+      "component": "MaterialDesign",
+      "declared_upstream_version": "Oct 6, 2022",
+      "license_version": "Apache License 2.0, January 2004",
+      "notice_path": "packaging/licenses/Nerd-Fonts-3.5.1-MaterialDesign-Apache-2.0.txt",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+      "git_blob_sha1": null,
+      "byte_count": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "relationship": "Complete official text of Apache 2.0 linked by NerdFonts pinned MaterialDesign LICENSE; no supplemental copyright invented."
+    },
+    {
+      "component": "Font Awesome Extension",
+      "declared_upstream_version": "0.0.3",
+      "notice_path": "packaging/licenses/Font-Awesome-Extension-09d8024-LICENCE.txt",
+      "source_repository": "AndreLZGava/font-awesome-extension",
+      "source_commit": "09d80249058ee8018a45da30add4339289dbb466",
+      "source_path": "LICENCE",
+      "url": "https://raw.githubusercontent.com/AndreLZGava/font-awesome-extension/09d80249058ee8018a45da30add4339289dbb466/LICENCE",
+      "git_blob_sha1": "a2f736647822bec9215890f6a3bde699831f8ee5",
+      "byte_count": 1073,
+      "sha256": "b47b15d771c4507a75ff65beca3a78168d6af4cca9b45177a1aa817139c64ba5",
+      "relationship": "Later original MIT notice, not a notice present in v.0.0.3. Its unchanged font blob is identical in the exact tag, the license commit and Nerd Fonts v3.5.1.",
+      "payload_identity_evidence": {
+        "exact_tag_commit": "bbfbc8c7e21a206e24489b30ddc695995913169e",
+        "exact_tag_notice_absent": true,
+        "upstream_path": "fonts/font-awesome-extension.ttf",
+        "nerd_fonts_path": "src/glyphs/font-awesome-extension.ttf",
+        "matching_git_blob_sha1": "5128ce4fdf910529040097b7d668f53da37a7d1a",
+        "byte_count": 49316,
+        "metadata_urls": [
+          "https://api.github.com/repos/AndreLZGava/font-awesome-extension/git/trees/bbfbc8c7e21a206e24489b30ddc695995913169e?recursive=1",
+          "https://api.github.com/repos/AndreLZGava/font-awesome-extension/git/trees/09d80249058ee8018a45da30add4339289dbb466?recursive=1",
+          "https://api.github.com/repos/ryanoasis/nerd-fonts/contents/src/glyphs?ref=v3.5.1"
+        ],
+        "font_bytes_downloaded": false
+      }
+    }
+  ],
+  "components": [
+    {
+      "component": "Codicons",
+      "new_notice_paths": [
+        "packaging/licenses/Nerd-Fonts-3.5.1-Codicons-LICENSE.txt"
+      ],
+      "source_records": [
+        {
+          "source_repository": "ryanoasis/nerd-fonts",
+          "source_ref": "v3.5.1",
+          "source_commit": null,
+          "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+          "source_path": "src/glyphs/codicons/LICENSE.txt",
+          "git_blob_sha1": "085c3ca0c4920beedbf179f7987e705aec84115b",
+          "byte_count": 19047,
+          "sha256": "d6239afa918961b465b07bf7411cbe34ff6685854f58553db7966f4881a0211f",
+          "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/codicons/LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "component": "Devicons",
+      "new_notice_paths": [
+        "packaging/licenses/Nerd-Fonts-3.5.1-Devicons-LICENSE.txt"
+      ],
+      "source_records": [
+        {
+          "source_repository": "devicons/devicon",
+          "source_ref": null,
+          "source_commit": "54cfe13ac10eaa1ef817a343ab0a9437eb3c2e08",
+          "root_tree_sha": null,
+          "source_path": "LICENSE",
+          "git_blob_sha1": "fcc9b6677248224a60d060ccc6851eb420fa003d",
+          "byte_count": 1072,
+          "sha256": "121194741d4a915b9f5890fdd6dd95121f9b1f816517c792358d72d7c838d664",
+          "url": "https://raw.githubusercontent.com/devicons/devicon/54cfe13ac10eaa1ef817a343ab0a9437eb3c2e08/LICENSE"
+        }
+      ]
+    },
+    {
+      "component": "extraglyphs",
+      "new_notice_paths": [
+        "packaging/licenses/Nerd-Fonts-3.5.1-Hack-LICENSE.txt"
+      ],
+      "source_records": [
+        {
+          "source_repository": "ryanoasis/nerd-fonts",
+          "source_ref": "v3.5.1",
+          "source_commit": null,
+          "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+          "source_path": "src/unpatched-fonts/Hack/LICENSE.md",
+          "git_blob_sha1": "08927e504fce744f928c584c6e4a07328f2e94ed",
+          "byte_count": 3744,
+          "sha256": "1f61bb7c790c59b4b0ecdf304628b94e42ae4c8020094a8c3da73381ab212623",
+          "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/unpatched-fonts/Hack/LICENSE.md"
+        }
+      ],
+      "aggregate_terms_path": "packaging/licenses/Nerd-Fonts-3.5.1-LICENSE.txt",
+      "unresolved": true
+    },
+    {
+      "component": "Font Awesome",
+      "new_notice_paths": [
+        "packaging/licenses/Nerd-Fonts-3.5.1-Font-Awesome-LICENSE.txt"
+      ],
+      "source_records": [
+        {
+          "source_repository": "ryanoasis/nerd-fonts",
+          "source_ref": "v3.5.1",
+          "source_commit": null,
+          "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+          "source_path": "src/glyphs/font-awesome/LICENSE.txt",
+          "git_blob_sha1": "cc557ece45db3719d26f8f6e0182d89651b76062",
+          "byte_count": 7427,
+          "sha256": "de784a808496d49f5f80dd9d1d6e9a51cff712cfbc339e7c25155631ae3cdb5d",
+          "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/font-awesome/LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "component": "Font Awesome Extension",
+      "new_notice_paths": [],
+      "source_records": [],
+      "unresolved": true
+    },
+    {
+      "component": "Font Logos",
+      "new_notice_paths": [],
+      "source_records": [
+        {
+          "component": "Font Logos",
+          "declared_upstream_version": "1.3.0",
+          "notice_path": "packaging/licenses/Font-Logos-1.3.0-LICENSE.txt",
+          "source_repository": "lukas-w/font-logos",
+          "source_ref": "v1.3.0",
+          "source_commit": "e92426e28ee5bbf4ca328b33e3a393b7a5045f01",
+          "source_path": "LICENSE",
+          "url": "https://raw.githubusercontent.com/lukas-w/font-logos/e92426e28ee5bbf4ca328b33e3a393b7a5045f01/LICENSE",
+          "git_blob_sha1": "cf1ab25da0349f84a3fdd40032f0ce99db813b8b",
+          "expected_git_blob_sha1": "cf1ab25da0349f84a3fdd40032f0ce99db813b8b",
+          "byte_count": 1210,
+          "sha256": "88d9b4eb60579c191ec391ca04c16130572d7eedc4a86daa58bf28c6e14c9bcd",
+          "matches_exact_upstream_blob": true,
+          "modified": false
+        }
+      ],
+      "existing_notice_paths": [
+        "packaging/licenses/Font-Logos-1.3.0-LICENSE.txt"
+      ]
+    },
+    {
+      "component": "MaterialDesign",
+      "new_notice_paths": [
+        "packaging/licenses/Nerd-Fonts-3.5.1-MaterialDesign-LICENSE.txt",
+        "packaging/licenses/Nerd-Fonts-3.5.1-MaterialDesign-Apache-2.0.txt"
+      ],
+      "source_records": [
+        {
+          "source_repository": "ryanoasis/nerd-fonts",
+          "source_ref": "v3.5.1",
+          "source_commit": null,
+          "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+          "source_path": "src/glyphs/materialdesign/LICENSE",
+          "git_blob_sha1": "382f8a138afaaefe9ca2cfa80d33317f7814d997",
+          "byte_count": 992,
+          "sha256": "3bae6305bcaa6d10219b999f65c342034c2d40b1c0e8567fa08605e73ccba829",
+          "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/materialdesign/LICENSE"
+        },
+        {
+          "source_repository": null,
+          "source_ref": null,
+          "source_commit": null,
+          "root_tree_sha": null,
+          "source_path": null,
+          "git_blob_sha1": null,
+          "byte_count": 11358,
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "url": "https://www.apache.org/licenses/LICENSE-2.0.txt"
+        }
+      ]
+    },
+    {
+      "component": "Octicons",
+      "new_notice_paths": [
+        "packaging/licenses/Nerd-Fonts-3.5.1-Octicons-LICENSE.txt"
+      ],
+      "source_records": [
+        {
+          "source_repository": "ryanoasis/nerd-fonts",
+          "source_ref": "v3.5.1",
+          "source_commit": null,
+          "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+          "source_path": "src/glyphs/octicons/LICENSE",
+          "git_blob_sha1": "163074d5b43ac314f9db311945cb4c19fd0c3d44",
+          "byte_count": 1068,
+          "sha256": "4f886642f9e8d99eeadd484acdac011c3fde8a338faf52f5ca1408c13b9a9b63",
+          "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/octicons/LICENSE"
+        }
+      ]
+    },
+    {
+      "component": "Seti and original",
+      "new_notice_paths": [
+        "packaging/licenses/Nerd-Fonts-3.5.1-Seti-LICENSE.txt"
+      ],
+      "source_records": [
+        {
+          "source_repository": "jesseweed/seti-ui",
+          "source_ref": null,
+          "source_commit": "6c358eb9ce5cc20bccd72cc4d7179fd485cd8fe7",
+          "root_tree_sha": null,
+          "source_path": "LICENSE.md",
+          "git_blob_sha1": "0686d9e64771ecfe3d755fbc412be64a3a4b2a77",
+          "byte_count": 1054,
+          "sha256": "d4d2d888c6a0a220a7b0e2d6013cf37539b0e05ef937002b3b33bdb364575b88",
+          "url": "https://raw.githubusercontent.com/jesseweed/seti-ui/6c358eb9ce5cc20bccd72cc4d7179fd485cd8fe7/LICENSE.md"
+        }
+      ],
+      "aggregate_terms_path": "packaging/licenses/Nerd-Fonts-3.5.1-LICENSE.txt"
+    },
+    {
+      "component": "Pomicons",
+      "new_notice_paths": [
+        "packaging/licenses/Nerd-Fonts-3.5.1-Pomicons-LICENSE.txt"
+      ],
+      "source_records": [
+        {
+          "source_repository": "ryanoasis/nerd-fonts",
+          "source_ref": "v3.5.1",
+          "source_commit": null,
+          "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+          "source_path": "src/glyphs/pomicons/LICENSE",
+          "git_blob_sha1": "5dd70fa0e0bc67c638079585bdb8d56e0648ff87",
+          "byte_count": 4395,
+          "sha256": "cb4797a9745683f287c28833db596e9d68ec43082d59359b3a49c504f0f610ce",
+          "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/pomicons/LICENSE"
+        }
+      ]
+    },
+    {
+      "component": "Powerline Extra",
+      "new_notice_paths": [
+        "packaging/licenses/Nerd-Fonts-3.5.1-Powerline-Extra-LICENSE.txt"
+      ],
+      "source_records": [
+        {
+          "source_repository": "ryanoasis/nerd-fonts",
+          "source_ref": "v3.5.1",
+          "source_commit": null,
+          "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+          "source_path": "src/glyphs/powerline-extra/LICENSE",
+          "git_blob_sha1": "c71d82753460a6c580966fd5f5a3da268ed5a974",
+          "byte_count": 1072,
+          "sha256": "544307a58e6826c24145b2af1c3578b53e2e21ae0e6c67ab4c6abd544304d26a",
+          "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/powerline-extra/LICENSE"
+        }
+      ]
+    },
+    {
+      "component": "Powerline Symbols",
+      "new_notice_paths": [
+        "packaging/licenses/Nerd-Fonts-3.5.1-Powerline-Symbols-LICENSE.txt"
+      ],
+      "source_records": [
+        {
+          "source_repository": "ryanoasis/nerd-fonts",
+          "source_ref": "v3.5.1",
+          "source_commit": null,
+          "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+          "source_path": "src/glyphs/powerline-symbols/LICENSE.txt",
+          "git_blob_sha1": "23b2ab298f959223a99ce8f9a7f7fb50e6c9ed39",
+          "byte_count": 1132,
+          "sha256": "46d5355e4734468135d8e4a30d0916292cc4df2b3ec30aa68c866f82497933be",
+          "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/powerline-symbols/LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "component": "Power Symbols IEC",
+      "new_notice_paths": [
+        "packaging/licenses/Nerd-Fonts-3.5.1-Power-Symbols-IEC-LICENSE.txt"
+      ],
+      "source_records": [
+        {
+          "source_repository": "jloughry/Unicode",
+          "source_ref": null,
+          "source_commit": "41bf268c900a42001696a09496e2468728fb4c7f",
+          "root_tree_sha": null,
+          "source_path": "LICENSE.txt",
+          "git_blob_sha1": "f2d63f66d2b770cd0bea2bd283fda802fe30eb2f",
+          "byte_count": 1078,
+          "sha256": "11aef1cdf2d58d822e6857e2574870ccc59d4900052bf5c098e319d750e7ac3d",
+          "url": "https://raw.githubusercontent.com/jloughry/Unicode/41bf268c900a42001696a09496e2468728fb4c7f/LICENSE.txt"
+        }
+      ]
+    },
+    {
+      "component": "Weather Icons",
+      "new_notice_paths": [
+        "packaging/licenses/Nerd-Fonts-3.5.1-Weather-Icons-OFL.txt",
+        "packaging/licenses/Nerd-Fonts-3.5.1-Weather-Icons-OFL-FAQ.txt"
+      ],
+      "source_records": [
+        {
+          "source_repository": "ryanoasis/nerd-fonts",
+          "source_ref": "v3.5.1",
+          "source_commit": null,
+          "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+          "source_path": "src/glyphs/weather-icons/OFL.txt",
+          "git_blob_sha1": "fd295ff85e40801883186c705e94f9e504d9f96c",
+          "byte_count": 4692,
+          "sha256": "69cdedc8a4f57a30d68e4f045af8b9cce0ec3b1a6e7eec1ad41737c894f26790",
+          "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/weather-icons/OFL.txt"
+        },
+        {
+          "source_repository": "ryanoasis/nerd-fonts",
+          "source_ref": "v3.5.1",
+          "source_commit": null,
+          "root_tree_sha": "b894ea7803af6aade63d60a4381e006098ec9c4d",
+          "source_path": "src/glyphs/weather-icons/OFL-FAQ.txt",
+          "git_blob_sha1": "e058b7906f5184a4811843f59c369c4b1e33b17e",
+          "byte_count": 59071,
+          "sha256": "8acd621722e71dc89de0087a264497b8964d240eedc53677f6344ab20ce36fd7",
+          "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/weather-icons/OFL-FAQ.txt"
+        }
+      ]
+    }
+  ],
+  "unresolved": [
+    {
+      "component": "extraglyphs",
+      "declared_upstream_version": "-",
+      "reason": "The table/import message does not identify a complete extraction revision. The exact v3.5.1 extraglyphs.sfd header declares Hack3.003 and short hash3114f1256, which resolves to source-foundry/Hack3114f12568bb2edadaa63a6928fce38ee9c30660. This is an embedded source-version hint, not verified contour/source equality for every combined or later modified glyph. Exact extraction/combination provenance remains unverified. Captured Hack license includes both MIT and Bitstream Vera terms; do not collapse it to table MIT.",
+      "embedded_version_evidence": {
+        "source_path": "src/glyphs/extraglyphs.sfd",
+        "url": "https://raw.githubusercontent.com/ryanoasis/nerd-fonts/v3.5.1/src/glyphs/extraglyphs.sfd",
+        "git_blob_sha1": "15d08c7c9eb0be5429fc540d8b5ca1afb24fa900",
+        "byte_count": 62429,
+        "sha256": "7bbbf90b3fce478e3487a5358e90aa7cfa5d214b0f7be414c1fa00f10421697d",
+        "version_header": "3.003;[3114f1256]-release; ttfautohint (v1.7)",
+        "hack_commit_metadata_url": "https://api.github.com/repos/source-foundry/Hack/commits/3114f1256",
+        "combination_history_url": "https://github.com/ryanoasis/nerd-fonts/commit/41f91bcb4c7732264f02e3d7d2394bc19a4078c5"
+      },
+      "new_notice_paths": [
+        "packaging/licenses/Nerd-Fonts-3.5.1-Hack-LICENSE.txt"
+      ]
+    }
+  ],
+  "redistribution_ready": false,
+  "scope": "Original notice identification/provenance only; not legal certification, source-to-binary proof or recipient delivery. Font binaries are external and not bundled."
+}

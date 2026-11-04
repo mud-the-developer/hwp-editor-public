@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HWP 문서 검토</title>
+<style>
+:root{--ink:#1e293b;--muted:#64748b;--line:#dce3ed;--blue:#2563eb;--soft:#eff6ff;--offset:116px}
+*{box-sizing:border-box}body{margin:0;background:#edf1f7;color:var(--ink);font:14px "Segoe UI","Malgun Gothic",system-ui,sans-serif}
+button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}button,input,select,textarea{border:1px solid #cbd5e1;border-radius:7px;padding:8px;background:white;color:var(--ink)}
+button:hover:not(:disabled){background:#f1f5f9}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid #93b4fc;outline-offset:2px}
+button.primary{background:var(--blue);color:white;border-color:var(--blue)}button.primary:hover:not(:disabled){background:#1d4ed8}.icon-button{min-width:32px;padding:6px;font-size:17px;line-height:1.1}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}[hidden]{display:none!important}
+header{padding:14px 22px;background:#162438;color:white;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;box-shadow:0 2px 9px #16243818}
+.brand{display:flex;gap:12px;align-items:center;min-width:0}.brand-mark{display:grid;place-items:center;background:#ffffff17;border:1px solid #ffffff24;border-radius:10px;width:44px;height:44px;font-size:12px;font-weight:700;letter-spacing:.5px;flex-shrink:0}
+h1{font-size:19px;margin:0 0 4px;font-weight:650}.document-name{font-size:11px;color:#b8c6da;max-width:650px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.header-status{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12px}.connection{display:flex;align-items:center;gap:6px}.connection:before{content:'';width:7px;height:7px;background:#94a3b8;border-radius:50%}.connection.online:before{background:#5ee0a4}.connection.offline:before{background:#fda4af}.connection.offline{color:#fecdd3}
+.badge{font-size:11px;background:#e8efff;color:#335da2;padding:4px 7px;border-radius:5px;white-space:nowrap}.badge.dark{background:#ffffff13;color:#d5e1f5;border:1px solid #ffffff18}.locked{background:#fff2df;color:#935b14}.note{font-size:12px;color:var(--muted);line-height:1.65;margin:8px 0}.section-kicker{color:#72849b;font-size:10px;font-weight:700;letter-spacing:.8px}
+main{display:grid;grid-template-columns:180px minmax(360px,1fr) 370px;gap:14px;max-width:1900px;margin:16px auto;padding:0 18px;align-items:start}.panel{background:white;border:1px solid var(--line);border-radius:12px;min-width:0;box-shadow:0 2px 5px #20355304}
+.page-sidebar{height:calc(100vh - var(--offset));height:calc(100dvh - var(--offset));padding:12px;display:flex;flex-direction:column;position:sticky;top:16px;min-height:0}.sidebar-heading{display:flex;align-items:center;justify-content:space-between;gap:4px;margin:4px 0 12px}.sidebar-heading h2{font-size:15px;margin:0}.search-wrap{position:relative}.search-wrap input{width:100%;padding-right:28px;font-size:12px}.search-wrap button{position:absolute;right:3px;top:3px;border:0;padding:4px;background:transparent;color:#64748b;font-size:16px}
+#page-filter{width:100%;font-size:12px;margin-top:7px}.list-info{display:flex;justify-content:space-between;gap:4px;font-size:10px;color:var(--muted);margin:10px 0 7px}.thumbnail-list{display:flex;flex-direction:column;gap:10px;flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:#a0adc0 #f0f3f8;padding:3px 5px 3px 1px}
+.thumbnail-button{width:100%;flex-shrink:0;padding:7px;text-align:left;background:#f8fafc;border:2px solid #e4e9f1;border-radius:8px;transition:border-color .12s,background .12s}.thumbnail-button:hover:not(:disabled){border-color:#9eb9ed;background:#f0f5ff}.thumbnail-button.active{border-color:var(--blue);background:#eaf1ff;box-shadow:0 0 0 1px #2563eb22}.thumbnail-button img{display:block;width:100%;height:auto;object-fit:contain;background:white;box-shadow:0 1px 4px #34496522}.thumbnail-caption{display:flex;justify-content:space-between;gap:3px;flex-wrap:wrap;align-items:center;font-size:11px;margin-top:7px}.thumbnail-meta{font-size:9px;color:var(--muted)}.has-comments .thumbnail-meta{color:var(--blue);font-weight:650}.is-protected .thumbnail-meta{color:#935b14}.thumbnail-snippet{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;font-size:10px;line-height:1.5;color:var(--muted);margin-top:5px}.sidebar-footer{font-size:10px;color:var(--muted);margin:10px 0 0;line-height:1.6}.empty-list{text-align:center;color:var(--muted);font-size:12px;padding:16px 3px;line-height:1.7}
+.document-panel{height:calc(100vh - var(--offset));height:calc(100dvh - var(--offset));display:flex;flex-direction:column;overflow:hidden}.viewer-toolbar{padding:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--line)}.toolbar-group{display:flex;gap:6px;align-items:center}#page-number{width:56px;padding:6px;text-align:center;font-size:13px}#total{font-size:12px;color:var(--muted)}#zoom{font-size:12px;padding:6px;max-width:96px}#zoom-readout{font-size:10px;color:var(--muted);min-width:28px}.document-viewport{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;background:#e4eaf2;padding:18px;scrollbar-gutter:stable;position:relative}.page{position:relative;margin:0 auto;line-height:0;box-shadow:0 2px 10px #283c5424;background:white}.page img{width:100%;display:block;cursor:crosshair}.page svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.dot{position:absolute;width:14px;height:14px;border:2px solid white;border-radius:50%;background:#f97316;transform:translate(-50%,-50%);pointer-events:none;box-shadow:0 1px 5px #1e293b66}.image-message{position:sticky;left:0;top:25%;text-align:center;color:var(--muted);line-height:1.7;padding:20px;font-size:13px}.viewer-footer{padding:9px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:10px;color:var(--muted);border-top:1px solid var(--line);background:#fbfcfe}
+.instruction-panel{max-height:calc(100vh - var(--offset));max-height:calc(100dvh - var(--offset));overflow-y:auto;padding:16px;scrollbar-width:thin;position:sticky;top:16px}.section-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:4px 0 8px}.section-heading h2{font-size:16px;margin:0}.safety-note{font-size:11px;line-height:1.65;color:#61718a;background:#f4f7fc;padding:9px 10px;border-radius:7px;margin:10px 0 14px}.composer label{display:block;font-weight:600;font-size:12px;margin:12px 0 6px}.composer select,.composer textarea{width:100%}.composer select{font-size:12px}.composer textarea{min-height:150px;resize:vertical;padding:10px;line-height:1.7;font-size:13px}.composer textarea:focus{border-color:#91b2f7}.target-preview{color:var(--muted);font-size:11px;line-height:1.6;max-height:54px;overflow:auto;margin:6px 0}.composer-meta{display:flex;justify-content:space-between;gap:6px;margin:7px 0;font-size:10px;color:var(--muted)}.draft-label.dirty{color:#b7791f}.draft-label.saved{color:#19865c}.composer-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.composer-actions button{font-size:12px}.composer-actions .primary{flex:1;min-width:100px}.status{font-size:12px;line-height:1.65;margin:10px 0;overflow-wrap:anywhere}.status.error{padding:8px 10px;color:#a52d39;background:#fff1f2;border:1px solid #ffe0e5;border-radius:7px}.status.success{color:#178259}.technical{font-size:10px;color:var(--muted);margin:10px 0}code{font-size:10px;overflow-wrap:anywhere}
+.comments-section,.proposal{border-top:1px solid var(--line);margin-top:18px;padding-top:14px}.comments-section h3{font-size:12px;margin:0}.comment{border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:9px;background:#fcfdff}.comment.editing{border-color:#94b4f4;background:#f4f8ff}.comment-head{display:flex;justify-content:space-between;gap:6px;align-items:center;font-size:10px;color:var(--muted)}.comment-actions{display:flex;gap:3px}.comment-actions button{font-size:10px;padding:3px 5px;background:transparent;border-color:transparent}.comment-delete{color:#a94453}.comment p{font-size:12px;line-height:1.75;white-space:pre-wrap;overflow-wrap:anywhere;margin:7px 0 3px}.comment small{font-size:10px;color:var(--muted)}.empty-comments{font-size:11px;color:var(--muted);line-height:1.7;padding:8px 0}
+.proposal-top{display:flex;align-items:center;justify-content:space-between;gap:6px}.proposal-top h2{font-size:14px;margin:0}#reload{font-size:10px;padding:5px 7px}.diff{border:1px solid var(--line);border-radius:8px;padding:10px;margin-top:9px;overflow-wrap:anywhere}.diff-head{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:11px}.diff-head button{font-size:10px;padding:3px 5px}.diff p{font-size:12px;line-height:1.7;white-space:pre-wrap;margin:8px 0;padding:7px;border-radius:5px}.old{background:#fff2df;color:#8a4b11;border-inline-start:3px solid #b87936}.new{background:#e8f2ff;color:#175c99;border-inline-start:3px double #5b8fbd}#approve{width:100%;font-size:12px;margin-top:12px}#proposal-list{max-height:360px;overflow:auto}.shortcut{font-size:10px;color:var(--muted);margin:12px 0 0}
+@keyframes hover-in{from{opacity:0}to{opacity:1}}.anchor-hover{fill:#60a5fa26;stroke:#60a5fa;stroke-dasharray:3 2;animation:hover-in .12s ease-out}.anchor-selected{fill:#3b82f626;stroke:#2563eb;stroke-width:1.5}#hover-hint{position:absolute;pointer-events:none;z-index:4;background:#172b45ef;color:white;border-radius:6px;padding:6px 9px;font-size:11px;line-height:1.5;overflow-wrap:anywhere;max-width:260px}.note-markers{position:absolute;inset:0;pointer-events:none;z-index:3}.note-pin{position:absolute;pointer-events:auto;transform:translate(-50%,-50%);width:28px;height:28px;padding:0;border-radius:50%;background:#ffcf60;border:2px solid white;box-shadow:0 2px 7px #452a1644;font-size:12px;font-weight:700;color:#624311}.note-pin.active{background:#f59e0b;outline:2px solid #b45309}.note-pin:hover:not(:disabled){background:#fbbf24;transform:translate(-50%,-50%) scale(1.12)}.comment{background:#fffdf5}.comment.focused{border-color:#eab64b}.note-focus{border:0;background:transparent;font-size:10px;padding:0;color:#8c681b}.new-note{font-size:11px;padding:5px 7px}.comparison-bar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--line);background:#fafcff}.comparison-bar select{font-size:11px;padding:5px;max-width:180px}.comparison-bar button{font-size:10px;padding:5px}.comparison-status{font-size:10px;color:var(--muted);line-height:1.5}.comparison-status.blocked{color:#b42337}.compare-container{display:grid;gap:12px;margin:0 auto;align-items:start}.compare-container.split{grid-template-columns:repeat(2,minmax(0,1fr))}.compare-container.diff{grid-template-columns:1fr}.compare-sheet{margin:0;min-width:0}.compare-sheet figcaption{font-size:11px;color:#52637b;line-height:1.6;background:#f8fafc;padding:8px}.compare-sheet img{display:block;width:100%;height:auto;background:white;box-shadow:0 2px 9px #24384f22}.compare-missing{font-size:12px;background:white;padding:40px 12px;line-height:1.8;color:#9b4351}
+@media(max-width:1100px){main{grid-template-columns:150px minmax(0,1fr)}.page-sidebar{grid-column:1;grid-row:1 / span 2}.document-panel{grid-column:2;grid-row:1;min-height:500px}.instruction-panel{grid-column:2;grid-row:2;position:static;max-height:none}.document-name{max-width:65vw}}
+@media(max-width:650px){:root{--offset:154px}header{padding:11px 12px;gap:9px}.brand-mark{display:none}h1{font-size:17px}.document-name{max-width:90vw;font-size:10px}.header-status{font-size:10px;gap:6px}main{grid-template-columns:104px minmax(0,1fr);padding:0 8px;margin:10px auto;gap:8px}.page-sidebar{padding:8px;top:10px}.sidebar-heading{flex-wrap:wrap}.sidebar-heading h2{font-size:12px}.badge{font-size:9px}.thumbnail-button{padding:5px}.thumbnail-caption{font-size:10px}.thumbnail-meta,.list-info,.sidebar-footer{font-size:9px}.search-wrap input,#page-filter{font-size:10px;padding:6px}.search-wrap input{padding-right:22px}.search-wrap button{padding:2px}.viewer-toolbar{padding:8px;gap:6px}.toolbar-group{gap:4px}#page-number{width:42px}.document-viewport{padding:10px}.viewer-footer{padding:7px 8px;font-size:9px}.instruction-panel{padding:12px}}
+.proposal-tools{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:12px 0}.bulk-confirm{display:flex;align-items:center;gap:6px;font-weight:600;color:#92400e}.apply-status{padding:10px;border-radius:8px;margin:10px 0;background:#fff7ed;color:#9a3412;border:1px solid #fdba74;white-space:pre-wrap}.proposal-review-dialog{width:min(1240px,calc(100vw - 24px));height:min(88vh,880px);max-width:none;max-height:none;padding:0;border:1px solid var(--line);border-radius:14px;color:var(--ink);box-shadow:0 20px 70px #0f172a55}.proposal-review-dialog[open]{display:flex;flex-direction:column}.proposal-review-dialog::backdrop{background:#0f172a77}.review-dialog-head,.review-dialog-foot{padding:14px 18px;background:#f8fafc;color:var(--ink);display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;flex-shrink:0}.review-dialog-head{border-bottom:1px solid var(--line)}.review-dialog-head h2{margin:0 0 4px;font-size:19px}.review-dialog-head p{margin:0;color:var(--muted)}.review-dialog-foot{border-top:1px solid var(--line)}.review-dialog-foot label{display:flex;gap:6px;align-items:center}.review-table-scroll{flex:1;min-height:0;overflow:auto;padding:0 12px}.review-table{width:100%;min-width:850px;border-collapse:collapse;table-layout:fixed}.review-table th,.review-table td{padding:12px 10px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);white-space:pre-wrap;overflow-wrap:anywhere}.review-table thead th{position:sticky;top:0;background:#eef2f7;z-index:1}.review-table th:first-child{width:210px}.review-table th:last-child{width:75px}.review-page-group th{background:#eff6ff;color:#1d4ed8}.review-table .old,.review-table .new{margin:0}.review-table .new{font-weight:600}.slot-preview{display:block;width:190px;height:76px;background:white;border:1px solid var(--line);margin:7px 0}.review-table small{display:block;color:var(--muted);font-size:11px}.review-table button{padding:4px 9px}.review-table input[type=checkbox]{width:19px;height:19px}.review-dialog-foot .primary{margin-left:auto}
+.review-check{display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;border-radius:7px;cursor:pointer}.review-check .check-caption{font-size:12px;margin-left:4px}.review-check:hover,.bulk-confirm:hover{background:#fff3d6}.bulk-confirm,.review-dialog-foot label{min-height:44px;padding:6px 8px;border-radius:7px;cursor:pointer}.native-region-ack,.native-bulk,#native-policy-confirm,#summary-policy-confirm{cursor:pointer;accent-color:#2563eb}.review-receipt{font-size:12px;line-height:1.6;padding:9px 12px;margin:0;border-bottom:1px solid var(--line);background:#eff6ff;color:#1d4ed8}.review-receipt.saved{background:#edf9f1;color:#20704b}
+/* Plain-language, progressive disclosure; backend approval gates are unchanged. */
+body{font-size:15px;line-height:1.65}button,input,select,textarea{font-family:inherit}button{min-height:40px}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #2563eb;outline-offset:3px}.note,.safety-note,.review-receipt,.target-preview{font-size:14px;line-height:1.75}.diff p{font-size:15px;line-height:1.8}.instruction-panel{padding:22px}.section-kicker{font-size:12px;color:#52647e;letter-spacing:.2px}.composer label{font-size:14px}.composer textarea{font-size:16px;line-height:1.75}.flow-guide{padding:16px;margin-bottom:22px;border:1px solid #cbdcf8;background:#f4f8ff;border-radius:12px}.flow-steps{list-style:none;display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:0;font-size:12px;color:#66758b}.flow-steps li[aria-current="step"]{font-weight:700;color:#1e40af}.flow-guide h2{word-break:keep-all;font-size:19px;line-height:1.5;margin:6px 0 8px}.flow-guide p{font-size:14px;color:#50617a;margin:0 0 12px}.eyebrow{font-size:12px;color:#50617a;font-weight:600}.flow-guide button{width:100%;min-height:44px}.flow-guide button:disabled{background:#f1f5f9;color:#66758b;opacity:1;cursor:not-allowed}.technical summary{min-height:34px;cursor:pointer;line-height:1.6}.policy-details{margin:10px 0;font-size:14px}.policy-details summary{cursor:pointer;font-weight:600}.plain-help{padding:12px;background:#eff6ff;border-radius:9px;font-size:14px;line-height:1.7}.plain-help strong{display:block}.review-table .review-text{font-size:15px;line-height:1.75}.safety-note label{line-height:1.65}.proposal-tools{margin-top:14px}
+.text-draft{margin:14px 0;padding:12px;border:1px solid #cbdcf8;border-radius:9px;background:#f8fbff}.text-draft summary{cursor:pointer;font-weight:600;min-height:40px}.text-draft label{display:block;margin:10px 0 4px;font-weight:600}.text-draft select,.text-draft textarea{width:100%;font-size:14px}.text-draft textarea{min-height:88px;line-height:1.7;resize:vertical}.text-draft .old{max-height:110px;overflow:auto;white-space:pre-wrap;padding:8px}.text-draft .composer-actions button{flex:1}.text-draft-list{max-height:320px;overflow:auto}.draft-card{margin:10px 0;border:1px solid var(--line);background:white;padding:10px;border-radius:8px}.draft-card p{white-space:pre-wrap;overflow-wrap:anywhere}.draft-card button{margin-right:8px}.draft-status{white-space:pre-wrap;font-size:13px;margin:10px 0;color:#8b5c16}
+@media(max-width:760px){.instruction-panel{padding:16px}.flow-guide{padding:14px}.review-dialog-foot button{min-height:44px}}
+/* Workspace skin; document image geometry and approval controls stay unchanged. */
+:root{--ink:#172033;--muted:#64748b;--line:#e2e8f0;--soft:#eff6ff}
+body{background:#f5f7fa;letter-spacing:-.15px}body>header{background:white;color:var(--ink);border-bottom:1px solid var(--line);box-shadow:none;padding:14px 24px}
+.brand-mark{background:#2563eb;color:white;border:0;border-radius:12px;width:42px;height:42px}.brand h1{font-size:18px;letter-spacing:-.4px}.document-name{color:#64748b;font-size:12px}.header-status{color:#526078;gap:12px}.header-status a{color:#526078;text-decoration:none;font-size:12px}.header-status a:hover{text-decoration:underline}.badge.dark{background:#f1f5f9;color:#475569;border-color:#e2e8f0}.connection.offline{color:#b42318}.connection.online:before{background:#16a34a}
+main{grid-template-columns:180px minmax(360px,1fr) 370px;gap:16px;margin:16px auto}.panel{border-radius:14px;box-shadow:0 1px 3px #0f172a04}.instruction-panel{padding:18px}
+button,input,select,textarea{border-color:#d8e0ea;border-radius:9px}button{font-weight:550;min-height:40px;transition:background .12s,border-color .12s}button:hover:not(:disabled){border-color:#b8c8df;background:#f8fafc}button.primary{box-shadow:0 1px 2px #2563eb18}button:disabled{opacity:1;background:#f7f9fc;color:#8a96a8;border-color:#e7ecf3}
+.document-viewport{background:#e9eef4;padding:24px}.page{box-shadow:0 3px 16px #24324714}.viewer-toolbar{padding:12px 14px}.comparison-bar{padding:9px 14px;background:#fbfcfe}.viewer-footer{background:#fff}.thumbnail-button{background:white;border-color:#edf1f6;border-radius:10px}.thumbnail-button.active{background:#eff6ff;border-color:#3b82f6;box-shadow:none}.sidebar-heading h2{font-size:14px}.sidebar-footer{border-top:1px solid var(--line);padding-top:10px}
+.inspector-tabs{position:sticky;top:-18px;z-index:5;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin:-18px -18px 20px;padding:10px 12px;background:#fff;border-bottom:1px solid var(--line)}.inspector-tabs button{border:0;background:transparent;color:#64748b;font-size:14px;min-height:42px}.inspector-tabs button[aria-selected=true]{background:#edf4ff;color:#1d4ed8;font-weight:700}.inspector-content{min-width:0}.inspector-heading{margin:0 0 20px}.inspector-heading h2{font-size:21px;letter-spacing:-.5px;margin:4px 0 8px}.inspector-heading .note{margin:0}.pi-mark{width:48px;height:48px;border-radius:14px;background:#edf4ff;color:#2563eb;display:grid;place-items:center;font-size:27px;font-weight:700;margin-bottom:18px}.connection-card,.job-card{border:1px solid var(--line);border-radius:12px;padding:16px;background:#fff;margin:14px 0}.connection-card button{width:100%;margin-bottom:8px}.job-card{background:#f8fafc}.job-card>strong{font-size:13px;color:#475569}.job-card p{margin:10px 0 0;line-height:1.8}#work-progress-error:empty,#work-progress-id:empty{display:none}#work-progress-error{color:#a52d39;background:#fff1f2;padding:10px;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere}.inspector-content details>summary{cursor:pointer;min-height:40px;font-size:13px;font-weight:600;color:#526078}.inspector-content details details{margin-top:10px}#agent-presence-list{padding-left:18px}#agent-presence-list li{padding:8px 0}#pi-runtime-info{padding:12px;background:#f1f5f9;border-radius:8px;font-size:12px}
+.note,.target-preview{font-size:13px;color:#64748b;line-height:1.8}.flow-guide{background:#f8fbff;border-color:#dce8fa;padding:16px;margin-bottom:20px}.flow-guide h2{font-size:18px}.flow-guide .eyebrow{font-size:11px;letter-spacing:.6px}.flow-guide p{font-size:13px;line-height:1.8}.flow-steps{font-size:11px;gap:7px}.safety-note{background:#fff9ec;color:#785b25;font-size:12px;line-height:1.8;border:1px solid #f4ead2}.section-heading h2{font-size:17px}.section-kicker{font-size:11px;color:#74839a;letter-spacing:.4px}.composer textarea{min-height:136px;font-size:15px;padding:12px;background:#fff}.comments-section,.proposal{margin-top:24px;padding-top:20px}.comment{background:#fff;border-color:#e7ecf3}.comment p{font-size:13px}.shortcut{margin-top:20px;font-size:11px;color:#8692a5}
+@media(max-width:1100px){main{grid-template-columns:150px minmax(0,1fr)}.instruction-panel{position:static;max-height:none}.document-viewport{padding:18px}.inspector-tabs{top:0}}
+@media(max-width:650px){body>header{padding:12px}.header-status{gap:8px;font-size:11px}main{grid-template-columns:104px minmax(0,1fr);gap:8px;margin:10px auto}.instruction-panel{padding:14px}.inspector-tabs{margin:-14px -14px 16px;padding:8px}.inspector-tabs button{font-size:12px}.document-viewport{padding:10px}.connection-card,.job-card{padding:12px}}
+#recovery-panel:not([open]),#workflow-panel:not([open]){padding:10px 14px;margin-bottom:12px;background:#fff;border-color:var(--line)}#recovery-panel>summary,#workflow-panel>summary{min-height:24px;font-size:12px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+.chat-messages{display:flex;flex-direction:column;gap:10px;margin:16px 0;max-height:52vh;overflow:auto;overscroll-behavior:contain}.chat-message{padding:12px 14px;border-radius:12px;border:1px solid #e2e8f0;min-width:0}.chat-message strong{font-size:11px;color:#64748b}.chat-message p{white-space:pre-wrap;overflow-wrap:anywhere;margin:7px 0 0;font-size:14px;line-height:1.8}.chat-user{background:#eff6ff;margin-left:20px}.chat-assistant{background:#fff;margin-right:10px}.chat-consent{display:flex;align-items:flex-start;gap:8px;margin:12px 0;font-size:12px;line-height:1.7;color:#64748b}.chat-consent input{flex:none;margin-top:4px}.chat-actions{display:flex;gap:6px;flex-wrap:wrap}.chat-actions button{min-width:0;font-size:12px}#pi-chat-input{width:100%;font:inherit;padding:12px;resize:vertical;min-height:106px}#pi-chat-runtime{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}.pi-diagnostics{margin-top:24px;border-top:1px solid #e2e8f0;padding-top:12px}
+</style>
+</head>
+<body>
+<header>
+<div class="brand"><div class="brand-mark">HWP</div><div><h1>문서 검토 워크스페이스</h1><div id="document-name" class="document-name">문서를 연결하고 있습니다</div></div></div>
+<div class="header-status"><a href="/legal" target="_blank" rel="noopener noreferrer">AGPL · 소스</a><span id="summary"></span><span class="badge dark">원본 보호</span><span id="connection" class="connection">연결 확인 중</span><button id="reconnect" hidden>다시 연결</button></div>
+</header>
+<main>
+<nav class="panel page-sidebar" aria-label="페이지 미리보기 탐색">
+<div class="sidebar-heading"><h2>페이지 목록</h2><span id="thumbnail-total" class="badge"></span></div>
+<div class="search-wrap"><label class="sr-only" for="page-search">쪽번호 또는 PDF 문구 검색</label><input id="page-search" type="search" maxlength="200" placeholder="쪽번호 · 문구 검색"><button id="clear-search" aria-label="검색 지우기" title="검색 지우기">×</button></div>
+<label class="sr-only" for="page-filter">페이지 필터</label><select id="page-filter"><option value="all">전체 페이지</option><option value="comments">코멘트 있는 페이지</option><option value="protected">보호 페이지</option></select>
+<div class="list-info"><span id="result-count">불러오는 중</span><span id="search-status"></span></div>
+<div id="thumbnail-list" class="thumbnail-list" tabindex="0" aria-label="페이지 미리보기 목록, 위아래로 스크롤"></div>
+<p id="list-empty" class="empty-list" hidden>일치하는 페이지가 없습니다.<br>검색어나 필터를 바꿔보세요.</p>
+<p class="sidebar-footer"><span id="thumbnail-current"></span><br>PDF 텍스트 검색 · 이미지 OCR 제외</p>
+</nav>
+<section class="panel document-panel" aria-label="문서 페이지 보기">
+<div class="viewer-toolbar">
+<div class="toolbar-group"><button id="prev" class="icon-button" aria-label="이전 페이지" title="이전 페이지 (←)">‹</button><label class="sr-only" for="page-number">페이지 번호</label><input id="page-number" type="number" min="1" value="1"><span id="total"></span><button id="next" class="icon-button" aria-label="다음 페이지" title="다음 페이지 (→)">›</button></div>
+<div class="toolbar-group"><button id="zoom-out" class="icon-button" aria-label="축소">−</button><label class="sr-only" for="zoom">문서 확대</label><select id="zoom"><option value="fit">폭 맞춤</option><option value="25">25%</option><option value="50">50%</option><option value="75">75%</option><option value="100">100%</option><option value="125">125%</option><option value="150">150%</option><option value="175">175%</option><option value="200">200%</option></select><button id="zoom-in" class="icon-button" aria-label="확대">＋</button><span id="zoom-readout"></span></div>
+</div>
+<div class="comparison-bar"><label class="sr-only" for="view-mode">문서 보기 모드</label><select id="view-mode"><option value="original">원본 · 메모</option><option id="mode-split" value="split" disabled>원본 / 수정본 나란히</option><option id="mode-diff" value="diff" disabled>변경 픽셀 표시</option></select><label class="sr-only" for="compare-reference">비교 기준 버전</label><select id="compare-reference"><option value="original">비교 기준 · 원본</option></select><label class="sr-only" for="result-version">적용 결과 버전</label><select id="result-version" disabled><option value="">적용 결과 없음</option></select><button id="next-change" disabled>다음 변경 쪽</button><button id="download-hwp" type="button" disabled title="무결성 확인된 검토용 결과만 저장 · 최종 제출 승인 아님">검토용 HWP</button><button id="download-pdf" type="button" disabled title="저장한 HWP를 다시 열어 출력한 검토용 PDF">재개방 PDF</button><span id="result-download-status" class="comparison-status" role="status" aria-live="polite"></span><span id="comparison-status" class="comparison-status">실제 적용본이 생성되면 비교할 수 있습니다.</span></div>
+<div id="document-viewport" class="document-viewport"><div id="image-message" class="image-message">문서 미리보기를 불러오는 중입니다.</div><div id="page-container" class="page" hidden><img id="page-image" alt="한글에서 출력한 실제 페이지"><svg id="overlay"></svg><div id="note-markers" class="note-markers"></div><div id="dot" class="dot" hidden></div><div id="hover-hint" hidden></div></div><div id="compare-container" class="compare-container" hidden></div><button id="retry-image" hidden>이미지 다시 불러오기</button></div>
+<div class="viewer-footer"><span id="page-badge" class="badge"></span><span id="render-quality"></span><span>클릭으로 코멘트 위치 지정 · 물리적 쪽번호 기준</span></div>
+</section>
+<aside class="panel instruction-panel">
+<div class="inspector-tabs" role="tablist" aria-label="작업 패널"><button id="inspector-tab-review" type="button" role="tab" aria-controls="inspector-review" aria-selected="true" tabindex="0">검토</button><button id="inspector-tab-pi" type="button" role="tab" aria-controls="inspector-pi" aria-selected="false" tabindex="-1">Pi</button><button id="inspector-tab-jobs" type="button" role="tab" aria-controls="inspector-jobs" aria-selected="false" tabindex="-1">작업</button></div>
+<section id="inspector-pi" class="inspector-content" role="tabpanel" aria-labelledby="inspector-tab-pi" data-inspector-panel="pi" hidden><div id="agent-jobs"><div class="pi-mark" aria-hidden="true">π</div><div class="inspector-heading"><span class="eyebrow">PI ASSISTANT</span><h2>Pi와 함께 검토</h2><p class="note">Agent 미연결 · 기존 Pi 계정·기본 모델 설정으로 앱 전용 대화를 시작합니다. 문서 내용은 자동 전송하지 않습니다.</p></div><div class="connection-card"><button id="pi-chat-connect" type="button" class="primary">기존 Pi로 대화 연결</button><p id="pi-chat-status" class="note" role="status" aria-live="polite">아직 연결하지 않았습니다.</p><p id="pi-chat-model" class="note"></p><details id="pi-chat-program"><summary>연결 프로그램 · 파일 해시</summary><pre id="pi-chat-runtime" class="note" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details><button id="pi-chat-refresh" type="button">대화 상태 다시 읽기</button></div><div id="pi-chat-messages" class="chat-messages" role="log" aria-label="앱 전용 Pi 대화" aria-live="polite" aria-relevant="additions"></div><section id="pi-chat-progress" class="chat-message" aria-label="Pi 생성 중 응답 · 검증 전" aria-busy="false" hidden><strong id="pi-chat-progress-title" role="status" aria-live="polite"></strong><p id="pi-chat-progress-meta" class="note" aria-live="off"></p><pre id="pi-chat-progress-text" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:260px;overflow:auto;margin:8px 0;font:inherit" aria-live="off"></pre><ul id="pi-chat-progress-tools" class="note"></ul><p id="pi-chat-progress-usage" class="note"></p><small>검증 전 응답입니다. 초안 가져오기·문서 승인/실행에 사용하지 않습니다.</small></section><details id="pi-context-panel"><summary>선택한 원본 문구 · HWP 작업 문맥 공유</summary><p class="note">원본의 문구를 선택한 뒤 아래에서 공유 내용을 먼저 확인하세요. 전체 문서/이미지/경로는 자동 전송하지 않습니다.</p><label class="chat-consent"><input id="pi-context-memos" type="checkbox">선택 문구에 연결된 저장 메모도 포함 (미저장 메모 제외)</label><button id="pi-context-preview" type="button" disabled>현재 선택 문맥 확인 · 모델 전송 안 함</button><p id="pi-context-status" class="note" role="status"></p><pre id="pi-context-data" class="note" style="max-height:260px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere"></pre><label class="chat-consent"><input id="pi-context-confirm" type="checkbox">이번 질문에 위 문맥을 공유하고 읽기도구 2종을 허용합니다. 읽기만 허용하면 모델 요청 최대 2회·각 4096토큰 한도를 지정하며 비용이 발생할 수 있습니다. 도구는 수정/승인/실행을 하지 않습니다.</label><label class="chat-consent"><input id="pi-context-actions" type="checkbox" disabled>추가로 수정 초안·승인된 작업의 실행 요청 카드 제안도 허용합니다. 모델 최대3회·각4096토큰 한도이며 실제 저장/승인/적용은 별도입니다.</label><p id="pi-context-history-warning" class="note" hidden>이미 공유한 문맥은 이 대화 이력에 남습니다. 체크 해제는 새 자료 추가만 멈추며, 지우려면 대화를 명시적으로 삭제/연결 해제하세요.</p></details><div id="pi-chat-artifacts" aria-label="Pi 제안 · 사용자 검토 대기"></div><label for="pi-chat-input">Pi에게 질문하기</label><textarea id="pi-chat-input" maxlength="16000" rows="4" placeholder="검토 방법이나 문구를 질문하세요. 문서는 자동으로 첨부되지 않습니다."></textarea><label class="chat-consent"><input id="pi-chat-consent" type="checkbox">이 대화에서 직접 입력한 텍스트·이력을 Pi의 선택 모델 서비스로 전송하는 데 동의합니다. 비용이 발생할 수 있으며 일반 질문은 1회·응답4096토큰 한도를 지정합니다. 별도 문맥/읽기 동의 시 최대2회, 추가 제안도구 동의 시 최대3회이며 제공자 과금 정책은 별도입니다.</label><div class="chat-actions"><button id="pi-chat-send" type="button" class="primary" disabled>전송</button><button id="pi-chat-cancel" type="button" disabled>응답 중단</button><button id="pi-chat-disconnect" type="button" disabled>대화 지우고 연결 해제</button></div><p class="note">응답은 수정 제안입니다. 문서의 선택 snapshot 읽기는 별도 동의가 필요합니다. 쓰기·승인·적용 도구는 주지 않으며 모델 답변은 작업 완료가 아닙니다. 대화는 앱 메모리에만 보관됩니다.</p><details class="pi-diagnostics"><summary>설치 정보 · SDK 진단</summary><div class="connection-card"><button id="agent-discover" type="button">Pi 경로 다시 찾기</button><p id="agent-presence-status" class="note" role="status" aria-live="polite">PATH 경로를 확인할 수 있습니다.</p><details><summary>설치 경로 · 탐색 상세</summary><ul id="agent-presence-list" class="note" style="overflow-wrap:anywhere"></ul><p class="note">경로 발견은 실행·인증 확인이 아닙니다. 자동 설치·문서 전송을 하지 않습니다.</p></details></div><details id="pi-probe-panel"><summary>연결 검사 · 모델 사용 안 함</summary><p class="note">설치된 Pi 1.2.0/1.3.0/1.4.0 SDK와 Node를 신뢰할 때만 실행하세요. 별도 빈 환경·도구 없음으로 일회 검사하며 기존 Pi 인증/세션·HWP 문맥을 사용하지 않습니다. 보안 샌드박스나 실제 대화 연결 증거는 아닙니다.</p><button id="pi-prepare" type="button" disabled>설치 정보 확인 · 실행 안 함</button><details id="pi-runtime-details"><summary>확인할 프로그램 · 파일 해시</summary><pre id="pi-runtime-info" class="note" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details><button id="pi-probe" type="button" disabled>확인한 프로그램으로 무모델 검사…</button><p id="pi-probe-status" class="note" role="status" aria-live="polite">아직 검사하지 않았습니다.</p></details></details></div></section>
+<div id="inspector-review" class="inspector-content" role="tabpanel" aria-labelledby="inspector-tab-review" data-inspector-panel="review">
+<div class="flow-guide" aria-labelledby="review-guide-title"><ol class="flow-steps" aria-label="검토 순서"><li data-step="1">① 메모</li><li data-step="2">② 수정안 확인</li><li data-step="3">③ 승인</li><li data-step="4">④ 적용·비교</li></ol><span class="eyebrow">지금 할 일</span><h2 id="review-guide-title">문서를 읽고 있습니다</h2><p id="review-guide-description"></p><button id="review-guide-action" class="primary" type="button" disabled>잠시 기다려주세요</button></div>
+<details id="recovery-panel" class="flow-guide"><summary id="recovery-title">작업 재개 · 초안 복구</summary><p id="resume-stage" class="note"></p><p>탭을 닫기 전 <b>복구용 초안 저장</b>을 누르면 위치·미저장 문구를 작업 폴더에 보관합니다. 메모/수정안 저장·승인·적용과 다르며 자동 저장/자동 복구하지 않습니다. 보관 내용은 로컬 평문입니다.</p><label><input id="recovery-autosave" type="checkbox"> 이 탭에서만 복구용 초안 자동 보관 켜기</label><p class="note">1초 대기 후 로컬 평문 보관합니다. 승인/적용은 자동화하지 않으며 충돌/실패 시 꺼지고 재시도하지 않습니다.</p><p id="recovery-status" role="status" aria-live="polite"></p><div class="composer-actions"><button id="recovery-save" type="button">복구용 초안 저장</button><button id="recovery-restore" type="button" disabled>보관 초안 불러오기…</button></div><div class="composer-actions"><button id="recovery-read" type="button">보관 초안 다시 읽기</button><button id="recovery-clear" type="button" disabled>보관 초안 비우기…</button><button id="history-read" type="button">이전 초안 이력 관리</button><div id="history-list"></div></div><p id="recovery-memo-conflict" class="safety-note" hidden></p><button id="recovery-memo-ack" type="button" hidden>최신 메모 대조 확인…</button></details>
+<details id="workflow-panel" class="flow-guide"><summary>메모 처리 · 근거 자료 · 최종 검토 기록</summary><p>처리 상태와 로컬 자료는 기록일 뿐 변경 승인/자료 진위 인증이 아닙니다. TXT/PDF/PNG/JPEG 파일별 512 KiB·최대 100개를 평문 보관하며 자동 열기/외부 업로드하지 않습니다.</p><input id="evidence-file" type="file" accept=".txt,.pdf,.png,.jpg,.jpeg"><button id="evidence-upload" type="button">선택한 근거 파일 보관</button><div id="evidence-list"></div><p id="workflow-status" role="status"></p><div id="visual-review-checks"><label><input type="checkbox" data-check="text"> 문구 확인</label><label><input type="checkbox" data-check="layout"> 표·글꼴·배치 확인</label><label><input type="checkbox" data-check="images"> 그림·직인 확인</label><label><input type="checkbox" data-check="pages"> 쪽수·누락 확인</label></div><button id="visual-review-save" type="button" disabled>선택한 결과의 육안 확인 기록…</button><p>정확한 HWP/PDF 해시에 연결하는 로컬 확인 기록입니다. 기관 제출 승인·전자서명·직인 효력을 부여하지 않습니다.</p></details>
+<div class="section-kicker">1 · 메모 남기기</div><div class="section-heading"><h2>이 페이지에 메모</h2><button id="new-note" class="new-note">＋ 새 메모</button><span id="comment-progress" class="badge">0개</span></div><p class="note">위치 클릭 → 메모 저장 → 다른 위치 클릭. 한 페이지에 여러 메모를 붙일 수 있습니다. 번호를 누르면 저장된 메모로 이동합니다.</p>
+<div class="safety-note">표·글꼴·여백·직인은 보호합니다. 코멘트는 작업 지시이며, 실제 문구 수정은 <b>수정안 확인과 별도 승인</b> 후에만 가능합니다.</div>
+<div class="composer">
+<label for="target">어디를 바꿀까요?</label><select id="target"><option value="">페이지 전체 코멘트</option></select><p id="target-preview" class="target-preview"></p>
+<label for="comment-text">무엇을 바꿀지와 자료 근거</label><textarea id="comment-text" maxlength="10000" placeholder="무엇을 바꿀지, 어떤 자료를 사용할지 적어주세요.&#10;예: 목표 대비 실적을 첨부 자료로 보완하되 수치·출처와 현재 표 높이는 유지해주세요."></textarea>
+<div class="composer-meta"><span id="draft-state" class="draft-label">입력을 기다리는 중</span><span id="character-count">0 / 10,000</span></div>
+<div class="composer-actions"><button id="save-comment" class="primary" disabled>코멘트 저장</button><button id="cancel-edit" hidden>편집 취소</button><button id="clear-point">위치 해제</button></div>
+<div id="status" class="status" role="status" aria-live="polite"></div>
+<details class="technical"><summary>연결 위치 정보</summary><code id="anchor-details"></code></details>
+</div>
+<div class="comments-section"><div class="section-heading"><h3>저장된 페이지 코멘트</h3><span id="page-comment-count" class="badge">0개</span></div><div id="comment-list"></div><p id="empty-comments" class="empty-comments">아직 코멘트가 없습니다. 자료가 부족한 항목은 질문하도록 지시해 주세요.</p></div>
+<div class="proposal"><div class="section-kicker">2 · 수정안 확인</div><div class="proposal-top"><h2>수정 전 / 후 검토</h2><button id="reload" title="초안을 유지하며 서버의 코멘트와 제안을 다시 읽기">새로 읽기</button></div><p id="proposal-info" class="note"></p><label for="proposal-kind">수정 방식</label><select id="proposal-kind"><option value="text">글자만 교체 · 엄격한 원본 보존</option><option value="native">문단 문구 변경 · 영역 직접 확인</option><option value="layout">표 높이 유지 · 변경 범위 별도 확인</option></select><details id="text-draft" class="text-draft"><summary>수정안 직접 작성 · 저장은 승인/적용 아님</summary><p class="note">원본의 연결 문구를 선택하고 정확한 교체 문구를 직접 입력합니다. 메모를 자동으로 문구로 바꾸거나 숫자·출처를 추측하지 않습니다. 엄격한 글자 교체 방식만 지원하며 보존 검사 실패 시 범위를 늘리지 않습니다.</p><label for="draft-target">수정할 원본 연결 문구</label><select id="draft-target"><option value="">원본 문구 선택</option></select><p id="draft-old" class="old"></p><label for="draft-new">정확한 새 문구 · 한 줄</label><textarea id="draft-new" maxlength="20000" placeholder="자료로 확인한 새 문구를 직접 입력하세요. 빈 문구 삭제·줄바꿈은 지원하지 않습니다."></textarea><div class="composer-actions"><button id="draft-add" type="button">초안에 추가 / 항목 수정</button><button id="draft-discard" type="button">내 초안 버리기</button></div><div id="text-draft-list" class="text-draft-list"></div><p id="text-draft-status" class="draft-status" role="status" aria-live="polite"></p><button id="draft-rebase" type="button" hidden>최신 수정안 확인 · 내 초안 유지</button><button id="draft-save" type="button" class="primary">수정안 저장</button><p class="note">저장하면 아래 서버 수정안 전체를 초안으로 교체합니다. 이전 수정안은 이력에 보존하고 승인 기록은 바꾸지 않습니다. 새 문구는 따로 검토·승인해야 합니다. 실패해도 내 초안을 유지하며 자동 재시도하지 않습니다.</p></details><div id="native-policy" class="safety-note" hidden><b>새 계약: 문구 + 주황색 문단 영역</b><p>기존 두 줄 사이의 빈 공간을 포함하는 최소 문단 외곽 영역입니다. 셀 전체 허용이 아닙니다. 새 문구가 같은 셀 안에서 가운데 정렬될 수 있습니다. 이 영역 밖 픽셀, 표 크기·글꼴·여백·페이지·직인은 그대로 보호합니다.</p><p id="native-policy-readable">선택한 문단의 계산 정보와 미리보기만 다시 만듭니다. 다른 문단·글꼴·표·본문 그림·직인·페이지는 보호합니다.</p><details class="policy-details"><summary>이 수정 방식의 정확한 변경 범위</summary><p id="native-policy-detail">한글이 선택 문단의 줄 캐시, 커서 위치, 수정 시각, 기본 spine linear 표기, 텍스트 미리보기만 재생성할 수 있습니다. 다른 문단 캐시·스타일·컨트롤·이미지는 변경할 수 없습니다.</p></details><label><input id="native-policy-confirm" type="checkbox"> 위 문구·영역과 이 수정 방식의 변경 범위를 확인했습니다.</label><p id="native-review-count"></p></div><div class="proposal-tools"><button id="review-wide" type="button">한눈에 검토 · 전후 문구/영역</button><label id="native-bulk-label" class="bulk-confirm" hidden><input id="native-check-all" class="native-bulk" type="checkbox">모두 확인</label></div><section id="text-apply-panel" class="flow-guide" hidden aria-labelledby="text-apply-title"><h3 id="text-apply-title">승인한 글자 수정안 적용</h3><p id="text-apply-status" role="status" aria-live="polite"></p><button id="apply-text" type="button" class="primary" disabled>승인한 글자 수정안 적용…</button><p>원본·기준 자료는 보존합니다. 별도 확인 후 새 결과 사본을 만들며, 통과 뒤에도 PDF 육안 검토가 필요합니다.</p><details class="policy-details"><summary>적용 검사와 실패 처리</summary><p>저장한 HWP를 다시 열어 영역 밖 픽셀·쪽수·텍스트·내장 그림을 검사합니다. 실패 시 잠금과 증거를 유지하며 자동 재시도하지 않습니다. 자동 검사는 제출 승인/완성본 인증이 아닙니다.</p></details></section>
+<section id="contract-apply-panel" class="flow-guide" hidden aria-labelledby="contract-apply-title"><h3 id="contract-apply-title">승인한 Native 계약 별도 적용</h3><p id="contract-apply-status" role="status" aria-live="polite"></p><button id="apply-contract" type="button" class="primary" disabled>승인한 계약 적용…</button><p>승인한 정확한 문단/표 높이 정책·영역만 새 사본에 적용합니다. 원본·검사·실패 잠금을 보존하며 자동 재시도/제출하지 않습니다.</p></section>
+<div id="apply-status" class="apply-status" role="status" hidden></div><div id="proposal-list"></div><button id="approve" class="primary" disabled>정확한 수정안 전체 승인</button><p class="note">승인은 적용과 별도입니다. 적용 후에도 형식 검사와 결과 PDF의 최종 육안 검토가 필요합니다.</p></div>
+<div id="review-next-help" class="plain-help" hidden><strong>승인과 실제 문서 수정은 별도입니다.</strong>‘승인한 수정안을 적용해줘’라고 요청하세요. 적용 후 원본과 결과를 비교하고 직접 확인해야 합니다.</div>
+<p class="shortcut">← → 페이지 이동 · Ctrl+K 검색 · Ctrl+Enter 저장</p>
+</div>
+<section id="inspector-jobs" class="inspector-content" role="tabpanel" aria-labelledby="inspector-tab-jobs" data-inspector-panel="jobs" hidden><div class="inspector-heading"><span class="eyebrow">DOCUMENT ACTIVITY</span><h2>문서 작업</h2><p class="note">기존 한글 엔진이 보고한 실제 상태만 표시합니다.</p></div><div class="job-card"><strong>현재 작업 상태</strong><p id="work-progress-status" role="status" aria-live="polite">문서 작업 상태를 읽고 있습니다.</p><p id="work-progress-error" class="note"></p></div><details><summary>작업 식별 정보</summary><p id="work-progress-id" class="note" style="overflow-wrap:anywhere"></p></details><p class="note">채팅 완료와 문서 검증 완료는 다릅니다. 검사 통과 뒤에도 사람의 시각 검토가 필요합니다. 원본·실패 잠금을 보존하며 자동 재시도하지 않습니다.</p><button id="jobs-to-review" type="button">검토 화면으로 돌아가기</button></section>
+</aside>
+</main>
+<dialog id="proposal-review-dialog" class="proposal-review-dialog" aria-labelledby="proposal-review-title"><header class="review-dialog-head"><div><h2 id="proposal-review-title">수정안 한눈에 검토</h2><p id="proposal-review-caption"></p></div><button id="close-review-wide" type="button">닫기</button></header><p id="summary-policy-detail" class="review-receipt"></p><p id="review-receipt" class="review-receipt" role="status"></p><div id="summary-apply-status" class="apply-status" role="status" hidden></div><div class="review-table-scroll"><table class="review-table"><thead><tr><th scope="col">페이지 · 원본 위치/영역</th><th scope="col">수정 전</th><th scope="col">수정 후</th><th scope="col">검토 확인</th></tr></thead><tbody id="proposal-review-rows"></tbody></table></div><footer class="review-dialog-foot"><label id="summary-bulk-label" class="bulk-confirm" hidden><input id="summary-check-all" class="native-bulk" type="checkbox">표시된 문구·영역 모두 확인</label><label id="summary-policy-label" hidden><input id="summary-policy-confirm" type="checkbox">네이티브 재계산 정책 확인</label><span id="summary-review-count"></span><button id="summary-approve" type="button" class="primary">정확한 수정안 전체 승인</button><button id="summary-apply-text" type="button" hidden disabled>승인한 글자 수정안 적용…</button></footer></dialog>
+<script>
+'use strict';
+const token='__TOKEN__';
+const $=id=>document.getElementById(id);
+const thumbnailButtons=new Map(),anchorById=new Map(),anchorsByPage=new Map();
+let state,page=1,point=null,editingId=null,busy='',lastSaved=null,imageKey='',zoomMode='fit',zoomPercent=100;
+let searchMatches=null,searchSequence=0,searchController=null,searchTimer=null,approvedHash=null;
+let hoveredAnchorId=null,selectedNoteId=null,viewMode='original',resultVersions=[];
+let downloadMessage='',downloadResultID='';
+let recoveryRevision=null,recoverySnapshot=null,recoveryIssue='',recoveryRead=false,recoveryMessage='',restoredMemoConflict=false;
+let autosaveTimer=null,lastAutosavePayload='',workflowRevision=null,workflowData=null,workflowHashes={},workflowRead=false,workflowResultID='';
+let proposalKind=['native','layout'].includes(new URLSearchParams(location.search).get('proposal'))?new URLSearchParams(location.search).get('proposal'):'text',reviewHash=null,autoSummaryOpened=false;
+const nativeReviewed=new Set();$('proposal-kind').value=proposalKind;
+function nativeContract(proposal=state?.proposal){return [2,3].includes(proposal?.schema)}
+function matchingContract(){return state?.proposal_kind===proposalKind&&state?.proposal?.schema===({text:1,native:2,layout:3})[proposalKind]}
+function nativeReviewAvailable(){return !busy&&matchingContract()&&nativeContract()}
+function approvalReady(){const p=state?.proposal;return reviewSourceConfirmed&&!restoredMemoConflict&&!textDraftDirty()&&!!p&&matchingContract()&&approvedHash!==state.proposal_sha256&&(!nativeContract(p)||$('native-policy-confirm').checked&&nativeReviewed.size===p.edits.length)}
+const noteCards=new Map();
+function selectedVersion(){return resultVersions.find(v=>v.id===$('result-version').value)}
+function viewerPageCount(){const v=selectedVersion(),reference=resultVersions.find(item=>item.id===$('compare-reference').value);return viewMode==='original'||!v?state.manifest.pages.length:Math.max(reference?.after_pages||v.before_pages,v.after_pages)}
+function el(tag,text,className){const node=document.createElement(tag);node.textContent=text;if(className)node.className=className;return node}
+function message(text,kind='info'){$('status').textContent=text;$('status').className='status '+kind}
+function connected(ok){$('connection').textContent=ok?'로컬 서버 연결':'서버 연결 끊김';$('connection').className='connection '+(ok?'online':'offline');$('reconnect').hidden=ok}
+async function request(path,body,signal){
+ const options={signal:signal||AbortSignal.timeout(12000)};
+ if(body!==undefined){options.method='POST';options.headers={'Content-Type':'application/json','X-Review-Token':token};options.body=JSON.stringify(body);
+  if(path.startsWith('/api/workflow/')){if(!workflowRead||!workflowRevision)throw new Error('작업 기록을 먼저 읽으세요.');options.headers['If-Match']='"'+workflowRevision+'"'}
+  if(path==='/api/session'||path==='/api/session-clear'||path==='/api/session-history-delete'){if(!recoveryRead||!recoveryRevision)throw new Error('복구용 초안을 먼저 다시 읽어주세요. 현재 입력은 유지됩니다.');options.headers['If-Match']='"'+recoveryRevision+'"'}
+  if(path==='/api/apply-text'||path==='/api/apply-contract'){if(!state?.proposal_revision)throw new Error('최신 승인된 수정안을 먼저 확인하세요.');options.headers['If-Match']='"'+state.proposal_revision+'"'}
+  if(path==='/api/text-proposal'){if(!textDraftRevision)throw new Error('최신 수정안을 먼저 확인하세요. 초안은 유지됩니다.');options.headers['If-Match']='"'+textDraftRevision+'"'}
+  if(path==='/api/comments'){if(!state?.comments_revision)throw new Error('서버를 업데이트한 뒤 새로 읽기를 눌러주세요. 초안은 유지됩니다.');options.headers['If-Match']='"'+state.comments_revision+'"'}
+ }
+ let response;try{response=await fetch(path,options)}catch(error){if(!signal?.aborted)connected(false);throw new Error(signal?.aborted?'검색 취소':'서버에 연결할 수 없습니다. 서버 창을 확인해주세요. 초안은 유지됩니다.')}
+ connected(true);const data=await response.json();
+ if(!response.ok){const error=new Error(data.error||'요청을 처리하지 못했습니다.');error.status=response.status;if(response.status===403)error.message+=' 새로고침 전에 작성 중인 문구를 복사해두세요.';throw error}
+ return data;
+}
+function originalComment(){return state?.comments.comments.find(c=>c.id===editingId)}
+function draftDirty(){
+ const original=originalComment();if(!original)return !!$('comment-text').value.trim();
+ return $('comment-text').value!==original.comment||($('target').value||null)!==original.anchor_id||JSON.stringify(point)!==JSON.stringify(original.region);
+}
+function verifiedResult(result){return result?.status==='checks_passed_needs_human_visual_review'&&result.artifact_integrity==='verified'}
+function legacyResult(result){return result?.status==='checks_passed_needs_human_visual_review'&&result.artifact_integrity!=='verified'}
+function showInspectorTab(name){
+ if(!['review','pi','jobs'].includes(name))return;
+ for(const id of ['review','pi','jobs']){const selected=id===name,tab=$('inspector-tab-'+id);tab.setAttribute('aria-selected',String(selected));tab.tabIndex=selected?0:-1;$('inspector-'+id).hidden=!selected}
+}
+for(const name of ['review','pi','jobs']){const tab=$('inspector-tab-'+name);tab.onclick=()=>showInspectorTab(name);tab.onkeydown=event=>{const names=['review','pi','jobs'],index=names.indexOf(name);let next;if(event.key==='ArrowRight')next=names[(index+1)%3];else if(event.key==='ArrowLeft')next=names[(index+2)%3];else if(event.key==='Home')next=names[0];else if(event.key==='End')next=names[2];if(next){event.preventDefault();event.stopPropagation();showInspectorTab(next);$('inspector-tab-'+next).focus({preventScroll:true})}}}
+$('jobs-to-review').onclick=()=>{showInspectorTab('review');$('inspector-tab-review').focus({preventScroll:true})};
+function focusReviewControl(element){
+ if(!element)return;
+ const panel=element.closest('[data-inspector-panel]');if(panel)showInspectorTab(panel.dataset.inspectorPanel);
+ if(element.id==='text-draft')element.open=true;
+ for(let parent=element.parentElement;parent;parent=parent.parentElement)if(parent.tagName==='DETAILS')parent.open=true;
+ element.scrollIntoView({block:'nearest',behavior:'smooth'});
+ if(!element.matches('button,input,textarea,select,summary,a'))element.tabIndex=-1;
+ element.focus({preventScroll:true});
+}
+let reviewSourceConfirmed=false;
+function updateReviewGuide(){
+ let step=1,title='문서를 읽고 있습니다',description='자료를 읽은 뒤 다음 검토 작업을 안내합니다.',label='잠시 기다려주세요',target=null;
+ if(state&&!busy){
+  const approved=state.proposal&&approvedHash===state.proposal_sha256,attempt=state.latest_attempt;
+  if(!reviewSourceConfirmed){title='자료 연결을 다시 확인해주세요';description='작성 중인 메모는 유지됩니다. 최신 문서 상태를 확인하기 전에는 다음 단계로 진행하지 마세요.';label='다시 연결 버튼으로 이동';target=$('reconnect')}
+  else if(state.text_apply?.active||state.apply_state&&state.apply_state.locked!==false||attempt?.status==='in_progress'){step=4;title='작업 상태를 먼저 확인해주세요';description='진행 중이거나 중단된 작업입니다. 소유자 확인 없이 잠금을 해제하거나 다시 적용하지 않습니다.';label='작업 기록 보기';target=state.text_apply?.active?$('text-apply-status'):$('apply-status')}
+  else if(restoredMemoConflict){step=2;title='복구 메모와 최신 서버 메모를 대조하세요';description='보관 이후 바뀐 내용입니다. 화면 입력은 유지하며 저장/승인을 잠급니다. 확인 버튼은 별도 대조 확인으로만 이동합니다.';label='복구 메모 대조로 이동';target=$('recovery-memo-ack')}
+  else if(draftDirty()){title='작성 중인 메모를 저장해주세요';description='메모는 아직 저장되지 않았습니다. 저장해도 문서를 수정하거나 승인하지 않습니다.';label='메모 저장 버튼으로 이동';target=$('comment-text').value.trim()?$('save-comment'):$('comment-text')}
+  else if(textDraftDirty()){step=2;title='작성 중인 수정안 초안을 확인하세요';description='이 문구는 아직 서버 수정안이 아닙니다. 항목을 추가하고 저장한 뒤 아래 전후 비교로 검토합니다. 저장은 승인/적용이 아닙니다.';label='수정안 초안으로 이동';target=$('text-draft')}
+  else if(!state.proposal){const notes=state.comments?.comments?.length||0;title=notes&&proposalKind==='text'?'정확한 교체 문구로 수정안을 작성하세요':notes?'메모를 바탕으로 수정안을 요청하세요':'바꿀 곳과 요청사항을 메모하세요';description=notes&&proposalKind==='text'?'‘수정안 직접 작성’에서 원본 문구와 자료로 확인한 새 문구를 연결하세요. 메모를 자동 실행하거나 승인하지 않습니다.':notes?'이 방식의 수정안은 별도 도구에서 준비한 뒤 새로 읽으세요. 범위를 자동으로 넓히지 않습니다.':'원본에서 위치를 누르고, 무엇을 바꿀지와 사용할 자료를 적습니다. 숫자나 출처가 없으면 확인을 요청하세요.';label=notes&&proposalKind==='text'?'수정안 작성으로 이동':notes?'새로 읽기로 이동':'메모 입력으로 이동';target=notes&&proposalKind==='text'?$('text-draft'):notes?$('reload'):$('comment-text')}
+  else if(approved&&textApplyReady()){step=4;title='승인한 글자 수정안을 적용할 수 있습니다';description='아래 적용 버튼에서 별도 확인을 묻습니다. 새 결과 저장·재개방·엄격 검사 뒤에도 육안 검토가 필요합니다.';label='별도 적용 확인으로 이동';target=$('apply-text')}
+  else if(approved){step=4;title=verifiedResult(attempt)?'원본과 결과를 직접 비교하세요':attempt?.status==='blocked'?'결과가 차단되었습니다':legacyResult(attempt)?'과거 결과는 추가 확인이 필요합니다':'승인 완료 · 적용은 별도 요청입니다';description=attempt?'자동 검사만으로 제출하지 마세요. 결과의 문구·표·글꼴·그림·쪽수를 확인하고 다음 작업을 결정합니다.':'‘승인한 수정안을 적용해줘’라고 요청하세요. 이 화면의 승인은 문서를 자동 수정하지 않습니다.';label=attempt?'결과 기록으로 이동':'다음 작업 안내 보기';target=attempt?$('apply-status'):$('review-next-help')}
+  else if(!approvalReady()){step=2;title='수정 전과 후를 한눈에 확인하세요';description='새 문구와 변경 영역을 비교하고, 허용할 변경 범위를 확인하세요. 검토 체크만으로 승인되지 않습니다.';label='전후 비교 버튼으로 이동';target=$('review-wide')}
+  else{step=3;title='확인한 수정안을 승인할 수 있습니다';description='승인 버튼을 누르면 마지막 확인을 한 번 더 묻습니다. 승인과 실제 적용은 별도입니다.';label='승인 버튼으로 이동';target=$('approve')}
+  $('review-next-help').hidden=!approved;
+ }
+ $('review-guide-title').textContent=title;$('review-guide-description').textContent=description;$('review-guide-action').textContent=label;$('review-guide-action').disabled=!!busy||!target;$('review-guide-action').onclick=()=>{if(!busy)focusReviewControl(target)};
+ for(const item of document.querySelectorAll('.flow-steps li')){if(Number(item.dataset.step)===step)item.setAttribute('aria-current','step');else item.removeAttribute('aria-current')}
+}
+function updateComposer(){
+ updateContextSelection();
+ updateDownloads();updateRecovery();updateWorkflowControls();scheduleAutosave();
+ const dirty=draftDirty(),text=$('comment-text').value,readOnly=viewMode!=='original';
+ $('character-count').textContent=`${text.length.toLocaleString()} / 10,000`;
+ $('draft-state').textContent=busy?(busy==='save'?'저장 중…':'처리 중…'):dirty?'초안 · 아직 저장되지 않음':editingId?'저장된 코멘트 편집 중':lastSaved?`${lastSaved.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})} 저장됨`:'입력을 기다리는 중';
+ $('draft-state').className='draft-label '+(dirty?'dirty':lastSaved?'saved':'');
+ $('save-comment').textContent=busy==='save'?'저장 중…':editingId?'수정 저장':'코멘트 저장';
+ $('save-comment').disabled=!!busy||restoredMemoConflict||!state||readOnly||!text.trim()||!!editingId&&!dirty;
+ $('comment-text').readOnly=!!busy||!state||readOnly;$('target').disabled=!!busy||!state||readOnly;$('new-note').disabled=!!busy||!state||readOnly;
+ $('cancel-edit').hidden=!editingId;$('cancel-edit').disabled=!!busy;$('clear-point').disabled=!!busy||readOnly||!point;
+ $('page-number').disabled=!!busy||!state;$('prev').disabled=!!busy||!state||page===1;$('next').disabled=!!busy||!state||page===viewerPageCount();
+ for(const button of thumbnailButtons.values())button.disabled=!!busy;
+ for(const button of document.querySelectorAll('.comment-actions button'))button.disabled=!!busy;
+ updateTextDraftControls();
+ updateTextApply();
+ $('reload').disabled=!!busy;$('reconnect').disabled=!!busy;$('approve').disabled=!!busy||state?.text_apply?.active||state?.apply_state?.locked!==false&&!!state?.apply_state||state?.latest_attempt?.status==='in_progress'||!approvalReady();$('proposal-kind').disabled=!!busy;
+ const native=nativeContract(),complete=!!state?.proposal&&approvedHash===state.proposal_sha256,count=state?.proposal?.edits.length||0;
+ const reviewEnabled=nativeReviewAvailable();
+ $('review-wide').disabled=!!busy||!state?.proposal;$('native-policy-confirm').disabled=!reviewEnabled;
+ for(const check of document.querySelectorAll('.native-region-ack')){check.disabled=!reviewEnabled;check.checked=nativeReviewed.has(check.dataset.anchorId)}
+ for(const check of document.querySelectorAll('.native-bulk')){check.disabled=!reviewEnabled;check.checked=native&&nativeReviewed.size===count;check.indeterminate=native&&nativeReviewed.size>0&&nativeReviewed.size<count}
+ $('summary-policy-confirm').checked=$('native-policy-confirm').checked;$('summary-policy-confirm').disabled=!reviewEnabled;
+ $('review-receipt').classList.toggle('saved',complete);
+ $('review-receipt').textContent=complete?'이 수정안의 기존 승인 기록은 유지됩니다. 확인 체크는 다시 조작할 수 있으며, 해제해도 승인 취소나 문서 변경을 하지 않습니다.':'확인 체크는 현재 화면의 검토 표시입니다. 문구·영역과 정책을 확인한 뒤 최종 승인 버튼을 별도로 눌러주세요.';
+ const approvedLabel=verifiedResult(state?.latest_attempt)?'적용·검증 통과 · 육안 검토 필요':legacyResult(state?.latest_attempt)?'과거 검증 기록 · 무결성 미확인':state?.latest_attempt?.status==='blocked'?'승인됨 · 적용 검증 차단':state?.latest_attempt?.status==='in_progress'?'승인됨 · 적용 상태 확인 필요':'승인됨 · 적용은 별도';
+ $('summary-approve').disabled=$('approve').disabled;$('summary-approve').textContent=complete?approvedLabel:'정확한 수정안 전체 승인';
+ $('approve').textContent=complete?approvedLabel:'정확한 수정안 전체 승인';
+ if(native)$('native-review-count').textContent=`문단 영역 확인 ${nativeReviewed.size} / ${count} · 전체 확인으로 한 번에 체크할 수 있습니다.`;
+ $('summary-review-count').textContent=native?`${nativeReviewed.size} / ${count}개 확인`:'';
+ updateReviewGuide();
+}
+function setBusy(value){busy=value;updateComposer()}
+function resetComposer(){restoredMemoConflict=false;editingId=null;point=null;$('comment-text').value='';$('target').value='';drawAnchor();drawPoint();updateComposer()}
+function buildThumbnails(){
+ const list=$('thumbnail-list');if(list.dataset.workspaceId===state.manifest.workspace_id&&thumbnailButtons.size===state.manifest.pages.length)return;
+ list.replaceChildren();thumbnailButtons.clear();list.dataset.workspaceId=state.manifest.workspace_id;
+ const fragment=document.createDocumentFragment();
+ for(const info of state.manifest.pages){
+  const button=el('button','', 'thumbnail-button');button.type='button';button.dataset.page=info.page;
+  const image=el('img','');image.alt=`${info.page}페이지 미리보기`;image.loading='lazy';image.decoding='async';image.width=140;image.height=Math.round(140*info.height/info.width);image.style.aspectRatio=`${info.width} / ${info.height}`;image.src=`/page/${info.page}.png`;
+  const caption=el('span','', 'thumbnail-caption');caption.append(el('span',`${info.page}페이지`),el('span','', 'thumbnail-meta'));
+  const snippet=el('span','', 'thumbnail-snippet');snippet.hidden=true;button.append(image,caption,snippet);button.onclick=()=>navigate(info.page);fragment.append(button);thumbnailButtons.set(info.page,button);
+ }
+ list.append(fragment);$('thumbnail-total').textContent=`${state.manifest.pages.length}쪽`;
+}
+function updateThumbnailMetadata(){
+ const counts=new Map();for(const comment of state.comments.comments)counts.set(comment.page,(counts.get(comment.page)||0)+1);
+ for(const [number,button] of thumbnailButtons){
+  const count=counts.get(number)||0,locked=state.manifest.protected_pages.includes(number);button.classList.toggle('has-comments',count>0);button.classList.toggle('is-protected',locked);
+  button.querySelector('.thumbnail-meta').textContent=[locked?'보호':'',count?`코멘트 ${count}`:''].filter(Boolean).join(' · ');
+  button.setAttribute('aria-label',`${number}페이지로 이동${locked?', 자동 수정 금지':''}${count?`, 코멘트 ${count}개`:''}`);
+ }
+ $('comment-progress').textContent=`${state.comments.comments.length}개 · ${counts.size}쪽`;
+ applyPageFilter();
+}
+function applyPageFilter(){
+ if(!state)return;let visible=0;const filter=$('page-filter').value;
+ for(const [number,button] of thumbnailButtons){
+  const match=searchMatches===null||searchMatches.has(number),included=filter==='all'||filter==='comments'&&button.classList.contains('has-comments')||filter==='protected'&&button.classList.contains('is-protected');
+  button.hidden=!match||!included;if(!button.hidden)visible++;
+  const snippet=button.querySelector('.thumbnail-snippet'),text=searchMatches?.get(number)||'';snippet.textContent=text;snippet.hidden=!text;
+ }
+ $('result-count').textContent=`${visible} / ${state.manifest.pages.length}페이지`;$('list-empty').hidden=visible>0;
+}
+async function runSearch(){
+ const query=$('page-search').value.trim(),sequence=++searchSequence;
+ searchController?.abort();searchController=null;
+ if(!query){searchMatches=null;$('search-status').textContent='';applyPageFilter();return}
+ if(/^\d+$/.test(query)&&Number(query)>=1&&Number(query)<=state.manifest.pages.length){searchMatches=new Map([[Number(query),'']]);$('search-status').textContent='쪽번호';applyPageFilter();return}
+ const controller=new AbortController();searchController=controller;$('search-status').textContent='검색 중…';
+ try{const data=await request('/api/search?q='+encodeURIComponent(query),undefined,controller.signal);if(sequence!==searchSequence)return;searchMatches=new Map(data.matches.map(m=>[m.page,m.snippet]));$('search-status').textContent='PDF 문구';applyPageFilter()}
+ catch(error){if(sequence!==searchSequence||controller.signal.aborted)return;$('search-status').textContent='검색 실패';message(error.message,'error')}
+}
+function syncThumbnailSelection(){
+ for(const [number,button] of thumbnailButtons){const active=number===page;button.classList.toggle('active',active);if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current')}
+ $('thumbnail-current').textContent=`현재 ${page} / ${state.manifest.pages.length}페이지`;
+ const button=thumbnailButtons.get(page),list=$('thumbnail-list');if(!button||button.hidden)return;
+ const rect=button.getBoundingClientRect(),viewport=list.getBoundingClientRect();if(rect.top<viewport.top)list.scrollTop+=rect.top-viewport.top;else if(rect.bottom>viewport.bottom)list.scrollTop+=rect.bottom-viewport.bottom;
+}
+function drawAnchor(){
+ const anchor=anchorById.get($('target').value),hover=anchorById.get(hoveredAnchorId),svg=$('overlay');svg.replaceChildren();
+ $('target-preview').textContent=anchor?anchor.old_text:'반복 문구·이미지·연결되지 않은 빈 셀은 페이지 메모로 남겨주세요. 자동 수정 대상은 추측하지 않습니다.';
+ $('anchor-details').textContent=anchor?`${anchor.anchor_id} · ${anchor.cell?`표 셀 / 행 ${Number(anchor.cell.rowAddr)+1}, 열 ${Number(anchor.cell.colAddr)+1}`:'문단'} · 글자 스타일 ${anchor.char_style}`:'연결된 anchor 없음';
+ for(const [item,kind] of [[anchor,'anchor-selected'],[hover&&hover!==anchor?hover:null,'anchor-hover']])if(item)for(const box of item.boxes){const rect=document.createElementNS('http://www.w3.org/2000/svg','rect');for(const [key,value] of Object.entries({x:box[0],y:box[1],width:box[2]-box[0],height:box[3]-box[1],class:kind}))rect.setAttribute(key,value);svg.append(rect)}
+ const edit=nativeContract()&&state.proposal.edits.find(e=>e.anchor_id===anchor?.anchor_id);if(edit){const b=edit.region,rect=document.createElementNS('http://www.w3.org/2000/svg','rect');for(const [k,v] of Object.entries({x:b[0],y:b[1],width:b[2]-b[0],height:b[3]-b[1],class:'native-region',fill:'#f59e0b','fill-opacity':'.08',stroke:'#d97706','stroke-width':'1.2'}))rect.setAttribute(k,v);svg.append(rect)}
+}
+function hitAnchor(x,y){
+ const info=state.manifest.pages[page-1];if(!info)return null;
+ let found=null,area=Infinity;for(const anchor of anchorsByPage.get(page)||[])for(const b of anchor.boxes){const size=(b[2]-b[0])*(b[3]-b[1]);if(x*info.width>=b[0]-3&&x*info.width<=b[2]+3&&y*info.height>=b[1]-3&&y*info.height<=b[3]+3&&size<area){found=anchor;area=size}}
+ return found;
+}
+function pointerLocation(event){const r=$('page-image').getBoundingClientRect();return [Math.min(1,Math.max(0,(event.clientX-r.left)/r.width)),Math.min(1,Math.max(0,(event.clientY-r.top)/r.height))]}
+function clearHover(){hoveredAnchorId=null;$('hover-hint').hidden=true;drawAnchor()}
+function beginNewNote(location=null,anchor=null){
+ if(busy||viewMode!=='original')return;
+ if(draftDirty()&&!confirm('저장하지 않은 메모를 버리고 새 위치에 메모를 작성할까요?'))return;
+ resetComposer();selectedNoteId=null;point=location;$('target').value=anchor?.anchor_id||'';drawAnchor();drawPoint();showComments();updateComposer();focusReviewControl($('comment-text'));message(location?'이 위치의 새 메모입니다. 저장 후 다른 위치에 추가할 수 있습니다.':'새 페이지 메모입니다. 문서의 위치를 눌러 연결할 수도 있습니다.');
+}
+function focusNote(id){
+ const comment=state.comments.comments.find(c=>c.id===id);if(!comment)return;selectedNoteId=id;
+ const card=noteCards.get(id);for(const [key,item] of noteCards)item.classList.toggle('focused',key===id);card?.scrollIntoView({block:'nearest',behavior:'smooth'});renderNoteMarkers();
+ if(viewMode==='original'){const pin=[...$('note-markers').children].find(p=>p.dataset.noteId===id);if(pin){const viewport=$('document-viewport'),v=viewport.getBoundingClientRect(),r=pin.getBoundingClientRect();viewport.scrollTop+=r.top-v.top-viewport.clientHeight*.4;viewport.scrollLeft+=r.left-v.left-viewport.clientWidth*.4}}
+}
+function renderNoteMarkers(){
+ const layer=$('note-markers');layer.replaceChildren();const collisions=new Map();
+ for(const [index,comment] of state.comments.comments.filter(c=>c.page===page).entries()){
+  const anchor=anchorById.get(comment.anchor_id),box=anchor?.boxes[0],info=state.manifest.pages[page-1];
+  const location=comment.region||(box&&info?[(box[0]+box[2])/2/info.width,(box[1]+box[3])/2/info.height]:null);if(!location)continue;
+  const key=location.map(v=>Math.round(v*1000)).join(':'),count=collisions.get(key)||0;collisions.set(key,count+1);
+  const pin=el('button',String(index+1),'note-pin'+(comment.id===selectedNoteId||comment.id===editingId?' active':''));pin.type='button';pin.dataset.noteId=comment.id;pin.setAttribute('aria-label',`메모 ${index+1} 보기`);pin.title=comment.comment.slice(0,180);pin.style.left=`calc(${location[0]*100}% + ${(count%3)*18}px)`;pin.style.top=`calc(${location[1]*100}% + ${Math.floor(count/3)*18}px)`;pin.onclick=event=>{event.stopPropagation();focusNote(comment.id)};layer.append(pin);
+ }
+}
+function updateVersions(versions){
+ const previous=$('result-version').value,reference=$('compare-reference').value;resultVersions=versions||[];
+ $('compare-reference').replaceChildren();const original=el('option','비교 기준 · 원본');original.value='original';$('compare-reference').append(original);for(const version of resultVersions.filter(v=>v.artifact_integrity==='verified')){const option=el('option','비교 기준 · '+version.id);option.value=version.id;$('compare-reference').append(option)}$('compare-reference').value=resultVersions.some(v=>v.id===reference&&v.artifact_integrity==='verified')?reference:'original';$('result-version').replaceChildren();
+ if(!resultVersions.length){$('result-version').append(el('option','적용 결과 없음'));$('result-version').firstChild.value='';viewMode='original';$('view-mode').value='original'}
+ else for(const v of resultVersions){const option=el('option',`${v.id.slice(0,8)} ${v.id.slice(9,15)} · ${v.status==='blocked'?'차단된 결과':verifiedResult(v)?'검토 대기':'과거 결과 · 무결성 미확인'}`);option.value=v.id;$('result-version').append(option)}
+ if(resultVersions.some(v=>v.id===previous))$('result-version').value=previous;
+ $('result-version').disabled=!resultVersions.length;$('mode-split').disabled=!resultVersions.length;$('mode-diff').disabled=!resultVersions.length;
+ const v=selectedVersion();$('next-change').disabled=!v?.changed_pages?.length;
+ updateDownloads();updateWorkflowControls();
+ $('comparison-status').className='comparison-status'+(v&&!verifiedResult(v)?' blocked':'');$('comparison-status').textContent=!v?'실제 적용본이 생성되면 비교할 수 있습니다.':`${v.status==='blocked'?'검증 실패 · 제출 금지':verifiedResult(v)?'검사 통과 · 최종 육안 검토 필요':'과거 검증 기록 · 현재 파일 무결성 미확인'} · 변경 ${v.changed_pages.length}쪽${v.page_count_equal?'':` · 쪽수 ${v.before_pages} → ${v.after_pages}`}`;
+}
+function updateDownloads(){
+ const v=selectedVersion(),valid=v&&/^\d{8}T\d{6}-[a-f0-9]{8}$/.test(v.id)&&verifiedResult(v);
+ if(downloadResultID!==v?.id){downloadResultID=v?.id||'';downloadMessage=''}
+ for(const kind of ['hwp','pdf']){const file=v?.downloads?.[kind];$('download-'+kind).disabled=!!busy||!reviewSourceConfirmed||!valid||!file||!(/^[a-f0-9]{64}$/).test(file.sha256)||!Number.isSafeInteger(file.bytes)||file.bytes<1||file.bytes>128*1024*1024}
+ $('result-version').disabled=!!busy||!resultVersions.length;
+ $('result-download-status').textContent=downloadMessage||(!v?'검증된 결과 선택 후 내려받을 수 있습니다.':!valid?'실패/과거 무결성 미확인 결과는 내려받지 않습니다.':'해시 확인 후 검토용으로 저장 · 최종 제출 승인 아님 · 파일별 128 MiB 이내');
+}
+async function downloadResult(kind){
+ if(!['hwp','pdf'].includes(kind)||$('download-'+kind).disabled)return;
+ const v=selectedVersion(),id=v.id,info={...v.downloads[kind]};downloadResultID=id;downloadMessage='결과 파일과 SHA-256을 확인하고 있습니다…';setBusy('download-result');
+ let url;
+ try{
+  if(!crypto.subtle)throw new Error('이 브라우저에서는 파일 해시를 확인할 수 없습니다. 검토 작업 폴더를 직접 확인하세요.');
+  const response=await fetch(`/result/${id}/${kind}`,{headers:{'X-Review-Token':token},signal:AbortSignal.timeout(30000)});
+  if(!response.ok){let message='결과를 내려받지 못했습니다. 새로 읽기로 상태를 확인하세요.';try{message=(await response.json()).error||message}catch{}throw new Error(message)}
+  const blob=await response.blob();
+  if(blob.size!==info.bytes||response.headers.get('X-Artifact-Sha256')!==info.sha256)throw new Error('결과 파일/메타데이터가 바뀌었습니다. 저장하지 않고 차단합니다.');
+  const sha=[...new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))].map(x=>x.toString(16).padStart(2,'0')).join('');
+  if(sha!==info.sha256||selectedVersion()?.id!==id||selectedVersion()?.downloads?.[kind]?.sha256!==info.sha256||!verifiedResult(selectedVersion()))throw new Error('파일 해시 또는 선택한 결과가 달라졌습니다. 저장하지 않습니다.');
+  url=URL.createObjectURL(blob);const link=el('a','');link.href=url;link.download=`검토용-${id}.${kind}`;document.body.append(link);link.click();link.remove();
+  downloadMessage=`검토용 ${kind.toUpperCase()} 저장 요청 · SHA-256 확인됨. 최종 제출 승인이 아니며 PDF 육안 검토가 필요합니다.`;
+ }catch(error){downloadMessage='내려받기 차단 · '+error.message+' 자동 재시도하지 않습니다.'}
+ finally{if(url)URL.revokeObjectURL(url);setBusy('');updateDownloads()}
+}
+$('download-hwp').onclick=()=>downloadResult('hwp');$('download-pdf').onclick=()=>downloadResult('pdf');
+function renderComparison(width,dpi){
+ const version=selectedVersion(),container=$('compare-container');if(!version)return;
+ const reference=$('compare-reference').value,first=resultVersions.find(v=>v.id===reference);
+ const key=`${reference}:${version.id}:${viewMode}:${page}:${dpi}`;container.className='compare-container '+viewMode;container.style.width=width+'px';if(container.dataset.key===key)return;container.dataset.key=key;container.replaceChildren();
+ for(const side of viewMode==='split'?['before','after']:['diff']){
+  const figure=el('figure','', 'compare-sheet'),caption=el('figcaption',side==='before'?(first?'비교 기준 결과 · '+first.id:'이전 버전 · 원본'):side==='after'?(version.status==='blocked'?'검증 실패 결과 · 제출 금지':verifiedResult(version)?'적용된 수정본 · 최종 검토 필요':'과거 결과 · 파일 무결성 미확인'):'변경 픽셀을 붉게 표시 · 옅은 배경은 이전 버전');figure.append(caption);
+  const exists=side==='diff'||page<=(side==='before'?(first?.after_pages||version.before_pages):version.after_pages);
+  if(exists){const image=el('img','');image.alt=caption.textContent;image.src=first?`/compare-pair/${first.id}/${version.id}/${side}/${page}.png?dpi=${dpi}`:`/comparison/${version.id}/${side}/${page}.png?dpi=${dpi}`;image.onerror=()=>{image.hidden=true;figure.append(el('div','비교 이미지를 읽지 못했습니다. 새로 읽기를 눌러주세요.','compare-missing'))};figure.append(image)}else figure.append(el('div','이 버전에는 해당 쪽이 없습니다. 쪽수 변경은 형식 검증 실패 항목입니다.','compare-missing'));
+  container.append(figure);
+ }
+}
+function drawPoint(){const dot=$('dot');dot.hidden=!point;if(point){dot.style.left=point[0]*100+'%';dot.style.top=point[1]*100+'%'}}
+function applyZoom(){
+ if(!state)return;const info=state.manifest.pages[page-1]||state.manifest.pages.at(-1),viewport=$('document-viewport'),style=getComputedStyle(viewport);
+ const available=Math.max(80,viewport.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight)),base=info.width*96/72;
+ const width=zoomMode==='fit'?available:base*Number(zoomMode)/100;zoomPercent=width/base*100;
+ $('page-container').style.width=width+'px';$('zoom-readout').textContent=Math.round(zoomPercent)+'%';$('zoom').value=zoomMode;
+ const dpi=zoomPercent>110?144:100,key=`${page}:${dpi}`;
+ $('page-badge').textContent=viewMode==='original'?(state.manifest.protected_pages.includes(page)?'이미지 / 보호 페이지':'허용 영역만 수정'):'읽기 전용 비교 · 메모는 원본에서';
+ if(viewMode==='original'){$('page-number').max=state.manifest.pages.length;$('total').textContent=`/ ${state.manifest.pages.length}`;if(imageKey===key)$('render-quality').textContent=dpi===144?'선명 보기 · 144dpi':'원본 미리보기 · 100dpi'}
+ $('page-container').hidden=viewMode!=='original';$('compare-container').hidden=viewMode==='original';
+ if(viewMode!=='original'){$('image-message').hidden=true;$('retry-image').hidden=true;renderComparison(zoomMode==='fit'?available:viewMode==='split'?width*2+12:width,dpi);$('render-quality').textContent=`읽기 전용 비교 · ${dpi}dpi`;$('page-number').max=viewerPageCount();$('total').textContent=`/ ${viewerPageCount()}`;updateComposer();return}
+ if(imageKey!==key){imageKey=key;$('render-quality').textContent='이미지 불러오는 중…';$('image-message').hidden=false;$('image-message').textContent='페이지 미리보기를 불러오는 중입니다.';$('retry-image').hidden=true;$('page-image').src=`/page/${page}.png${dpi===144?'?dpi=144':''}`}
+}
+function stepZoom(direction){const steps=[25,50,75,100,125,150,175,200];const next=direction>0?steps.find(n=>n>zoomPercent+1)||200:[...steps].reverse().find(n=>n<zoomPercent-1)||25;zoomMode=String(next);applyZoom()}
+function showPage(number){
+ page=Math.max(1,Math.min(viewerPageCount(),Math.trunc(Number(number))||1));const info=state.manifest.pages[page-1]||state.manifest.pages.at(-1);hoveredAnchorId=null;selectedNoteId=null;$('hover-hint').hidden=true;
+ $('page-number').value=page;$('overlay').setAttribute('viewBox',`0 0 ${info.width} ${info.height}`);$('page-image').style.aspectRatio=`${info.width} / ${info.height}`;
+ const locked=state.manifest.protected_pages.includes(page);$('page-badge').textContent=locked?'이미지 / 보호 페이지':'허용 영역만 수정';$('page-badge').className='badge'+(locked?' locked':'');
+ $('target').replaceChildren(el('option','페이지 전체 코멘트'));$('target').firstChild.value='';
+ for(const anchor of anchorsByPage.get(page)||[]){const option=el('option',(anchor.cell?'[표] ':'[문단] ')+anchor.old_text.slice(0,90));option.value=anchor.anchor_id;option.title=anchor.old_text;$('target').append(option)}
+ resetComposer();$('page-container').hidden=false;imageKey='';applyZoom();$('document-viewport').scrollTop=0;$('document-viewport').scrollLeft=0;showComments();syncThumbnailSelection();updateComposer();
+}
+function navigate(number){
+ if(!state)return;const target=Math.max(1,Math.min(viewerPageCount(),Math.trunc(Number(number))||1));
+ if(target===page){$('page-number').value=page;return}
+ if(busy){$('page-number').value=page;return}
+ if(draftDirty()&&!confirm('저장하지 않은 코멘트를 버리고 페이지를 이동할까요?')){$('page-number').value=page;return}
+ showPage(target);message('');
+}
+function editComment(comment){
+ if(busy)return;if(draftDirty()&&!confirm('현재 초안을 버리고 저장된 코멘트를 편집할까요?'))return;
+ if(viewMode!=='original'){viewMode='original';$('view-mode').value='original';applyZoom()}
+ editingId=comment.id;selectedNoteId=comment.id;$('comment-text').value=comment.comment;$('target').value=comment.anchor_id||'';point=comment.region?[...comment.region]:null;drawAnchor();drawPoint();showComments();updateComposer();focusReviewControl($('comment-text'));message('저장하기 전까지 기존 코멘트는 바뀌지 않습니다.');
+}
+async function commitComments(comments){
+ const result=await request('/api/comments',{workspace_id:state.manifest.workspace_id,comments});state.comments.comments=comments;state.comments_revision=result.comments_revision;lastSaved=new Date();await readWorkflow();
+}
+async function deleteComment(comment){
+ if(busy||!confirm('이 코멘트를 삭제할까요?'))return;setBusy('delete');
+ try{await commitComments(state.comments.comments.filter(c=>c.id!==comment.id));if(editingId===comment.id)resetComposer();showComments();message('코멘트를 삭제했습니다.','success')}
+ catch(error){message(error.message,'error')}finally{setBusy('')}
+}
+function showComments(){
+ updateThumbnailMetadata();const list=$('comment-list');list.replaceChildren();noteCards.clear();const comments=state.comments.comments.filter(c=>c.page===page);
+ $('page-comment-count').textContent=`${comments.length}개`;$('empty-comments').hidden=comments.length>0;
+ for(const [index,comment] of comments.entries()){
+  const card=el('div','', 'comment'+(comment.id===editingId?' editing':'')),head=el('div','', 'comment-head'),actions=el('div','', 'comment-actions');
+  const edit=el('button','편집','comment-edit'),remove=el('button','삭제','comment-delete');edit.onclick=()=>editComment(comment);remove.onclick=()=>deleteComment(comment);actions.append(edit,remove);
+  if(proposalKind==='text'&&textAnchor(anchorById.get(comment.anchor_id))){const compose=el('button','교체 문구 작성');compose.onclick=()=>beginTextDraft(comment.anchor_id);actions.append(compose)}
+  const focus=el('button',`메모 ${index+1} · ${comment.anchor_id?'문단 / 셀 연결':comment.region?'위치 메모':'페이지 메모'}`,'note-focus');focus.onclick=()=>focusNote(comment.id);head.append(focus,actions);card.dataset.noteId=comment.id;card.classList.toggle('focused',comment.id===selectedNoteId);noteCards.set(comment.id,card);card.append(head,el('p',comment.comment));
+  const stored=workflowData?.notes?.[comment.id],matched=!!stored&&typeof workflowHashes[comment.id]==='string'&&stored.comment_sha256===workflowHashes[comment.id];
+  const status=el('select','');status.setAttribute('aria-label','메모 처리 상태');for(const [value,label] of [['open','미처리'],['in_progress','처리 중'],['resolved','처리 확인']]){const option=el('option',label);option.value=value;status.append(option)}status.value=matched?stored.status:'open';
+  const evidence=el('select','');evidence.setAttribute('aria-label','메모 근거 자료');const none=el('option','근거 연결 없음');none.value='';evidence.append(none);for(const [sha,item] of Object.entries(workflowData?.evidence||{})){const option=el('option',item.name);option.value=sha;evidence.append(option)}evidence.value=matched?(stored.evidence_sha256[0]||''):'';
+  const saveState=el('button','처리·근거 기록','note-workflow-save');saveState.disabled=!!busy||!workflowRead;saveState.onclick=()=>saveNoteWorkflow(comment,status.value,evidence.value);card.append(status,evidence,saveState,el('small',matched?'현재 메모 해시에 연결된 처리 기록':stored?'메모 변경 후 처리 상태 재확인 필요':'처리 상태는 변경 승인이 아닙니다.'));
+  if(comment.region)card.append(el('small',`지정 위치: ${Math.round(comment.region[0]*100)}% / ${Math.round(comment.region[1]*100)}%`));list.append(card);
+ }
+ renderNoteMarkers();updateComposer();
+}
+async function saveComment(){
+ if(busy||!state)return;const text=$('comment-text').value.trim();if(!text){message('코멘트를 입력해주세요.','error');return}
+ const wasEditing=!!editingId,comment={id:editingId||crypto.randomUUID(),page,anchor_id:$('target').value||null,region:point?[...point]:null,comment:text};
+ const comments=editingId?state.comments.comments.map(c=>c.id===editingId?comment:c):[...state.comments.comments,comment];setBusy('save');
+ try{await commitComments(comments);resetComposer();showComments();message(wasEditing?'수정 내용을 저장했습니다.':'코멘트를 저장했습니다. HWP는 아직 변경하지 않았습니다.','success')}
+ catch(error){message(error.message,'error')}finally{setBusy('')}
+}
+function setNativeReview(id,checked){
+ if(!nativeReviewAvailable()||!state.proposal.edits.some(e=>e.anchor_id===id))return;
+ if(checked)nativeReviewed.add(id);else nativeReviewed.delete(id);updateComposer();
+}
+function toggleAllNative(checked){
+ if(!nativeReviewAvailable())return;
+ nativeReviewed.clear();if(checked)for(const edit of state.proposal.edits)nativeReviewed.add(edit.anchor_id);updateComposer();
+}
+function regionCheck(edit){const label=el('label','','review-check'),check=el('input','');check.type='checkbox';check.className='native-region-ack';check.dataset.anchorId=edit.anchor_id;check.setAttribute('aria-label','문구와 영역 확인: '+edit.old_text);check.onchange=()=>setNativeReview(edit.anchor_id,check.checked);label.append(check,el('span','확인','check-caption'));return label}
+function jumpToEdit(edit){const anchor=anchorById.get(edit.anchor_id);if(!anchor)return;navigate(anchor.page_hint);if(page===anchor.page_hint&&!busy){$('target').value=anchor.anchor_id;drawAnchor();updateComposer()}}
+function renderProposalSummary(){
+ const proposal=state?.proposal,body=$('proposal-review-rows');body.replaceChildren();
+ $('native-bulk-label').hidden=!nativeContract(proposal);$('summary-bulk-label').hidden=!nativeContract(proposal);$('summary-policy-label').hidden=!nativeContract(proposal);
+ if(!proposal)return;
+ const sorted=[...proposal.edits].sort((a,b)=>anchorById.get(a.anchor_id).page_hint-anchorById.get(b.anchor_id).page_hint),pages=new Set(sorted.map(e=>anchorById.get(e.anchor_id).page_hint));
+ $('proposal-review-caption').textContent=`${proposal.edits.length}건 · ${pages.size}쪽 · 원본 위치와 승인 영역을 나란히 확인하세요. 체크는 승인/적용이 아닙니다.`;
+ let group=null;
+ for(const edit of sorted){
+  const anchor=anchorById.get(edit.anchor_id),info=state.manifest.pages.find(p=>p.page===anchor.page_hint);
+  if(group!==anchor.page_hint){group=anchor.page_hint;const row=el('tr','','review-page-group'),head=el('th',`${group}페이지`);head.colSpan=4;head.scope='rowgroup';row.append(head);body.append(row)}
+  const row=el('tr'),location=el('td'),old=el('td',edit.old_text,'old'),next=el('td',edit.new_text,'new'),ack=el('td'),jump=el('button',`${anchor.page_hint}쪽 위치 보기`);
+  jump.onclick=()=>{$('proposal-review-dialog').close();jumpToEdit(edit)};location.append(jump);
+  const boxes=nativeContract(proposal)?[edit.region]:anchor.boxes;
+  if(info&&boxes?.length){
+   const x0=Math.max(0,Math.min(...boxes.map(b=>b[0]))-12),y0=Math.max(0,Math.min(...boxes.map(b=>b[1]))-10),x1=Math.min(info.width,Math.max(...boxes.map(b=>b[2]))+12),y1=Math.min(info.height,Math.max(...boxes.map(b=>b[3]))+10),svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+   svg.classList.add('slot-preview');svg.setAttribute('viewBox',`${x0} ${y0} ${x1-x0} ${y1-y0}`);svg.setAttribute('role','img');svg.setAttribute('aria-label','원본 문단과 승인 허용 영역');
+   const image=document.createElementNS(svg.namespaceURI,'image');for(const [k,v] of Object.entries({href:`/page/${info.page}.png`,x:0,y:0,width:info.width,height:info.height}))image.setAttribute(k,v);svg.append(image);
+   for(const box of boxes){const rect=document.createElementNS(svg.namespaceURI,'rect');for(const [k,v] of Object.entries({x:box[0],y:box[1],width:box[2]-box[0],height:box[3]-box[1],fill:'#f59e0b','fill-opacity':'.12',stroke:'#d97706','stroke-width':'.8'}))rect.setAttribute(k,v);svg.append(rect)}
+   location.append(svg);location.append(el('small',nativeContract(proposal)?'주황색: 승인 허용 영역 · 원본만 미리보기':'원본 글자 영역 · 원본만 미리보기'));
+  }
+  if(nativeContract(proposal))ack.append(regionCheck(edit));else ack.textContent='—';row.append(location,old,next,ack);body.append(row);
+ }
+}
+function textApplyReady(){return !busy&&!textApplyPending&&reviewSourceConfirmed&&!draftDirty()&&!textDraftDirty()&&!restoredMemoConflict&&viewMode==='original'&&matchingContract()&&state?.proposal?.schema===1&&approvedHash===state.proposal_sha256&&state?.text_apply?.enabled===true&&state.text_apply.available===true&&!state.text_apply.active&&!(state.text_apply.plan_sha256===state.proposal_sha256&&state.text_apply.status!=='idle')&&!(state.apply_state&&state.apply_state.locked!==false)&&!state.latest_attempt}
+let textApplyPending=false,textApplyNeedsRead=false;
+let contractApplyPending=null;
+function contractApplyReady(){const kind=$('proposal-kind').value,job=state?.contract_apply;return !!state&&job?.supported_kinds?.includes(kind)===true&&['native','layout'].includes(kind)&&[2,3].includes(state.proposal?.schema)&&approvedHash===state.proposal_sha256&&!!state.approval_scope_sha256&&job?.available===true&&!job.active&&!(job.plan_sha256===state.proposal_sha256&&job.status!=='idle')&&!state.apply_state?.locked&&!state.latest_attempt&&!draftDirty()&&!textDraftDirty()&&!restoredMemoConflict&&reviewSourceConfirmed&&viewMode==='original'&&matchingContract()&&contractApplyPending!==state.proposal_sha256&&!busy}
+function updateContractApply(){const panel=$('contract-apply-panel'),job=state?.contract_apply,kind=$('proposal-kind').value;panel.hidden=!state||!['native','layout'].includes(kind)||job?.enabled!==true;$('apply-contract').disabled=!contractApplyReady();$('contract-apply-status').textContent=job?.active?'한글 계약 적용 중입니다. 완료와 재개방 검사를 기다리세요.':job?.status==='blocked'?'적용 차단: '+job.error:state?.latest_attempt?'이 수정안의 기존 실행 결과를 확인하세요. 재적용하지 않습니다.':contractApplyReady()?'정확한 계약이 승인됐습니다. 별도 확인 후 새 사본에 적용할 수 있습니다.':job?.reason||'원본·정확한 계약·영역 승인과 미저장 입력을 먼저 확인하세요.'}
+let agentDiscoveryPending=false,piPending=false,piState=null,piDetected=false;
+function renderAgentPresence(data){
+ const labels={pi:'Pi'},statuses=['idle','discovering','finished','failed','closed'];
+ if(!data||!statuses.includes(data.status)||data.executed!==false||data.model_called!==false||data.connected!==false||data.runtime_verified!==false||!Array.isArray(data.agents)||data.agents.length>1)throw new Error('Agent 탐색 응답 확인 필요 · 연결하지 않았습니다.');
+ const seen=new Set(),list=$('agent-presence-list');list.replaceChildren();
+ for(const item of data.agents){if(!item||!Object.hasOwn(labels,item.id)||seen.has(item.id)||!['detected','not_found_in_scanned_path'].includes(item.status)||item.connected!==false||item.runtime_verified!==false)throw new Error('Agent 경로 응답 확인 필요');seen.add(item.id);const row=el('li',labels[item.id]+' · '+(item.status==='detected'?'경로 발견 · 실행/인증 미검증':'검사한 PATH에서 찾지 못함 · 전체 설치 목록 아님'));if(item.status==='detected'){if(typeof item.path!=='string'||!item.path||item.path.length>4096)throw new Error('Agent 경로 길이 확인 필요');row.append(el('div',item.path))}list.append(row)}
+ if(data.status==='finished'&&seen.size!==1)throw new Error('Agent 탐색 목록이 불완전합니다. 설치 여부를 단정하지 않습니다.');
+ piDetected=data.status==='finished'&&data.agents.some(item=>item.id==='pi'&&item.status==='detected');$('pi-prepare').disabled=piPending||!piDetected;
+ const messages={idle:'Agent 미연결 · 아직 경로를 탐색하지 않았습니다.',discovering:'PATH 탐색 중 · CLI/모델/문서를 실행하지 않습니다.',finished:'Agent 미연결 · 경로 탐색만 완료했습니다. 문서와 로그인 정보는 읽지 않았습니다.',failed:'Agent 경로 탐색 실패 · 자동 재시도하지 않습니다.',closed:'Agent 탐색 종료 · 연결하지 않았습니다.'};
+ $('agent-presence-status').textContent=messages[data.status]+(data.ignored_entries||data.unreadable_candidates?' 일부 PATH는 검사 범위에서 제외됐습니다.':'');
+}
+async function discoverAgents(){
+ if(agentDiscoveryPending||piPending)return;piDetected=false;piState=null;$('pi-probe').disabled=true;$('pi-prepare').disabled=true;agentDiscoveryPending=true;$('agent-discover').disabled=true;$('agent-presence-list').replaceChildren();$('agent-presence-status').textContent='PATH 탐색 요청 중 · Agent 미연결';
+ try{let data=await request('/api/agents/discover',{}),polls=0;renderAgentPresence(data);while(data.status==='discovering'&&polls++<60){await new Promise(resolve=>setTimeout(resolve,250));const response=await fetch('/api/agents',{headers:{'X-Review-Token':token},signal:AbortSignal.timeout(12000)});if(!response.ok)throw new Error('Agent 경로 상태를 읽지 못했습니다.');data=await response.json();renderAgentPresence(data)}if(data.status==='discovering')throw new Error('탐색이 아직 진행 중입니다. 자동으로 새 작업을 시작하지 않습니다.')}
+ catch(error){$('agent-presence-list').replaceChildren();$('agent-presence-status').textContent='Agent 미연결 · '+String(error.message).slice(0,1000)+' 다시 찾기는 직접 눌러주세요.'}
+ finally{agentDiscoveryPending=false;$('agent-discover').disabled=false}
+}
+$('agent-discover').onclick=()=>discoverAgents();
+function renderPiProbe(data){
+ if(!data||!['idle','preparing','prepared','probing','passed','failed','closed'].includes(data.status)||data.connected!==false||data.authenticated!==false||data.model_called!==false||data.document_shared!==false)throw new Error('Pi 검사 응답 확인 필요');
+ if(['prepared','passed'].includes(data.status)&&(typeof data.probe_id!=='string'||!/^[a-f0-9]{32}$/.test(data.probe_id)||!data.runtime||typeof data.runtime.sha256!=='string'||!/^[a-f0-9]{64}$/.test(data.runtime.sha256)||!['1.2.0','1.3.0','1.4.0'].includes(data.runtime.sdk_version)))throw new Error('Pi 프로그램 결합 확인 필요');
+ if(data.status==='passed'&&(!data.result||data.result.sdk_version!==data.runtime.sdk_version||data.result.transport_verified!==true||data.result.process_exited!==true||data.result.connected!==false||data.result.authenticated!==false||data.result.model_called!==false||data.result.tools_enabled!==false||data.result.document_shared!==false))throw new Error('Pi 종료/격리 증거 확인 필요');
+ const info=data.runtime;for(const key of ['cli','node','sdk_entry'])if(info&&(typeof info[key]!=='string'||!info[key].length||info[key].length>4096))throw new Error('Pi 프로그램 경로 확인 필요');
+ piState=data;$('pi-probe').disabled=piPending||data.status!=='prepared';if(data.status==='prepared')$('pi-runtime-details').open=true;
+ $('pi-runtime-info').textContent=info?['Pi: '+info.cli,'Node: '+info.node,'SDK: '+info.sdk_entry,'프로그램 결합 SHA256: '+info.sha256].join('\n'):'';
+ const messages={idle:'아직 검사하지 않았습니다.',preparing:'설치 정보/파일 해시 확인 중 · 실행하지 않습니다.',prepared:'확인한 파일을 읽어주세요. 프로그램 실행은 별도 확인이 필요합니다.',probing:'격리된 일회 SDK 검사 중 · 모델/문서/기존 로그인 사용 안 함',passed:'SDK 통신·종료 검사 통과 · 실제 대화/로그인은 미연결입니다.',failed:'Pi 검사 차단 · 자동 재시도/CLI 우회 실행 없음',closed:'Pi 검사 종료'};
+ $('pi-probe-status').textContent=messages[data.status]+(data.stage?' · '+String(data.stage).slice(0,100):'');
+}
+async function waitPi(data){for(let count=0;['preparing','probing'].includes(data.status)&&count<180;count++){renderPiProbe(data);await new Promise(resolve=>setTimeout(resolve,250));const response=await fetch('/api/pi',{headers:{'X-Review-Token':token},signal:AbortSignal.timeout(12000)});if(!response.ok)throw new Error('Pi 검사 상태를 읽지 못했습니다.');data=await response.json()}renderPiProbe(data);if(['preparing','probing'].includes(data.status))throw new Error('Pi 검사가 아직 진행 중입니다. 새 작업을 자동 시작하지 않습니다.');return data}
+async function piOperation(route,payload){
+ if(piPending)return;piPending=true;$('pi-prepare').disabled=true;$('pi-probe').disabled=true;$('agent-discover').disabled=true;
+ try{await waitPi(await request(route,payload))}catch(error){piState=null;$('pi-runtime-info').textContent='';$('pi-probe-status').textContent='Pi 미연결 · '+String(error.message).slice(0,1000)+' 자동 재시도 없음.'}
+ finally{piPending=false;$('agent-discover').disabled=agentDiscoveryPending;$('pi-prepare').disabled=agentDiscoveryPending||!piDetected;$('pi-probe').disabled=piState?.status!=='prepared'}
+}
+$('pi-prepare').onclick=()=>piOperation('/api/pi/prepare',{prepare_confirmed:true});
+$('pi-probe').onclick=()=>{const current=piState;if(piPending||current?.status!=='prepared'||!confirm('표시된 Pi SDK/Node와 결합 SHA256을 확인했나요? 이 설치 코드를 신뢰할 때만 실행하세요. 별도 빈 환경에서 일회 검사하고 종료합니다. 모델/로그인/문서는 사용하지 않으며 대화 연결이나 문서 승인이 아닙니다.'))return;return piOperation('/api/pi/probe',{probe_id:current.probe_id,runtime_sha256:current.runtime.sha256,execute_confirmed:true})};
+let chatState=null,chatBusy=false,chatEpoch=0,chatUncertain=false,lastChatTranscript='',contextPreview=null,contextPreviewKey='',contextPending=false;
+function contextSelection(){if(!state||!reviewSourceConfirmed||viewMode!=='original'||!$('target').value||state.proposal_kind!==proposalKind)throw new Error('원본의 연결 문구를 선택하고 최신 자료를 확인하세요.');return {workspace_id:state.manifest.workspace_id,baseline_hwpx_sha256:state.manifest.baseline_hwpx_sha256,comments_revision:state.comments_revision,proposal_revision:state.proposal_revision,proposal_kind:proposalKind,page:Number($('page-number').value),anchor_id:$('target').value,include_memos:$('pi-context-memos').checked,view_mode:'original',prepare_context_confirmed:true}}
+function contextKey(){try{return JSON.stringify([chatState?.session_id,contextSelection()])}catch{return ''}}
+function updateContextSelection(){const key=contextKey();if(contextPreview&&key!==contextPreviewKey){contextPreview=null;$('pi-context-confirm').checked=false;$('pi-context-actions').checked=false;$('pi-context-data').textContent='';$('pi-context-status').textContent='선택/문서/메모/수정안이 바뀌었습니다. 다시 확인하세요.'}$('pi-context-preview').disabled=contextPending||chatBusy||chatState?.status!=='ready'||!key}
+$('pi-context-memos').onchange=()=>{updateContextSelection();updateChatControls()};$('pi-context-confirm').onchange=updateChatControls;$('pi-context-actions').onchange=updateChatControls;
+$('pi-context-preview').onclick=async()=>{if($('pi-context-preview').disabled)return;const selection=contextSelection(),key=contextKey();contextPending=true;$('pi-context-confirm').checked=false;updateContextSelection();try{const data=await request('/api/pi/chat/context',{session_id:chatState.session_id,selection});if(key!==contextKey())throw new Error('선택이 바뀌었습니다. 다시 확인하세요.');if(!/^[a-f0-9]{32}$/.test(data.context_id)||!/^[a-f0-9]{64}$/.test(data.context_sha256)||!data.preview||JSON.stringify(data.preview).length>40000)throw new Error('문맥 응답 확인 필요');contextPreview=data;contextPreviewKey=key;$('pi-context-data').textContent=JSON.stringify(data.preview,null,2);$('pi-context-status').textContent='위 내용만 공유할 수 있습니다. 아직 모델에 전송하지 않았습니다.'}catch(error){contextPreview=null;$('pi-context-data').textContent='';$('pi-context-status').textContent=String(error.message).slice(0,500)}finally{contextPending=false;updateChatControls()}};
+function updateChatControls(){updateContextSelection();const readGrant=$('pi-context-confirm').checked&&!!contextPreview&&contextPreviewKey===contextKey();$('pi-context-actions').disabled=!readGrant||chatBusy;if(!readGrant)$('pi-context-actions').checked=false;$('pi-chat-connect').disabled=chatBusy||!!chatState?.profile_loaded;$('pi-chat-send').disabled=chatBusy||chatUncertain||chatState?.status!=='ready'||!$('pi-chat-consent').checked||!$('pi-chat-input').value.trim()||($('pi-context-confirm').checked&&(!contextPreview||contextPreviewKey!==contextKey()));$('pi-chat-cancel').disabled=chatState?.status!=='sending';$('pi-chat-disconnect').disabled=!chatState?.session_id;for(const button of $('pi-chat-artifacts').querySelectorAll('button'))button.disabled=chatBusy||!!busy||!chatState?.session_id}
+function piUsageLabel(value){
+ if(value===null||value===undefined)return '';const keys=['input_tokens','output_tokens','cache_read_tokens','cache_write_tokens','total_tokens'];if(typeof value!=='object'||Object.keys(value).sort().join(',')!==[...keys,'cost_usd'].sort().join(',')||keys.some(key=>!Number.isSafeInteger(value[key])||value[key]<0||value[key]>1e9)||value.cost_usd!==null&&(!Number.isFinite(value.cost_usd)||value.cost_usd<0||value.cost_usd>1e6))throw new Error('Pi 사용량 확인 필요');return 'SDK 보고: 입력 '+value.input_tokens+' · 출력 '+value.output_tokens+' · 캐시 읽기/쓰기 '+value.cache_read_tokens+'/'+value.cache_write_tokens+' · 합계 '+value.total_tokens+'토큰 · '+(value.cost_usd===null?'비용 미보고':'추정 비용 $'+value.cost_usd.toFixed(6))+' (실제 청구액 아님)';
+}
+function renderChatProgress(data){
+ const box=$('pi-chat-progress'),p=data.progress;if(p===null||p===undefined){box.hidden=true;box.setAttribute('aria-busy','false');$('pi-chat-progress-title').textContent='';$('pi-chat-progress-meta').textContent='';$('pi-chat-progress-text').textContent='';$('pi-chat-progress-tools').replaceChildren();$('pi-chat-progress-usage').textContent='';return}
+ const stages={starting:'요청 준비',model_setup:'설정·모델 확인',model_request:'모델 요청',responding:'답변 수신'};
+ if(Object.keys(p).sort().join(',')!==['turn_id','state','stage','text','requests','request_limit','tool_activity','usage','elapsed_seconds'].sort().join(',')||p.turn_id!==data.last_turn?.turn_id||!/^t-[a-f0-9]{16}$/.test(p.turn_id)||!['sending','failed','cancelled'].includes(p.state)||!Object.hasOwn(stages,p.stage)||typeof p.text!=='string'||new TextEncoder().encode(p.text).length>262144||!Number.isInteger(p.requests)||p.requests<0||p.request_limit!==(data.proposal_tools_enabled?3:data.tools_enabled?2:1)||p.requests>p.request_limit||!Number.isFinite(p.elapsed_seconds)||p.elapsed_seconds<0||!Array.isArray(p.tool_activity)||p.tool_activity.length>8)throw new Error('Pi 스트리밍 상태 확인 필요');
+ const tools=p.tool_activity.map(event=>{if(!data.tool_names.includes(event.name)||!['started','finished','failed'].includes(event.status)||typeof event.id!=='string'||event.id.length>128)throw new Error('허용되지 않은 Pi 진행 도구');return event.name+' · '+event.status});
+ box.hidden=false;box.setAttribute('aria-busy',p.state==='sending'?'true':'false');$('pi-chat-progress-title').textContent=p.state==='sending'?'생성 중 · 검증 전 응답':p.state==='cancelled'?'중단된 응답 · 미검증/읽기 전용':'실패한 응답 · 미검증/읽기 전용';$('pi-chat-progress-meta').textContent=stages[p.stage]+' · '+p.elapsed_seconds.toFixed(1)+'초 · SDK 요청 시도 '+p.requests+'/'+p.request_limit;
+ const text=$('pi-chat-progress-text'),follow=text.scrollHeight-text.scrollTop-text.clientHeight<60;if(text.textContent!==p.text){text.textContent=p.text;if(follow)text.scrollTop=text.scrollHeight}const list=$('pi-chat-progress-tools');list.replaceChildren(...tools.map(label=>el('li',label)));$('pi-chat-progress-usage').textContent=piUsageLabel(p.usage);
+}
+function renderChat(data){
+ if(!data||!['disconnected','preparing','prepared','connecting','ready','sending','full','failed','closed'].includes(data.status)||typeof data.tools_enabled!=='boolean'||typeof data.document_shared!=='boolean'||data.write_tools_enabled!==false||data.session_persisted!==false||!Array.isArray(data.turns)||data.turns.length>82)throw new Error('Pi 대화 상태 확인 필요');
+ if(['ready','sending','full'].includes(data.status)&&(!/^[a-f0-9]{32}$/.test(data.session_id)||data.profile_loaded!==true||!data.model||typeof data.model.provider!=='string'||typeof data.model.id!=='string'||data.model.provider.length>256||data.model.id.length>512))throw new Error('Pi 대화/모델 결합 확인 필요');
+ if(!Array.isArray(data.tool_names)||typeof data.proposal_tools_enabled!=='boolean'||!Array.isArray(data.artifacts)||data.artifacts.length>80)throw new Error('Pi 제안 상태 확인 필요');
+ const allowed=data.proposal_tools_enabled?['get_review_context','get_job_status','propose_text_edits','request_approved_job']:['get_review_context','get_job_status'];if(data.tools_enabled&&(!Array.isArray(data.tool_names)||data.tool_names.length!==allowed.length||new Set(data.tool_names).size!==allowed.length||data.tool_names.some(name=>!allowed.includes(name))))throw new Error('허용되지 않은 Pi 도구');
+ if(data.session_id!==chatState?.session_id){$('pi-chat-consent').checked=false;$('pi-context-confirm').checked=false;contextPreview=null;$('pi-context-data').textContent=''}chatState=data;$('pi-context-history-warning').hidden=!data.document_shared;
+ const list=$('pi-chat-messages'),transcript=JSON.stringify(data.turns);if(transcript.length>1500000)throw new Error('Pi 표시 기록 한도 초과');if(transcript!==lastChatTranscript){const follow=list.scrollHeight-list.scrollTop-list.clientHeight<60;list.replaceChildren();for(const row of data.turns){if(!['user','assistant'].includes(row.role)||typeof row.text!=='string'||row.text.length>300000)throw new Error('Pi 대화 응답 확인 필요');const card=el('article','','chat-message '+(row.role==='user'?'chat-user':'chat-assistant'));card.append(el('strong',row.role==='user'?'나':'Pi'),el('p',row.text));if(row.usage!==null&&row.usage!==undefined)card.append(el('p',piUsageLabel(row.usage),'note'));if(row.tool_activity?.length){if(!Array.isArray(row.tool_activity)||row.tool_activity.length>8)throw new Error('읽기도구 기록 한도');const detail=el('details'),summary=el('summary','도구 기록 · 문서 저장/실행 아님'),items=el('ul');for(const event of row.tool_activity){if(!['get_review_context','get_job_status','propose_text_edits','request_approved_job'].includes(event.name)||!['started','finished','failed'].includes(event.status))throw new Error('읽기도구 기록 확인 필요');items.append(el('li',event.name+' · '+event.status))}detail.append(summary,items);card.append(detail)}if(row.outcome==='incomplete')card.append(el('small','응답이 잘렸습니다. 자동 후속 요청은 하지 않았습니다.'));list.append(card)}lastChatTranscript=transcript;if(follow)list.scrollTop=list.scrollHeight}
+ renderChatProgress(data);renderPiArtifacts(data);
+ const names={disconnected:'Pi 미연결',preparing:'연결 프로그램·파일 해시 확인 중 · 프로필 사용 전',prepared:'연결 프로그램 확인 필요',connecting:'기존 Pi의 기본 모델 설정 읽는 중 · 메시지 전송 전',ready:'Pi 기본 모델 설정 연결 · 로그인/API 동작은 각 요청에서 확인합니다.',sending:'Pi 응답 생성 중 · 자동 재요청/문서 작업 실행 없음',full:'대화 메모리 한도 · 지우고 새 대화를 시작하세요.',failed:'Pi 연결 실패 · 기존 Pi의 기본 모델/설정을 확인하세요. 자동 재시도 없음',closed:'Pi 대화 종료'};
+ $('pi-chat-status').textContent=names[data.status]+(data.stage?' · '+String(data.stage).slice(0,100)+' (자동 재전송 없음)':'');$('pi-chat-model').textContent=data.model?'모델: '+String(data.model.provider).slice(0,256)+' / '+String(data.model.id).slice(0,512):'';
+ const info=data.runtime;$('pi-chat-runtime').textContent=info?['Pi: '+info.cli,'Node: '+info.node,'SDK: '+info.sdk_entry,'결합 SHA256: '+info.sha256].join('\n'):'';if(data.status==='prepared')$('pi-chat-program').open=true;updateChatControls();
+}
+function renderPiArtifacts(data){
+ const container=$('pi-chat-artifacts');container.replaceChildren();for(const item of data.artifacts){const value=item.artifact;if(!/^a-[a-f0-9]{32}$/.test(item.artifact_id)||!value||!['text_draft','approved_job_request'].includes(value.kind))throw new Error('Pi 제안 형식 확인 필요');const card=el('article','','chat-message');card.append(el('strong',value.kind==='text_draft'?'수정 초안 · 미저장/미승인':'승인 작업 실행 요청 · 실행 안 함'));
+ if(value.kind==='text_draft'){if(typeof value.old_text!=='string'||typeof value.new_text!=='string'||value.old_text.length>8000||value.new_text.length>8000)throw new Error('Pi 초안 길이 확인 필요');card.append(el('p','원본: '+value.old_text),el('p','제안: '+value.new_text))}else{if(!value.job||!['text','layout'].includes(value.job.proposal_kind)||!/^[a-f0-9]{64}$/.test(value.job.plan_sha256))throw new Error('Pi 작업 요청 결합 확인 필요');card.append(el('p','수정안 '+value.job.plan_sha256,'note'))}
+ const button=el('button',value.kind==='text_draft'?'기존 편집기로 불러오기 · 저장 안 함':'검토·별도 실행 확인으로 이동');button.type='button';button.disabled=chatBusy;button.onclick=()=>reviewPiArtifact(item);card.append(button,el('p','원본·승인·실패 잠금은 바꾸지 않습니다.','note'));container.append(card)}
+}
+async function reviewPiArtifact(item){
+ if(chatBusy||busy||!chatState?.session_id)return;const sid=chatState.session_id;
+ try{
+  if(item.artifact.kind==='text_draft'&&(proposalKind!=='text'||viewMode!=='original'||!textDraftAvailable()||!textDraftBound()))throw new Error('먼저 원본/글자 수정 방식과 최신 자료를 확인하세요. Pi 제안은 그대로 보존됩니다.');
+  if(item.artifact.kind==='text_draft'&&$('draft-new').value&&!confirm('작성 중인 미추가 새 문구를 Pi 제안으로 교체하나요? 기존 초안 목록·메모는 유지하며 저장/승인은 하지 않습니다.'))return;
+  const reviewed=await request('/api/pi/chat/artifact-review',{session_id:sid,artifact_id:item.artifact_id,review_confirmed:true});if(sid!==chatState?.session_id)throw new Error('대화 세션이 바뀌었습니다.');
+  if(reviewed.kind==='text_draft'){
+   if(proposalKind!=='text'||viewMode!=='original'||reviewed.workspace_id!==state.manifest.workspace_id||reviewed.baseline_hwpx_sha256!==state.manifest.baseline_hwpx_sha256||reviewed.proposal_revision!==state.proposal_revision||!textDraftAvailable()||!textDraftBound()||textDraftActive&&textDraftRevision!==reviewed.proposal_revision)throw new Error('화면/수정안 기준이 바뀌었습니다. 자동 연결하지 않습니다.');
+   const edit=reviewed.edit,anchor=anchorById.get(edit.anchor_id);if(!textAnchor(anchor)||anchor.old_text!==edit.old_text)throw new Error('원본 연결 문구가 바뀌었습니다.');beginTextDraft(edit.anchor_id);if(textDraftTarget!==edit.anchor_id||$('draft-target').value!==edit.anchor_id)return;$('draft-new').value=edit.new_text;updateComposer();focusReviewControl($('draft-new'));message('Pi 초안을 입력란에 불러왔습니다. 항목 추가·저장·전후 검토·승인·적용은 각각 별도입니다.');
+  }else if(reviewed.kind==='approved_job_request'){
+   const job=reviewed.job;if(proposalKind!==job.proposal_kind||viewMode!=='original'||draftDirty()||textDraftDirty())throw new Error('해당 수정 방식/원본으로 돌아가 미저장 입력을 먼저 확인하세요. 자동으로 버리지 않습니다.');await load();if(proposalKind!==job.proposal_kind||state.proposal_sha256!==job.plan_sha256||approvedHash!==job.plan_sha256||state.proposal_revision!==job.proposal_revision||job.proposal_kind==='layout'&&state.approval_scope_sha256!==job.approval_scope_sha256)throw new Error('정확한 승인/수정안이 바뀌었습니다.');const control=job.proposal_kind==='text'?$('apply-text'):$('apply-contract');if(control.disabled)throw new Error('현재 이 작업은 적용할 수 없습니다. 기존 기록/잠금을 확인하세요.');focusReviewControl(control);message('기존 적용 확인으로 이동했습니다. 아직 작업을 시작하지 않았습니다. 버튼을 눌러 별도로 확인하세요.');
+  }else throw new Error('지원하지 않는 Pi 제안');
+ }catch(error){message('Pi 제안은 읽기 전용으로 유지합니다. '+String(error.message).slice(0,600),'error')}
+}
+async function readChat(){const response=await fetch('/api/pi/chat',{headers:{'X-Review-Token':token},signal:AbortSignal.timeout(12000)});if(!response.ok)throw new Error('Pi 대화 상태를 읽지 못했습니다.');return response.json()}
+async function chatPost(route,payload){
+ if(chatBusy)return null;const epoch=++chatEpoch;chatBusy=true;updateChatControls();
+ try{let data=await request(route,payload);if(epoch!==chatEpoch)return null;renderChat(data);for(let n=0;['preparing','connecting','sending'].includes(data.status)&&n<1300;n++){await new Promise(resolve=>setTimeout(resolve,250));data=await readChat();if(epoch!==chatEpoch)return null;renderChat(data)}if(['preparing','connecting','sending'].includes(data.status))throw new Error('작업이 아직 진행 중입니다. 상태를 직접 다시 읽어주세요.');return data}
+ catch(error){if(epoch===chatEpoch){chatUncertain=true;$('pi-chat-progress').setAttribute('aria-busy','false');$('pi-chat-progress-title').textContent='연결 상태 확인 필요 · 자동 재전송 없음';$('pi-chat-status').textContent='Pi 상태 확인 필요 · '+String(error.message).slice(0,500)+' 자동으로 재전송하지 않습니다.'}return null}
+ finally{if(epoch===chatEpoch){chatBusy=false;updateChatControls()}}
+}
+$('pi-chat-connect').onclick=async()=>{const prepared=await chatPost('/api/pi/chat/prepare',{prepare_confirmed:true});if(prepared?.status!=='prepared'||!prepared.runtime)return;const info=prepared.runtime;if(!confirm('다음 Pi 설치 코드를 신뢰하고 기존 Pi 기본 모델 설정·로그인 사용을 허용하나요?\n'+info.cli+'\nNode: '+info.node+'\nSHA256: '+info.sha256+'\n프로그램 확인용 hash이며 보안 sandbox가 아닙니다. 기존 개발 세션은 가져오지 않습니다. 모델 요청은 전송을 누를 때만 하며, 저장된 Pi 프로필 인증을 사용합니다.'))return;await chatPost('/api/pi/chat/connect',{chat_id:prepared.chat_id,runtime_sha256:info.sha256,reuse_pi_confirmed:true})};
+$('pi-chat-send').onclick=async()=>{if($('pi-chat-send').disabled)return;const message=$('pi-chat-input').value,sid=chatState.session_id,turn='t-'+[...crypto.getRandomValues(new Uint8Array(8))].map(v=>v.toString(16).padStart(2,'0')).join('');const payload={session_id:sid,turn_id:turn,message,send_confirmed:true};if($('pi-context-confirm').checked&&contextPreview)Object.assign(payload,{context_id:contextPreview.context_id,context_sha256:contextPreview.context_sha256,context_confirmed:true,read_tools_confirmed:true});if(payload.context_id&&$('pi-context-actions').checked)payload.proposal_tools_confirmed=true;const done=await chatPost('/api/pi/chat/send',payload);$('pi-context-confirm').checked=false;$('pi-context-actions').checked=false;if(done?.last_turn?.turn_id===turn&&['settled','incomplete','history_full'].includes(done.last_turn.outcome)&&$('pi-chat-input').value===message)$('pi-chat-input').value='';updateChatControls()};
+async function refreshChat(){if(chatBusy)return;const epoch=++chatEpoch;chatBusy=true;updateChatControls();try{let data=await readChat();if(epoch!==chatEpoch)return;renderChat(data);for(let n=0;['preparing','connecting','sending'].includes(data.status)&&n<1300;n++){await new Promise(resolve=>setTimeout(resolve,250));data=await readChat();if(epoch!==chatEpoch)return;renderChat(data)}chatUncertain=['preparing','connecting','sending'].includes(data.status)}catch(error){chatUncertain=true;$('pi-chat-progress').setAttribute('aria-busy','false');$('pi-chat-progress-title').textContent='연결 상태 확인 필요 · 자동 재전송 없음';$('pi-chat-status').textContent='Pi 상태 확인 필요 · '+String(error.message).slice(0,500)}finally{if(epoch===chatEpoch){chatBusy=false;updateChatControls()}}}
+$('pi-chat-refresh').onclick=refreshChat;
+$('pi-chat-cancel').onclick=async()=>{if(!chatState?.session_id)return;try{renderChat(await request('/api/pi/chat/cancel',{session_id:chatState.session_id,cancel_confirmed:true}))}catch(error){$('pi-chat-status').textContent=String(error.message).slice(0,500)}};
+$('pi-chat-disconnect').onclick=async()=>{if(!chatState?.session_id||!confirm('앱 대화를 메모리에서 지우고 연결을 해제하나요? 진행 중 응답은 중단 요청합니다. 이미 발생한 모델 비용은 취소되지 않으며 HWP 작업/승인/잠금은 바꾸지 않습니다.'))return;chatEpoch++;chatBusy=false;try{renderChat(await request('/api/pi/chat/disconnect',{session_id:chatState.session_id,disconnect_confirmed:true}));chatUncertain=false}catch(error){$('pi-chat-status').textContent=String(error.message).slice(0,500)}updateChatControls()};
+$('pi-chat-consent').onchange=updateChatControls;$('pi-chat-input').oninput=updateChatControls;
+function updateWorkProgress(){
+ const text=state?.text_apply,native=state?.contract_apply,job=text?.active?text:native?.active?native:null,lease=state?.apply_state,attempt=state?.latest_attempt;
+ const stages={input_preparation:'입력·사본 준비',native_edit_export:'한글 저장·내보내기',structural_verification:'문서 구조 검사',saved_hwp_reopen:'저장 HWP 재개방',rendered_verification:'페이지·픽셀·문구 검사',final_source_and_approval_check:'원본·정확한 승인 재확인',result_integrity:'결과 무결성 확인',lock_finalization:'소유 작업 마무리'};
+ let status='진행 중인 문서 작업이 없습니다.',id='',error='';
+ if(!state)status='서버 상태를 먼저 확인하세요.';
+ else if(job){
+  const bound=lease?.locked===true&&lease.record_valid===true&&lease.run_id===attempt?.id&&lease.plan_sha256===job.plan_sha256&&attempt?.plan_sha256===job.plan_sha256;
+  status=bound?(stages[attempt.stage]||'실행 중 · 단계 확인 필요'):'실행 중 · 정확한 작업 식별자/단계 확인 중';
+  if(bound)id='작업 '+attempt.id+' · 수정안 '+job.plan_sha256;
+  if(Number.isFinite(job.elapsed_seconds)&&job.elapsed_seconds>=0)status+=' · '+Math.floor(job.elapsed_seconds)+'초';
+ }else if(lease?.locked){status='작업 잠금 유지 · 소유 작업/실패 상태를 확인하세요. 자동 재시도하지 않습니다.';error=attempt?.error||text?.error||native?.error||'';}
+ else if(attempt&&attempt.plan_sha256===state.proposal_sha256){
+  id='작업 '+attempt.id+' · 수정안 '+attempt.plan_sha256;
+  if(verifiedResult(attempt))status='검사 통과 · 사람의 원본/결과 시각 검토가 필요합니다. 제출 승인이 아닙니다.';
+  else if(attempt.status==='blocked'){status='문서 작업 차단 · 증거를 보존하고 원인을 확인하세요.';error=attempt.error||'';}
+  else status='문서 작업 기록 확인 필요 · 검증 성공으로 표시하지 않습니다.';
+ }else if(text?.status==='blocked'||native?.status==='blocked'){status='실행 요청 차단 · 자동 재시도하지 않습니다.';error=text?.status==='blocked'?text.error:native.error;}
+ else if(state.proposal_sha256&&state.approved_sha256===state.proposal_sha256)status='승인 기록 있음 · 원본/초안을 확인하고 별도 적용 확인이 필요합니다.';
+ $('work-progress-status').textContent=status;$('work-progress-id').textContent=id;$('work-progress-error').textContent=String(error||'').slice(0,1000);
+}
+function updateTextApply(){
+ updateWorkProgress();updateContractApply();
+ const job=state?.text_apply;$('text-apply-panel').hidden=proposalKind!=='text'||!job?.enabled;
+ $('apply-text').disabled=textApplyNeedsRead||!textApplyReady();
+ $('apply-text').textContent=job?.active?'진행 상태 확인 중':state?.latest_attempt?'기존 적용 기록 확인':'승인한 글자 수정안 적용…';
+ $('summary-apply-text').hidden=proposalKind!=='text'||!job?.enabled;$('summary-apply-text').disabled=$('apply-text').disabled;
+ const labels={input_preparation:'입력 준비',structural_verification:'구조 검사',native_edit_export:'한글 사본 저장',saved_hwp_reopen:'저장한 HWP 재개방',rendered_verification:'픽셀·텍스트·그림 검사',final_source_and_approval_check:'원본·승인 재확인',result_integrity:'결과 해시 연결',lock_finalization:'소유 잠금 마무리'};
+ $('text-apply-status').textContent=textApplyPending?'시작 요청 결과를 확인 중입니다. 응답이 없어도 다시 요청하지 않고 상태를 새로 읽으세요.':job?.active?`진행 중 · ${labels[state.latest_attempt?.stage]||'적용 준비/검증'} · ${job.elapsed_seconds??0}초. 아직 검증 통과가 아닙니다.`:job?.status==='blocked'?`적용 차단 · ${job.error||'작업 기록을 확인하세요.'} 자동 재시도하지 않습니다.`:textApplyNeedsRead?'시작 요청의 완료 여부를 확인해야 합니다. 새로 읽기로 기존 작업/잠금을 확인하세요. 다시 적용하지 않습니다.':state?.latest_attempt?'이 수정안의 기존 적용 기록이 있습니다. 결과와 무결성을 확인하며 같은 수정안을 다시 적용하지 않습니다.':job?.reason||'먼저 최신 수정안을 검토하고 별도 승인하세요.';
+}
+$('summary-apply-text').onclick=()=>$('apply-text').click();
+$('apply-contract').onclick=async()=>{
+ if(!contractApplyReady())return;
+ const kind=$('proposal-kind').value,label=kind==='native'?'문단 문구·확인한 영역':'원래 표 행 높이·확인한 문단 영역';
+ if(!confirm('승인한 '+label+' 계약을 새 HWP 사본에 적용할까요?\n승인과 별도 실제 적용입니다. 원본·영역 밖 픽셀·쪽수·글꼴·그림 검사는 유지합니다. 실패 시 잠금과 증거를 남기며 자동 재시도하지 않습니다.'))return;
+ const manifest=state.manifest,payload={workspace_id:manifest.workspace_id,baseline_hwpx_sha256:manifest.baseline_hwpx_sha256,proposal_kind:kind,plan_sha256:state.proposal_sha256,approval_scope_sha256:state.approval_scope_sha256,contract_apply_confirmed:true};
+ contractApplyPending=state.proposal_sha256;setBusy('contract-apply');updateContractApply();
+ try{const reply=await request('/api/apply-contract',payload);if(reply.accepted!==true)throw new Error('Native 계약 적용 시작을 확인할 수 없습니다. 자동 재시도하지 않습니다.');message('Native 계약 적용 요청을 받았습니다. 아직 통과/완성본이 아닙니다.')}catch(error){message(error.message,'danger')}finally{setBusy('');updateContractApply()}
+};
+$('apply-text').onclick=async()=>{
+ if(textApplyNeedsRead||!textApplyReady())return;
+ if(!confirm('승인한 이 글자 수정안을 새 결과 사본에 실제로 적용할까요?\n원본/기준 자료는 보존하며 한글 저장·재개방·엄격 검사를 수행합니다.\n실패 시 잠금과 증거를 유지하고 자동 재시도하지 않습니다.\n검사 통과 뒤에도 PDF 육안 검토가 필요합니다.'))return;
+ const payload={workspace_id:state.manifest.workspace_id,baseline_hwpx_sha256:state.manifest.baseline_hwpx_sha256,plan_sha256:state.proposal_sha256,text_apply_confirmed:true};
+ textApplyPending=true;setBusy('apply-text');
+ try{await request('/api/apply-text',payload);message('적용 시작 요청을 받았습니다. 결과 기록을 확인하세요. 아직 검증 통과가 아닙니다.');textApplyNeedsRead=true}
+ catch(error){textApplyNeedsRead=true;message(error.message+' 시작 여부를 새로 읽기로 확인하세요. 자동 재시도하지 않습니다.','error')}
+ finally{textApplyPending=false;setBusy('')}
+ await load();
+};
+function showLatestAttempt(){
+ const item=state?.latest_attempt,locked=state?.apply_state&&state.apply_state.locked!==false,notes=[$('apply-status'),$('summary-apply-status')];for(const note of notes){note.hidden=!item&&!locked;const result=verifiedResult(item)?'자동 검사 통과 · 결과 SHA-256 일치. 최종 승인 아님. 저장 결과 PDF의 육안 검토가 필요합니다.':legacyResult(item)?'과거 자동 검증 기록 · 현재 파일 무결성 미확인. 파일/검증 기록을 재작성하거나 새 통과로 인증하지 않습니다.':item?.status==='in_progress'?'적용 진행 중 또는 중단 상태 확인 필요 · 아직 검증 통과 아님':item?`적용 검증 차단 · 완성본/제출용 아님\n${item.error||'엄격 검증을 통과하지 못했습니다.'}\n${item.source_unchanged?'원본은 변경되지 않았습니다.':'원본 보존 상태도 확인이 필요합니다.'}`:'';note.textContent=(locked?'적용 쓰기 잠금 · 이전 작업과 해당 한글 상태의 소유자 확인 필요. 자동 해제·재시도하지 않습니다.\n':'')+result;}
+}
+function showProposal(){
+ $('proposal-list').replaceChildren();const proposal=state.proposal;
+ $('proposal-info').textContent=state.proposal_error||(!proposal?'정확한 교체 문구가 있으면 ‘수정안 직접 작성’을 사용하세요. 문단 재계산/표 높이 방식은 별도 도구에서 준비합니다. 자료가 부족하면 먼저 확인하세요.':`${proposal.edits.length}개 수정 제안. 정확한 수정 전/후 문구를 모두 확인해주세요.`);
+ $('native-policy').hidden=!nativeContract(proposal);
+ const policy=proposal?.schema===3?`새 별도 승인: 원래 표 전체 높이·너비와 모든 글꼴·여백·페이지를 유지합니다. 표 셀의 최소 행 높이만 원래 출력 높이로 지정하여 짧은 문구에도 줄어들지 않게 합니다. ${proposal.row_minima.map(s=>'표 전체 '+(s.row_heights.reduce((a,b)=>a+b,0)/100).toFixed(2)+'pt 유지 · 행 최소 높이 '+s.row_heights.map(h=>(h/100).toFixed(2)+'pt').join(' / ')).join('; ')}. 선택 문단 줄 캐시·커서·수정 시각·텍스트 미리보기와 같은 크기/픽셀 형식의 생성 PNG 미리보기만 재생성합니다. 본문 이미지/직인·다른 구조·영역 밖 픽셀은 여전히 보호합니다. 기존 승인으로 적용할 수 없습니다.`:'한글이 선택 문단 줄 캐시·커서·수정 시각·기본 spine linear·텍스트 미리보기만 재생성합니다. 표·글꼴·이미지·다른 문단 캐시·영역 밖 픽셀은 잠겨 있습니다.';
+ $('native-policy-readable').textContent=proposal?.schema===3?'표 전체의 원래 크기를 유지하고, 각 행의 최소 높이를 원래 출력 높이로 지정합니다. 선택 문단의 계산 정보·텍스트 미리보기·같은 크기와 그림의 생성 PNG 미리보기만 다시 만듭니다. 글꼴·여백·본문 그림·직인·페이지·다른 구조는 보호합니다. 아래에서 정확한 높이와 변경 범위를 확인할 수 있습니다.':'선택한 문단의 줄 계산 정보·커서 위치·수정 시각·패키지 읽기 순서 기본 표기·텍스트 미리보기만 다시 만듭니다. 다른 문단·글꼴·표·본문 그림·직인·페이지는 보호합니다.';
+ $('native-policy-detail').textContent=policy;$('summary-policy-detail').textContent=policy;$('summary-policy-detail').hidden=!nativeContract(proposal);
+ if(proposal)for(const edit of proposal.edits){const anchor=anchorById.get(edit.anchor_id),card=el('div','', 'diff'),head=el('div','', 'diff-head'),jump=el('button','페이지 보기');jump.onclick=()=>{navigate(anchor.page_hint);if(page===anchor.page_hint&&!busy){$('target').value=anchor.anchor_id;drawAnchor();updateComposer()}};head.append(el('b',`${anchor.page_hint}페이지 · ${anchor.cell?'표 셀':'문단'}`),jump);card.append(head,el('p','수정 전\n'+edit.old_text,'old'),el('p','수정 후\n'+edit.new_text,'new'));if(nativeContract(proposal)){card.append(el('small','주황 문단 영역 (pt): '+edit.region.map(v=>v.toFixed(2)).join(', ')));const label=el('label',''),check=el('input','');check.type='checkbox';check.className='native-region-ack';check.dataset.anchorId=edit.anchor_id;check.checked=nativeReviewed.has(edit.anchor_id);check.onchange=()=>setNativeReview(edit.anchor_id,check.checked);label.append(check,document.createTextNode(' 이 문구와 주황색 문단 영역을 확인했습니다.'));card.append(label)}$('proposal-list').append(card)}
+ renderProposalSummary();showLatestAttempt();$('approve').textContent=approvedHash&&approvedHash===state.proposal_sha256?'승인됨 · 적용은 별도':'정확한 수정안 전체 승인';updateComposer();
+}
+async function load(){
+ if(busy)return;const draft={text:$('comment-text').value,target:$('target').value,point:point?[...point]:null,id:editingId};setBusy('load');
+ try{
+  const next=await request('/api/state?proposal='+proposalKind);if(proposalKind!=='text'&&next.proposal_kind!==proposalKind)throw new Error('이전 서버는 네이티브 계약을 지원하지 않습니다. 새 검토 서버를 열거나 재시작해주세요.');if(state&&next.manifest.workspace_id!==state.manifest.workspace_id)throw new Error('검토 문서가 바뀌었습니다. 초안을 복사하고 새로고침해주세요.');state=next;reviewSourceConfirmed=true;textApplyNeedsRead=false;approvedHash=state.approved_sha256||null;
+  if(reviewHash!==state.proposal_sha256){
+   nativeReviewed.clear();$('native-policy-confirm').checked=false;reviewHash=state.proposal_sha256;
+   // Initialize once from exact prior human consent. Same-plan reloads preserve local re-review marks.
+   if(nativeContract()&&approvedHash===state.proposal_sha256){for(const edit of state.proposal.edits)nativeReviewed.add(edit.anchor_id);$('native-policy-confirm').checked=true;}
+  }
+  textDraftLatestRead=true;
+  anchorById.clear();anchorsByPage.clear();for(const anchor of state.manifest.anchors){anchorById.set(anchor.anchor_id,anchor);if(anchor.page_hint){if(!anchorsByPage.has(anchor.page_hint))anchorsByPage.set(anchor.page_hint,[]);anchorsByPage.get(anchor.page_hint).push(anchor)}}
+  const name=(state.manifest.source||'검토 문서').split(/[\\/]/).pop();$('document-name').textContent=name;$('document-name').title=name;
+  $('summary').textContent=`${state.manifest.pages.length}쪽 · 표 ${state.manifest.objects.tbl} · 그림 ${state.manifest.objects.pic}`;$('total').textContent=`/ ${state.manifest.pages.length}`;$('page-number').max=state.manifest.pages.length;
+  updateVersions(state.versions);buildThumbnails();showPage(page);$('comment-text').value=draft.text;$('target').value=anchorById.has(draft.target)?draft.target:'';point=draft.point;editingId=restoredMemoConflict?draft.id:state.comments.comments.some(c=>c.id===draft.id)?draft.id:null;drawAnchor();drawPoint();showComments();showProposal();renderTextDraft();
+  if(draft.text.trim())message('최신 코멘트와 제안을 읽었습니다. 작성 중인 초안은 유지했습니다.');else message('');
+  await readRecovery(false);await readWorkflow();
+  if(!autoSummaryOpened&&state.proposal&&new URLSearchParams(location.search).get('panel')==='summary'){autoSummaryOpened=true;$('proposal-review-dialog').showModal()}
+ }catch(error){reviewSourceConfirmed=false;message(error.message,'error')}finally{setBusy('')}
+}
+$('prev').onclick=()=>navigate(page-1);$('next').onclick=()=>navigate(page+1);$('page-number').onchange=()=>navigate($('page-number').value);$('page-number').onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();navigate($('page-number').value)}};
+$('target').onchange=()=>{drawAnchor();updateComposer()};$('comment-text').oninput=updateComposer;
+$('page-image').onclick=event=>{if(busy||viewMode!=='original')return;const location=pointerLocation(event);beginNewNote(location,hitAnchor(...location))};
+$('page-image').onpointermove=event=>{if(!state||viewMode!=='original')return;const location=pointerLocation(event),anchor=hitAnchor(...location);if(hoveredAnchorId!==(anchor?.anchor_id||null)){hoveredAnchorId=anchor?.anchor_id||null;drawAnchor()}const hint=$('hover-hint');hint.hidden=!anchor;if(anchor){hint.textContent='클릭하여 새 메모 · '+anchor.old_text.slice(0,80);hint.style.left=Math.min(location[0]*$('page-container').clientWidth+10,Math.max(0,$('page-container').clientWidth-265))+'px';hint.style.top=location[1]*$('page-container').clientHeight+16+'px'}};
+$('page-image').onpointerleave=clearHover;$('new-note').onclick=()=>beginNewNote();
+$('view-mode').onchange=()=>{viewMode=$('view-mode').value;if(page>viewerPageCount()){page=viewerPageCount();showPage(page)}clearHover();applyZoom();$('page-number').max=viewerPageCount();$('total').textContent=`/ ${viewerPageCount()}`;updateComposer()};
+$('compare-reference').onchange=()=>{$('compare-container').dataset.key='';applyZoom();$('page-number').max=viewerPageCount();$('total').textContent=`/ ${viewerPageCount()}`};
+$('result-version').onchange=()=>{updateVersions(resultVersions);$('compare-container').dataset.key='';applyZoom()};
+$('next-change').onclick=()=>{const version=selectedVersion();if(!version?.changed_pages.length)return;if(viewMode==='original'){viewMode='split';$('view-mode').value='split'}navigate(version.changed_pages.find(n=>n>page)||version.changed_pages[0]);applyZoom()};
+$('page-image').onload=()=>{$('image-message').hidden=true;$('retry-image').hidden=true;$('render-quality').textContent=imageKey.endsWith(':144')?'선명 보기 · 144dpi':'원본 미리보기 · 100dpi'};
+$('page-image').onerror=()=>{$('image-message').hidden=false;$('image-message').textContent='이미지를 불러오지 못했습니다. 서버 연결을 확인해주세요.';$('retry-image').hidden=false;$('render-quality').textContent='이미지 로드 실패'};
+$('retry-image').onclick=()=>{imageKey='';applyZoom()};$('zoom').onchange=()=>{zoomMode=$('zoom').value;applyZoom()};$('zoom-in').onclick=()=>stepZoom(1);$('zoom-out').onclick=()=>stepZoom(-1);
+new ResizeObserver(()=>applyZoom()).observe($('document-viewport'));
+$('clear-point').onclick=()=>{point=null;drawPoint();updateComposer()};$('save-comment').onclick=saveComment;
+$('cancel-edit').onclick=()=>{if(draftDirty()&&!confirm('저장하지 않은 편집 내용을 버릴까요?'))return;resetComposer();showComments();message('편집을 취소했습니다.')};
+$('page-search').oninput=()=>{clearTimeout(searchTimer);searchSequence++;searchController?.abort();if(state)searchTimer=setTimeout(runSearch,220)};
+$('clear-search').onclick=()=>{clearTimeout(searchTimer);$('page-search').value='';if(state)runSearch();$('page-search').focus()};$('page-filter').onchange=applyPageFilter;
+$('reload').onclick=load;$('reconnect').onclick=load;
+$('proposal-kind').onchange=()=>{if(textDraftDirty()&&!confirm('저장하지 않은 수정안 초안을 버리고 수정 방식을 바꿀까요?')){$('proposal-kind').value=proposalKind;return}textDraftActive=false;textDraftEdits=[];$('draft-new').value='';proposalKind=$('proposal-kind').value;load()};$('native-policy-confirm').onchange=updateComposer;
+$('review-wide').onclick=()=>{if(!busy&&state?.proposal)$('proposal-review-dialog').showModal()};$('close-review-wide').onclick=()=>$('proposal-review-dialog').close();
+for(const check of document.querySelectorAll('.native-bulk'))check.onchange=()=>toggleAllNative(check.checked);
+$('summary-policy-confirm').onchange=()=>{$('native-policy-confirm').checked=$('summary-policy-confirm').checked;updateComposer()};$('summary-approve').onclick=()=>$('approve').click();
+$('approve').onclick=async()=>{if(busy||!approvalReady()||!confirm(state.proposal.schema===3?'표시된 문구/영역과 원래 행 높이 유지, 생성 PNG 미리보기 정책을 별도로 새 승인할까요? 기존 승인은 이력에 보존되며 적용은 별도입니다.':nativeContract()?'표시된 문구, 각 주황색 문단 영역, 네이티브 재계산 정책 전체를 새로 승인할까요? 기존 승인은 이력에 보존되며 적용은 별도입니다.':'표시된 수정 전/후 문구 전체를 승인할까요? 적용 후 결과를 다시 검토해야 합니다.'))return;const payload={plan_sha256:state.proposal_sha256};if(nativeContract())Object.assign(payload,{proposal_kind:proposalKind,native_policy_confirmed:true,regions_reviewed:state.proposal.edits.map(e=>e.anchor_id)});if(state.proposal.schema===3)payload.row_minima_confirmed=true;setBusy('approve');try{await request('/api/approve',payload);approvedHash=state.proposal_sha256;showProposal();message('수정안을 승인했습니다. 적용과 결과 PDF 검토는 별도입니다.','success')}catch(error){message(error.message,'error')}finally{setBusy('')}};
+window.addEventListener('beforeunload',event=>{if(draftDirty()||textDraftDirty()){event.preventDefault();event.returnValue=''}});
+document.addEventListener('keydown',event=>{
+ if(event.ctrlKey&&event.key.toLowerCase()==='k'){event.preventDefault();$('page-search').focus();return}
+ if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();if(event.target.closest?.('#text-draft')){if(!$('draft-add').disabled)$('draft-add').click()}else if(!$('save-comment').disabled)saveComment();return}
+ if($('proposal-review-dialog').open||event.ctrlKey||event.metaKey||event.altKey||event.target.closest?.('input,textarea,select,[contenteditable=true]'))return;
+ if(event.key==='ArrowLeft'){event.preventDefault();navigate(page-1)}else if(event.key==='ArrowRight'){event.preventDefault();navigate(page+1)}
+});
+let textDraftEdits=[],textDraftBase=[],textDraftRevision=null,textDraftActive=false,textDraftLatestRead=false,textDraftTarget='',textDraftIdentity=null;
+function textDraftBound(){return !textDraftActive||textDraftIdentity?.workspace_id===state?.manifest.workspace_id&&textDraftIdentity?.baseline_hwpx_sha256===state?.manifest.baseline_hwpx_sha256}
+function textAnchor(anchor){return !!anchor&&anchor.simple===true&&!!anchor.page_hint&&anchor.boxes?.length>0&&!state.manifest.protected_pages.includes(anchor.page_hint)}
+function textDraftDirty(){return textDraftActive&&(!textDraftBound()||textDraftRevision!==state?.proposal_revision||!!$('draft-new').value||JSON.stringify(textDraftEdits)!==JSON.stringify(textDraftBase))}
+function textDraftAvailable(){return !busy&&!textApplyNeedsRead&&!state?.text_apply?.active&&reviewSourceConfirmed&&proposalKind==='text'&&viewMode==='original'&&!(state?.apply_state&&state.apply_state.locked!==false)&&state?.latest_attempt?.status!=='in_progress'}
+function initializeTextDraft(){
+ textDraftIdentity={workspace_id:state?.manifest.workspace_id,baseline_hwpx_sha256:state?.manifest.baseline_hwpx_sha256};textDraftActive=true;textDraftBase=state?.proposal?.schema===1?state.proposal.edits.map(edit=>({...edit})):[];textDraftEdits=textDraftBase.map(edit=>({...edit}));textDraftRevision=state?.proposal_revision||null;textDraftLatestRead=true;
+}
+function renderTextDraft(){
+ $('text-draft').hidden=proposalKind!=='text';if(!state)return;
+ const target=$('draft-target'),previous=target.value,placeholder=el('option','원본 문구 선택');placeholder.value='';target.replaceChildren(placeholder);
+ for(const anchor of state.manifest.anchors.filter(textAnchor)){const option=el('option',`${anchor.page_hint}쪽 · ${anchor.cell?'표 셀':'문단'} · ${anchor.old_text.slice(0,85)}`);option.value=anchor.anchor_id;target.append(option)}
+ target.value=anchorById.has(previous)?previous:'';
+ const list=$('text-draft-list');list.replaceChildren();
+ for(const edit of textDraftEdits){const card=el('div','','draft-card'),change=el('button','항목 편집'),remove=el('button','초안에서 제외');change.onclick=()=>{if(!textDraftAvailable()||$('draft-new').value&&!confirm('입력 중인 미추가 문구를 버리고 이 항목을 편집할까요?'))return;target.value=edit.anchor_id;textDraftTarget=edit.anchor_id;$('draft-old').textContent=edit.old_text;$('draft-new').value=edit.new_text;updateComposer();$('draft-new').focus()};remove.onclick=()=>{if(!textDraftAvailable())return;textDraftEdits=textDraftEdits.filter(item=>item.anchor_id!==edit.anchor_id);renderTextDraft();updateComposer()};card.append(el('b',`${anchorById.get(edit.anchor_id)?.page_hint||'?'}쪽`),el('p','원본: '+edit.old_text,'old'),el('p','초안: '+edit.new_text,'new'),change,remove);list.append(card)}
+ updateTextDraftControls();
+}
+function updateTextDraftControls(){
+ const available=textDraftAvailable(),bound=textDraftBound(),stale=textDraftActive&&textDraftRevision!==state?.proposal_revision;
+ for(const id of ['draft-target','draft-add'])$(id).disabled=!available||!bound;
+ $('draft-discard').disabled=!available;
+ $('draft-new').readOnly=!available||!bound;
+ for(const button of $('text-draft-list').querySelectorAll('button'))button.disabled=!available||!bound;
+ $('draft-save').disabled=!bound||!available||!textDraftActive||!textDraftDirty()||!!$('draft-new').value||!textDraftEdits.length||stale||!textDraftLatestRead;
+ $('draft-rebase').hidden=!stale;$('draft-rebase').disabled=!available||!bound||!textDraftLatestRead;
+ $('text-draft-status').textContent=busy==='text-proposal'?'수정안 확인·저장 중…':!reviewSourceConfirmed?'최신 원본 상태를 확인해야 합니다. 내 초안은 유지됩니다.':!bound?'작업/기준 문서가 달라졌습니다. 내 초안을 자동 연결하지 않습니다. 내용을 보존해 확인하고 명시적으로 초안을 버린 뒤 새 기준에서 작성하세요.':stale?'서버 수정안이 달라졌습니다. 새로 읽고 아래 서버 수정안을 대조한 뒤 초안 유지 여부를 확인하세요.':!textDraftLatestRead&&textDraftActive?'저장에 실패했습니다. 초안을 보존했습니다. 새로 읽은 뒤 명시적으로 다시 저장하세요.':textDraftActive?`초안 ${textDraftEdits.length}건 · ${textDraftDirty()?'미저장: 승인 버튼 잠금':'서버 수정안과 동일'}${$('draft-new').value?' · 입력 문구를 먼저 초안에 추가하세요':''}`:'원본 문구를 선택해 정확한 교체 문구를 입력하세요.';
+}
+function beginTextDraft(id){
+ if(!textDraftAvailable()||!textDraftBound())return;
+ if(!textDraftActive)initializeTextDraft();
+ if(id&&$('draft-new').value&&id!==textDraftTarget&&!confirm('입력 중인 미추가 문구를 버리고 메모의 원본 위치로 이동할까요?'))return;
+ $('text-draft').open=true;renderTextDraft();
+ if(id){if(id!==textDraftTarget)$('draft-new').value='';$('draft-target').value=id;textDraftTarget=id;$('draft-old').textContent=anchorById.get(id)?.old_text||''}
+ focusReviewControl($('draft-target'));updateComposer();
+}
+$('text-draft').ontoggle=()=>{if($('text-draft').open&&!textDraftActive&&state&&proposalKind==='text'&&textDraftAvailable()){initializeTextDraft();renderTextDraft();updateComposer()}};
+$('draft-target').onchange=()=>{if(!textDraftActive)initializeTextDraft();if($('draft-new').value&&textDraftTarget!==$('draft-target').value&&!confirm('입력 중인 미추가 문구를 버리고 원본 위치를 바꿀까요?')){$('draft-target').value=textDraftTarget;return}textDraftTarget=$('draft-target').value;$('draft-old').textContent=anchorById.get(textDraftTarget)?.old_text||'';$('draft-new').value='';updateComposer()};
+$('draft-new').oninput=()=>{if(!textDraftActive)initializeTextDraft();updateComposer()};
+$('draft-add').onclick=()=>{if(!textDraftAvailable())return;const anchor=anchorById.get($('draft-target').value),next=$('draft-new').value;if(!textAnchor(anchor)||!next.trim()||next===anchor.old_text||next.length>20000||/[\x00-\x1f]/.test(next)){message('연결 가능한 원본과 다른 새 문구를 한 줄로 입력하세요. 삭제/줄바꿈은 지원하지 않습니다.','error');return}const edit={anchor_id:anchor.anchor_id,old_text:anchor.old_text,new_text:next},index=textDraftEdits.findIndex(item=>item.anchor_id===edit.anchor_id);if(index>=0)textDraftEdits[index]=edit;else{if(textDraftEdits.length>=100){message('한 수정안에는 최대 100항목을 명시하세요.','error');return}textDraftEdits.push(edit)}$('draft-new').value='';renderTextDraft();updateComposer();message('화면 초안에 추가했습니다. 아직 서버 저장·승인·문서 적용이 아닙니다.')};
+$('draft-discard').onclick=()=>{if(!textDraftAvailable()||textDraftDirty()&&!confirm('내 미저장 수정안 초안을 버리고 현재 서버 수정안을 불러올까요?'))return;$('draft-new').value='';initializeTextDraft();renderTextDraft();updateComposer()};
+$('draft-rebase').onclick=()=>{if(!textDraftAvailable()||!textDraftBound()||!textDraftLatestRead||!confirm('아래 최신 서버 수정안과 내 초안을 대조했나요? 내 초안 전체로 교체하기 위한 저장 기준만 갱신합니다. 저장·승인은 별도입니다.'))return;textDraftRevision=state.proposal_revision;textDraftBase=state.proposal?.schema===1?state.proposal.edits.map(edit=>({...edit})):[];updateComposer()};
+$('draft-save').onclick=async()=>{
+ if($('draft-save').disabled||!confirm(`내 초안 ${textDraftEdits.length}건 전체로 서버의 글자 수정안을 교체할까요? 이전 수정안은 이력으로 보존하고 승인은 바꾸지 않습니다. HWP는 수정하지 않습니다.`))return;
+ const payload={...textDraftIdentity,edits:textDraftEdits.map(edit=>({...edit}))};setBusy('text-proposal');
+ try{const saved=await request('/api/text-proposal',payload);state.proposal=saved.proposal;state.proposal_sha256=saved.proposal_sha256;state.proposal_revision=saved.proposal_revision;state.proposal_error=null;state.latest_attempt=null;initializeTextDraft();renderTextDraft();showProposal();message('수정안을 저장했습니다. 아래 전후 문구를 검토한 뒤 별도로 승인하세요. HWP는 변경하지 않았습니다.','success')}
+ catch(error){textDraftLatestRead=false;message('수정안을 저장하지 못했습니다. 초안 유지 · 자동 재시도 없음. '+error.message,'error')}
+ finally{setBusy('')}
+};
+function recoveryPayload(){
+ const memoPage=originalComment()?.page||Math.min(page,state.manifest.pages.length);
+ return {schema:1,workspace_id:state.manifest.workspace_id,baseline_hwpx_sha256:state.manifest.baseline_hwpx_sha256,comments_revision:state.comments_revision,proposal_revision:state.proposal_revision,
+ cursor:{page:Math.min(page,state.manifest.pages.length),view_mode:viewMode,version_id:selectedVersion()?.id||null},
+ memo:{page:memoPage,text:$('comment-text').value,anchor_id:$('target').value||null,region:point?[...point]:null,editing_id:editingId},
+ text_draft:textDraftActive?{revision:textDraftRevision,base_edits:textDraftBase.map(e=>({...e})),edits:textDraftEdits.map(e=>({...e})),target_id:textDraftTarget||null,pending_text:$('draft-new').value,open:$('text-draft').open}:null};
+}
+function updateRecovery(){
+ const available=!busy&&reviewSourceConfirmed&&proposalKind==='text'&&recoveryRead;
+ $('recovery-save').disabled=!available||!!recoveryIssue||restoredMemoConflict||!textDraftBound();$('recovery-restore').disabled=!available||!recoverySnapshot||!!recoveryIssue;
+ $('recovery-clear').disabled=!available||recoveryRevision==='absent';$('recovery-read').disabled=!!busy||!reviewSourceConfirmed;
+ $('recovery-title').textContent=recoverySnapshot?'작업 재개 · 보관 초안 있음':'작업 재개 · 초안 복구';
+ $('recovery-status').textContent=recoveryMessage||recoveryIssue||(recoverySnapshot?`${recoverySnapshot.cursor.page}쪽 위치와 화면 초안을 보관했습니다. 불러오기는 별도 선택이며 승인/적용하지 않습니다.`:'보관 초안이 없습니다. 필요한 때 직접 복구용 초안을 저장하세요.');
+ const locked=state?.apply_state&&state.apply_state.locked!==false||state?.text_apply?.active;
+ $('resume-stage').textContent=!state?'최신 작업 상태 확인 필요':locked?'다음: 진행/실패 잠금 기록부터 확인 · 해제/재시도하지 않음':verifiedResult(state.latest_attempt)?'다음: 결과 PDF 육안 검토·내려받기 · 최종 제출 승인 아님':state.proposal&&approvedHash===state.proposal_sha256?'다음: 승인된 글자 수정안 별도 적용 확인':state.proposal?'다음: 서버 수정안 전후 비교·별도 승인':'다음: 원본 메모 또는 정확한 교체 문구 작성';
+ $('recovery-memo-conflict').hidden=!restoredMemoConflict;$('recovery-memo-ack').hidden=!restoredMemoConflict;$('recovery-memo-ack').disabled=!!busy||!reviewSourceConfirmed;
+ if(restoredMemoConflict)$('recovery-memo-conflict').textContent='보관 이후 서버 메모가 바뀌었습니다. 복구 문구는 유지하고 저장/승인을 잠급니다. 현재 서버 메모: '+(originalComment()?.comment||'기존 항목 없음 · 새 메모로 복구할지 별도 확인 필요');
+}
+async function readRecovery(explicit=true){
+ try{const saved=await request('/api/session');recoveryRevision=saved.revision;recoverySnapshot=saved.snapshot;recoveryIssue=saved.issue||'';recoveryRead=true;if(explicit)recoveryMessage='최신 보관 초안을 읽었습니다. 현재 입력을 자동 교체하지 않습니다.';if(recoverySnapshot&&!explicit)$('recovery-panel').open=true}
+ catch(error){recoveryRead=false;recoveryMessage='복구용 초안을 읽지 못했습니다. 현재 입력은 유지됩니다. '+error.message}
+ updateRecovery();
+}
+$('recovery-read').onclick=()=>readRecovery(true);
+$('history-read').onclick=async()=>{if(busy)return;try{const data=await request('/api/session-history');const list=$('history-list');list.replaceChildren();for(const entry of data.history){const row=el('div',entry.sha256.slice(0,12)+'… · '+entry.bytes+' bytes '),remove=el('button','이 이력만 삭제…');remove.onclick=async()=>{if(busy||!confirm('선택한 복구용 초안 이력 하나를 삭제할까요? 되돌릴 수 없습니다. 현재 입력/보관 초안/원본/승인/적용 잠금은 바꾸지 않습니다.'))return;setBusy('history-delete');try{await request('/api/session-history-delete',{sha256:entry.sha256,delete_confirmed:true});row.remove();recoveryMessage='선택한 초안 이력만 삭제했습니다. 문서/승인/현재 입력은 보존합니다.'}catch(error){recoveryRead=false;recoveryMessage=error.message+' 자동 재시도 없음.'}finally{setBusy('')}};row.append(remove);list.append(row)}}catch(error){recoveryMessage=error.message;updateRecovery()}};
+$('recovery-save').onclick=async()=>{
+ if($('recovery-save').disabled)return;const snapshot=recoveryPayload();setBusy('recovery-save');
+ try{const saved=await request('/api/session',snapshot);recoveryRevision=saved.revision;recoverySnapshot=snapshot;lastAutosavePayload=JSON.stringify(snapshot);recoveryMessage='복구용 초안만 보관했습니다. 메모/수정안 저장·승인·HWP 적용이 아닙니다.'}
+ catch(error){$('recovery-autosave').checked=false;recoveryRead=false;recoveryMessage='초안 보관 실패 · 현재 입력 유지 · 자동 재시도 없음. '+error.message}
+ finally{setBusy('')}
+};
+$('recovery-clear').onclick=async()=>{
+ if($('recovery-clear').disabled||!confirm('보관 초안을 비운 표시로 바꿀까요? 이전 보관 파일은 session-history에 유지하고 현재 화면 입력/승인/문서는 바꾸지 않습니다.'))return;setBusy('recovery-clear');
+ try{const saved=await request('/api/session-clear',{clear_confirmed:true});recoveryRevision=saved.revision;recoverySnapshot=null;recoveryIssue='';recoveryMessage='보관 초안을 비운 표시로 바꿨습니다. 이전 이력/현재 입력/문서는 보존합니다.'}
+ catch(error){recoveryRead=false;recoveryMessage=error.message+' 자동 재시도 없음.'}
+ finally{setBusy('')}
+};
+$('recovery-restore').onclick=()=>{
+ if($('recovery-restore').disabled||!confirm('보관한 화면 초안/위치로 현재 입력을 교체할까요? 아직 메모/수정안 저장·승인·적용하지 않습니다. 현재 입력이 필요하면 먼저 복사하세요.'))return;
+ const saved=recoverySnapshot;
+ if(saved.workspace_id!==state.manifest.workspace_id||saved.baseline_hwpx_sha256!==state.manifest.baseline_hwpx_sha256){recoveryMessage='작업/기준 문서가 달라 복구하지 않습니다.';updateRecovery();return}
+ viewMode='original';$('view-mode').value='original';showPage(saved.memo.page);editingId=saved.memo.editing_id;point=saved.memo.region; $('target').value=saved.memo.anchor_id||'';$('comment-text').value=saved.memo.text;
+ restoredMemoConflict=!!saved.memo.text&&(saved.comments_revision!==state.comments_revision||!!editingId&&!originalComment());
+ const draft=saved.text_draft;textDraftActive=!!draft;$('draft-new').value='';
+ if(draft){textDraftIdentity={workspace_id:saved.workspace_id,baseline_hwpx_sha256:saved.baseline_hwpx_sha256};textDraftRevision=draft.revision;textDraftBase=draft.base_edits.map(e=>({...e}));textDraftEdits=draft.edits.map(e=>({...e}));textDraftTarget=draft.target_id||'';textDraftLatestRead=true;$('text-draft').open=draft.open;renderTextDraft();$('draft-target').value=textDraftTarget;$('draft-old').textContent=anchorById.get(textDraftTarget)?.old_text||'';$('draft-new').value=draft.pending_text}
+ else{textDraftEdits=[];textDraftBase=[];textDraftTarget='';renderTextDraft()}
+ if(!saved.memo.text&&saved.cursor.version_id&&resultVersions.some(v=>v.id===saved.cursor.version_id)){$('result-version').value=saved.cursor.version_id;viewMode=saved.cursor.view_mode;$('view-mode').value=viewMode;showPage(saved.cursor.page)}
+ else if(!saved.memo.text)showPage(saved.cursor.page);
+ nativeReviewed.clear();$('native-policy-confirm').checked=false;drawAnchor();drawPoint();showComments();showProposal();recoveryMessage='화면 초안/위치를 복구했습니다. 저장/승인/실제 적용은 별도입니다. 바뀐 서버 항목은 대조하세요.';updateComposer();
+};
+$('recovery-memo-ack').onclick=()=>{
+ if(!restoredMemoConflict||busy||!confirm('복구 문구와 최신 서버 메모를 대조했나요? 기존 항목이 없으면 새 메모로 저장할 수 있도록 전환합니다. 실제 메모 저장/승인은 여전히 별도입니다.'))return;
+ if(!originalComment())editingId=null;restoredMemoConflict=false;updateComposer();
+};
+function scheduleAutosave(){
+ clearTimeout(autosaveTimer);if(!$('recovery-autosave').checked||busy||$('recovery-save').disabled)return;
+ const encoded=JSON.stringify(recoveryPayload());if(encoded===lastAutosavePayload)return;
+ autosaveTimer=setTimeout(()=>{if(!$('recovery-autosave').checked||busy||$('recovery-save').disabled)return;$('recovery-save').click()},1000);
+}
+$('recovery-autosave').onchange=()=>{if($('recovery-autosave').checked&&!confirm('이 탭의 복구용 초안을 로컬 평문으로 자동 보관할까요? 이전 이력은 남습니다. 충돌/실패 시 중단하며 승인/적용은 자동화하지 않습니다.'))$('recovery-autosave').checked=false;lastAutosavePayload='';updateComposer()};
+async function readWorkflow(){try{const saved=await request('/api/workflow');workflowRevision=saved.revision;workflowData=saved.data;workflowHashes=saved.comment_hashes||{};workflowRead=true;showComments();renderEvidence()}catch(error){workflowRead=false;$('workflow-status').textContent='작업 기록 확인 필요 · '+error.message}updateWorkflowControls()}
+function updateWorkflowControls(){
+ $('evidence-upload').disabled=!!busy||!workflowRead;
+ for(const button of document.querySelectorAll('.note-workflow-save'))button.disabled=!!busy||!workflowRead;
+ const v=selectedVersion(),resultKey=v?v.id+':'+(v.downloads?.hwp?.sha256||'')+':'+(v.downloads?.pdf?.sha256||''):'';if(workflowResultID!==resultKey){workflowResultID=resultKey;for(const input of $('visual-review-checks').querySelectorAll('input'))input.checked=false}
+ $('visual-review-save').disabled=!!busy||!workflowRead||!v||!verifiedResult(v)||!v.downloads?.hwp||!v.downloads?.pdf||![...$('visual-review-checks').querySelectorAll('input')].every(input=>input.checked);
+ for(const input of $('visual-review-checks').querySelectorAll('input'))input.disabled=!!busy;
+}
+for(const input of $('visual-review-checks').querySelectorAll('input'))input.onchange=updateWorkflowControls;
+async function workflowWrite(route,payload){setBusy('workflow');try{const saved=await request(route,payload);workflowRevision=saved.revision;workflowData=saved.data;$('workflow-status').textContent='로컬 작업 기록 저장 · 변경/제출 승인이 아닙니다.';renderEvidence();showComments()}catch(error){workflowRead=false;$('workflow-status').textContent='작업 기록 실패 · '+error.message+' 자동 재시도 없음.'}finally{setBusy('')}}
+function saveNoteWorkflow(comment,status,sha){if(busy||!workflowRead)return;return workflowWrite('/api/workflow/note',{comment_id:comment.id,comment_sha256:workflowHashes[comment.id],status,evidence_sha256:sha?[sha]:[]})}
+function renderEvidence(){const list=$('evidence-list');list.replaceChildren();for(const [sha,item] of Object.entries(workflowData?.evidence||{})){const row=el('div',item.name+' · '+item.bytes+' bytes '),download=el('button','자료 사본 저장');download.onclick=async()=>{if(busy)return;setBusy('evidence-download');let url;try{const response=await fetch('/evidence/'+sha,{headers:{'X-Review-Token':token},signal:AbortSignal.timeout(12000)});if(!response.ok)throw new Error('근거 파일 무결성/접근 확인 실패');const blob=await response.blob(),digest=[...new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))].map(x=>x.toString(16).padStart(2,'0')).join('');if(blob.size!==item.bytes||digest!==sha)throw new Error('근거 파일 해시 변경');url=URL.createObjectURL(blob);const link=el('a','');link.href=url;link.download='evidence-'+sha+'.bin';document.body.append(link);link.click();link.remove()}catch(error){$('workflow-status').textContent=error.message}finally{if(url)URL.revokeObjectURL(url);setBusy('')}};row.append(download);list.append(row)}}
+$('evidence-upload').onclick=async()=>{const file=$('evidence-file').files[0];if(busy||!workflowRead||!file)return;if(!file.size||file.size>512*1024){$('workflow-status').textContent='근거 파일별 512 KiB 제한';return}const bytes=new Uint8Array(await file.arrayBuffer());let binary='';for(let i=0;i<bytes.length;i+=16000)binary+=String.fromCharCode(...bytes.subarray(i,i+16000));await workflowWrite('/api/workflow/evidence',{name:file.name,data_base64:btoa(binary)})};
+$('visual-review-save').onclick=async()=>{if($('visual-review-save').disabled||!confirm('선택한 결과의 실제 문구·배치·그림·쪽수를 직접 확인했나요? 정확한 파일 해시에 로컬 확인 기록만 남기며 기관 제출 승인/서명은 아닙니다.'))return;const v=selectedVersion();await workflowWrite('/api/workflow/visual-review',{run_id:v.id,hwp_sha256:v.downloads.hwp.sha256,pdf_sha256:v.downloads.pdf.sha256,checks:{text:true,layout:true,images:true,pages:true},review_confirmed:true})};
+let versionPolling=false;
+setInterval(async()=>{
+ if(!state||busy||versionPolling||document.visibilityState!=='visible')return;versionPolling=true;
+ try{const response=await request('/api/versions');if(response.apply_state)state.apply_state=response.apply_state;if(response.text_apply)state.text_apply=response.text_apply;if(response.contract_apply)state.contract_apply=response.contract_apply;if(Array.isArray(response.attempts)){state.latest_attempt=response.attempts.find(a=>a.plan_sha256===state.proposal_sha256)||null;showLatestAttempt();updateComposer()}if(JSON.stringify(response.versions)!==JSON.stringify(resultVersions)){state.versions=response.versions;updateVersions(response.versions);$('compare-container').dataset.key='';applyZoom()}}catch{}finally{versionPolling=false}
+},12000);
+load();discoverAgents();refreshChat();
+</script>
+</body>
+</html>

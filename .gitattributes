@@ -1,0 +1,4 @@
+# Build/source/notice bindings are byte-exact; never convert published inputs on checkout.
+* -text
+# Preserve upstream notice whitespace as well.
+packaging/licenses/MuPDF-1.26.12-NOTICES.txt -whitespace

@@ -1,0 +1,14 @@
+{
+  "name": "hwp-review-dev-checks",
+  "private": true,
+  "scripts": {
+    "lint": "node scripts/lint.mjs",
+    "test:lint": "node --test tests/test_lint.mjs",
+    "test:ui": "node tests/test_review_ui.mjs",
+    "check": "node scripts/check.mjs"
+  },
+  "devDependencies": {
+    "eslint": "10.12.0",
+    "globals": "17.13.0"
+  }
+}

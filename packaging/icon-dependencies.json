@@ -1,0 +1,37 @@
+{
+  "schema": "hwp-native-icon-dependencies-v1",
+  "name": "lucide",
+  "version": "1.66.0",
+  "git_head": "a630cec77eac6568b989e87e4947a8bfe45caacd",
+  "archive": "https://github.com/lucide-icons/lucide/releases/download/1.66.0/lucide-icons-1.66.0.zip",
+  "archive_sha256": "b11aa5df304cc8dc910e766271804baabf1aa6d6e6771f81360761e019552e77",
+  "license_url": "https://raw.githubusercontent.com/lucide-icons/lucide/a630cec77eac6568b989e87e4947a8bfe45caacd/LICENSE",
+  "declared_license": "ISC AND MIT",
+  "icons": {
+    "Files": "files",
+    "Folder": "folder",
+    "FolderOpen": "folder-open",
+    "FileText": "file-text",
+    "History": "rotate-ccw-clock",
+    "CircleCheck": "circle-check",
+    "Plus": "plus",
+    "Ellipsis": "ellipsis",
+    "ChevronRight": "chevron-right",
+    "ChevronDown": "chevron-down",
+    "ShieldCheck": "shield-check"
+  },
+  "selected_files_sha256": {
+    "native/HWPReview.Native/IconAssets/lucide/files.svg": "97adf06fc0511e7a40be93ecda04466ed196718ab4a5e3a62b1148cc49697775",
+    "native/HWPReview.Native/IconAssets/lucide/folder.svg": "f0d92b94b797a8ab7d4c4ae33c3236c47f64068351b4e14bdb5014ee42898a39",
+    "native/HWPReview.Native/IconAssets/lucide/folder-open.svg": "ee57452b40e71df310214091dd9da1941a397c83197b8ff8d7ae66dd4242578b",
+    "native/HWPReview.Native/IconAssets/lucide/file-text.svg": "52ca55846c202335fb870c8aa23e9345630ec10489303756d62e750f7109605c",
+    "native/HWPReview.Native/IconAssets/lucide/rotate-ccw-clock.svg": "a98ff758157910b9fc9d42d5d5dc80c2f4e037afa5f8ea4dee5f5649f03d438d",
+    "native/HWPReview.Native/IconAssets/lucide/circle-check.svg": "9711e045a5999f8a3b0782eb88e09b04e0559bc7b379dcc0a4ae645223e10345",
+    "native/HWPReview.Native/IconAssets/lucide/plus.svg": "7f6af73bf1ff6c4bca3f18351c8d1bdec6749c0c2530c4de5da85d520c21df17",
+    "native/HWPReview.Native/IconAssets/lucide/ellipsis.svg": "4f495cc72013ffdfec677f03b33a150f7b4dd741979283fd6853a09024bca112",
+    "native/HWPReview.Native/IconAssets/lucide/chevron-right.svg": "2758143d7b2434e4aa7307dfd34405c87909ff4052f21b5f3f40d45224b4f19b",
+    "native/HWPReview.Native/IconAssets/lucide/chevron-down.svg": "66ea878e72ed3488bb3b464c39dfdccee8d1f78e560dccea40e5e12da0e87e87",
+    "native/HWPReview.Native/IconAssets/lucide/shield-check.svg": "8d4fcdbde5bba4abb1a2f6fe53e37ceb6343a1d5449a9d88f6f97c1971d26c4e",
+    "native/HWPReview.Native/IconAssets/lucide/LICENSE": "b495047bd93a9b06913511076f504daba17d5bbeb3e0650f3bb53a4220329c57"
+  }
+}

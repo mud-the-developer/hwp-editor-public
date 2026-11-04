@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="review-token" content="__REVIEW_TOKEN__">
+<title>변경사항 검토 · HWP Editor</title>
+<style nonce="__REVIEW_TOKEN__">
+:root{font-family:"Segoe UI","Malgun Gothic",system-ui,sans-serif;color:#243247;background:#f3f6fa;font-size:14px;line-height:1.65;--accent:#0e7490;--muted:#67778b;--line:#e1e7ee;--soft:#f7f9fc}
+*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0}button,input{font:inherit}button,a,input,summary{-webkit-tap-highlight-color:transparent}button{cursor:pointer;border:1px solid var(--line);border-radius:8px;background:white;color:inherit;padding:9px 14px;min-height:40px}button:hover:not(:disabled){background:#f0f5f8}button:disabled{opacity:.42;cursor:not-allowed}button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible,[tabindex="-1"]:focus-visible{outline:3px solid #52a8be;outline-offset:3px}a{color:var(--accent);text-underline-offset:3px}h1,h2,h3,p{margin:0}h1{font-size:30px;line-height:1.3;letter-spacing:-1px}h2{font-size:18px;line-height:1.5}h3{font-size:14px}small,.hint{font-size:12px;color:var(--muted)}summary{cursor:pointer}input[type=checkbox]{width:16px;height:16px;accent-color:var(--accent);flex:none}
+.app-header{border-bottom:1px solid var(--line);background:white}.header-inner{max-width:1480px;margin:auto;padding:18px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{display:flex;align-items:center;gap:12px;font-weight:650;letter-spacing:-.2px}.brand-mark{display:grid;place-items:center;width:34px;height:34px;border:1px solid #cbdde3;border-radius:10px;color:var(--accent);font-size:17px;background:#f0f7f9}.brand small{font-weight:400;padding-left:12px;border-left:1px solid var(--line)}.local-label{font-size:12px;color:var(--muted)}.local-label:before{content:"";display:inline-block;width:6px;height:6px;background:var(--accent);border-radius:50%;margin-right:7px}
+.header-links{display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px 14px;min-width:0}.header-links a{font-size:12px}
+main{max-width:1480px;margin:auto;padding:32px 32px 64px}.page-heading{display:flex;justify-content:space-between;align-items:center;gap:24px;margin-bottom:24px}.page-heading p{color:var(--muted);margin-top:8px}.steps{display:flex;gap:16px;list-style:none;padding:0;margin:0;color:#7b8899;font-size:12px}.steps li{display:flex;align-items:center;gap:7px;white-space:nowrap}.steps span{display:grid;place-items:center;width:25px;height:25px;border:1px solid var(--line);border-radius:50%;font-size:11px;background:white}.steps [aria-current=step]{color:var(--accent);font-weight:650}.steps [aria-current=step] span{background:var(--accent);border-color:var(--accent);color:white}
+.panel{background:white;border:1px solid var(--line);border-radius:14px;min-width:0;overflow-wrap:anywhere;box-shadow:0 3px 14px #233b5303}.review-layout{display:grid;grid-template-columns:minmax(0,1fr)300px;gap:24px;align-items:start}.review-workspace{min-width:0}.document-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.document-tabs button{display:flex;align-items:center;gap:8px;padding:8px 14px;color:var(--muted);max-width:100%}.document-tabs button[aria-selected=true]{background:white;border-color:#aacbd4;color:var(--accent);box-shadow:0 2px 5px #243b5306}.document-tabs .document-index{font-size:11px;background:#edf2f6;border-radius:4px;padding:0 6px}.document-tabs .document-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px}
+.job-header{padding:24px 26px 20px}.job-title{display:flex;align-items:flex-start;gap:12px}.file-icon{width:34px;height:42px;flex:none;border:1px solid #ccdae4;border-radius:5px;color:var(--accent);display:grid;place-items:center;font-size:10px;font-weight:700;background:#f8fbfc}.file-pair{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:7px;color:var(--muted);font-size:12px}.file-pair span{overflow-wrap:anywhere}.file-pair .arrow{color:#9ba8b7}.counts{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;font-size:12px;color:#53657a}.counts span{padding:4px 9px;background:var(--soft);border:1px solid #eaf0f4;border-radius:6px}.scope-note{font-size:12px;color:var(--muted);margin-top:12px}.view-tabs{display:flex;gap:24px;padding:0 26px;border-bottom:1px solid var(--line)}.view-tabs button{border:0;border-radius:0;padding:12px 0;border-bottom:2px solid transparent;color:var(--muted);background:transparent}.view-tabs button[aria-selected=true]{border-bottom-color:var(--accent);color:var(--accent);font-weight:650}.view-panel{min-width:0}.view-description{padding:16px 26px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line);background:#fcfdff}.notice{font-size:12px;color:#52677c;margin-bottom:12px}.compare-toolbar{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;padding:16px 26px}.compare-toolbar label{display:flex;gap:7px;align-items:center;font-size:12px;cursor:pointer}.change-navigation{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}.change-navigation button{min-height:30px;padding:3px 9px;font-size:12px}.change-count{margin-right:4px}.compare-head,.diff-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.compare-head{background:var(--soft);border-block:1px solid var(--line);font-size:12px;font-weight:650;color:#677489}.compare-head div{padding:12px 26px;color:#8a4b11;background:#fff7ec}.compare-head div+div{border-left:1px solid var(--line);color:#175c99;background:#eef5ff}.comparison-block{border-bottom:1px solid var(--line);scroll-margin:24px}.comparison-block:last-child{border-bottom:0}.block-label{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:9px 26px;background:#fafbfd;color:#7a8797;font-size:11px;border-bottom:1px solid #edf1f5}.block-label strong{color:#506579;font-weight:600}.diff-side{min-width:0;padding:18px 22px 20px}.diff-side+.diff-side{border-left:1px solid var(--line)}.diff-paragraph{display:flex;align-items:flex-start;gap:10px;margin:0 0 15px}.diff-paragraph:last-child{margin-bottom:0}.paragraph-number{width:20px;flex:none;color:#9aa6b5;font:10px/2.6 ui-monospace,monospace;user-select:none;text-align:right}.paragraph-text{white-space:pre-wrap;overflow-wrap:anywhere;min-width:0;line-height:1.95;font-size:14px}.paragraph-text del{background:#fff2df;color:#8a4b11;text-decoration-color:currentColor;border-radius:2px;padding:1px 0}.paragraph-text ins{background:#e8f2ff;color:#175c99;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px;border-radius:2px;padding:1px 0}.diff-unchanged .paragraph-text{color:#768397}.diff-empty{color:#8b97a6;font-size:12px;padding-left:30px}.mobile-side-label{display:none}.context-summary{margin:16px 26px;padding:12px 16px;border:1px dashed #d8e1e9;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:var(--muted)}.context-summary button{font-size:12px;min-height:30px;padding:3px 9px}.empty-comparison{padding:32px 26px;text-align:center;color:var(--muted)}.empty-comparison strong{display:block;color:#53677d;font-size:14px;margin-bottom:6px}.grouped-note{padding:0 26px 14px;font-size:12px;color:var(--muted)}
+.image-review{padding:20px 26px}.image-review>summary{font-weight:600;color:var(--accent);padding:2px 0 12px}.image-intro{color:var(--muted);font-size:12px;margin:0 0 16px}.image-progress{font-size:12px;color:#587082;margin-bottom:18px}.image-columns{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}.image-columns>section{min-width:0}.image-columns h3{margin-bottom:12px;font-size:12px;color:var(--muted)}.image-card{margin:0 0 16px;border:1px solid var(--line);border-radius:10px;padding:14px;overflow-wrap:anywhere}.image-card figcaption{font-size:13px;font-weight:650}.image-card img{display:block;width:100%;max-height:460px;object-fit:contain;margin:14px 0;background:#f8fafc;border:1px solid #edf1f5;border-radius:4px}.image-card a{font-size:12px}.image-note{font-size:11px;color:var(--muted);margin-top:8px}.image-metadata{font-size:11px;color:var(--muted);margin-top:12px}.image-metadata summary{padding:4px 0}.image-metadata p{margin-top:6px}.hash{font:11px/1.8 ui-monospace,monospace;overflow-wrap:anywhere;color:#718094}.technical{padding:24px 26px}.technical h3{margin:0 0 12px}.metadata{display:grid;grid-template-columns:125px minmax(0,1fr);gap:12px 20px;margin:0 0 26px;font-size:12px}.metadata dt{color:var(--muted)}.metadata dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}.boundary-card{display:grid;gap:12px;padding:16px;background:var(--soft);border-radius:8px;margin-bottom:24px;font-size:12px}.boundary-card span{display:block;color:var(--muted);font-size:11px;margin-bottom:3px}
+.approval-panel{position:sticky;top:24px;padding:22px}.approval-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.phase-label{color:var(--accent);background:#ecf6f8;padding:3px 8px;border-radius:5px;font-size:11px;white-space:nowrap}#status{font-size:12px;color:#61758b;min-height:40px}.approval-summary{font-size:12px;color:#61758b;margin-top:16px}.confirm-all{display:flex;gap:9px;align-items:flex-start;margin-top:14px;padding:12px;border:1px solid #d7e5eb;background:#f4f9fb;border-radius:8px;font-size:12px;line-height:1.8;cursor:pointer}.confirm-all input{margin:3px 0 0}.approval-details{margin:14px 0 18px;border-bottom:1px solid var(--line)}.approval-details>summary{padding:10px 0;font-size:12px;color:var(--muted)}.approval-details .hint{margin-bottom:14px}.approval-panel[data-approved=true] #checks input,.approval-panel[data-blocked=true] .approval-panel[data-approved=true] #checks label,.approval-panel[data-blocked=true] #make-draft{display:block;width:100%;margin-top:9px;font-size:13px;min-height:44px;background:var(--accent);color:white;border-color:var(--accent)}#make-draft:hover:not(:disabled){background:#0b657d}.approval-footnote{font-size:11px;color:var(--muted);margin:12px 0 18px}.limits{border-top:1px solid var(--line);padding-top:12px;color:var(--muted);font-size:11px}.limits summary{font-size:12px}.limits p{margin-top:10px}.brief{padding:14px 20px;margin-bottom:20px;font-size:12px}.brief>summary{font-weight:600;color:#51677f}.brief-content{padding:14px 0 4px}.brief-content ul{padding-left:20px;margin:8px 0}.brief-content .hash{margin-top:12px}.result-panel{padding:22px 26px;margin-bottom:24px;border-color:#b7d3dc}.result-panel h2{color:var(--accent)}.result-panel p{font-size:12px;color:var(--muted);margin:5px 0 14px}#downloads{display:flex;gap:12px;flex-wrap:wrap}#downloads p{margin:0}#downloads a{display:inline-block;border:1px solid #b7d3dc;border-radius:8px;padding:10px 14px;font-weight:600;background:#f4fafb}.error{white-space:pre-wrap;overflow-wrap:anywhere;color:#963d48;font-size:13px}.error:empty{display:none}.error:not(:empty){border:1px solid #eccfd3;background:#fdf5f6;padding:14px 18px;border-radius:10px;margin-bottom:18px}
+@media(min-width:1600px){main{padding-top:40px}.job-header{padding-top:28px}}
+@media(max-width:1100px){.review-layout{grid-template-columns:minmax(0,1fr)260px;gap:18px}.approval-panel{padding:18px}.steps{gap:10px}.steps li{font-size:11px}.job-header{padding:20px}.view-tabs{padding-inline:20px}.compare-head div{padding-inline:20px}.diff-side{padding-inline:14px}}
+@media(max-width:960px){.review-layout{grid-template-columns:minmax(0,1fr)}.approval-panel{position:static}.page-heading{align-items:flex-start}.steps{margin-top:4px}.steps li{flex-direction:column;gap:5px}#make-draft{display:inline-block;width:auto;min-width:220px;margin-right:8px}.approval-summary,.confirm-all,.approval-details{max-width:760px}.approval-footnote{margin-bottom:12px}}
+@media(max-width:600px){.header-inner{padding:14px 18px}.brand small{display:none}.local-label{font-size:11px}main{padding:24px 14px 40px}.page-heading{display:block;margin-bottom:20px}h1{font-size:26px}.page-heading p{font-size:12px}.steps{margin-top:20px;justify-content:space-between;gap:8px}.steps li{flex-direction:row;font-size:10px}.steps span{width:22px;height:22px}.job-header{padding:18px 16px}.job-title{gap:9px}.job-title h2{font-size:16px}.view-tabs{padding-inline:16px;gap:20px}.view-tabs button{font-size:12px}.view-description,.compare-toolbar{padding:14px 16px}.compare-toolbar{gap:10px}.compare-head{display:none}.diff-row{grid-template-columns:minmax(0,1fr)}.diff-side{padding:14px 16px}.diff-side+.diff-side{border-left:0;border-top:1px dashed var(--line);background:#fbfdfd}.mobile-side-label{display:block;margin-bottom:8px;font-size:11px;color:#8a4b11}.diff-side[data-side=after] .mobile-side-label{color:#175c99}.paragraph-text{font-size:13px}.paragraph-number{width:14px}.block-label{padding:9px 16px}.context-summary{margin:14px 16px;flex-wrap:wrap}.image-review,.technical{padding:18px 16px}.image-columns{grid-template-columns:minmax(0,1fr)}.metadata{grid-template-columns:minmax(0,1fr);gap:4px}.metadata dd{margin-bottom:12px}.result-panel{padding:18px}#make-draft{width:100%;margin-right:0}.document-tabs .document-name{max-width:210px}.grouped-note{padding-inline:16px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="app-header"><div class="header-inner"><div class="brand"><span class="brand-mark" aria-hidden="true">H</span>HWP Editor <small>보고서 검토</small></div><div class="header-links"><a href="/legal" target="_blank" rel="noopener noreferrer">AGPL · 소스</a><span class="local-label">로컬 검토 작업</span></div></div></header>
+<main>
+<div class="page-heading"><div><h1>준비된 원고 합성</h1><p>새 검토용 HWPX를 먼저 만들고, 실제 문서를 확인한 뒤 사용할 수정본을 선택하세요.</p></div><ol class="steps" aria-label="초안 작업 단계"><li data-step="review"><span>1</span>원고 확인</li><li data-step="create"><span>2</span>초안 생성</li><li data-step="inspect"><span>3</span>HWPX 검토</li></ol></div>
+<div id="error" class="error" role="alert" tabindex="-1"></div><p id="result-error" class="error" role="alert"></p>
+<section id="result-panel" class="panel result-panel" aria-labelledby="result-title" hidden><h2 id="result-title">검토용 초안이 준비되었습니다</h2><p>한글에서 실제 문구와 배치를 확인하세요. 사용할 수정본 선택은 파일 생성·제출 승인과 다릅니다.</p><div id="downloads"></div></section>
+<details id="harness-panel" class="panel brief" hidden><summary id="harness-title">이번 실행의 작성 기준 · 승인 아님</summary><div class="brief-content"><p id="harness-goal"></p><ul id="harness-decisions"></ul><p class="hint">같은 입력·범위에서는 이 결정을 이어 씁니다. 정확한 승인과 파일 생성은 별도입니다.</p><p id="harness-binding" class="hash"></p><p id="harness-warnings" class="hint"></p></div></details>
+<div class="review-layout">
+<div class="review-workspace"><nav id="document-tabs" class="document-tabs" role="tablist" aria-label="검토할 문서"></nav><div id="jobs"></div></div>
+<aside class="panel approval-panel" aria-labelledby="confirm-title">
+<div class="approval-heading"><h2 id="confirm-title">새 초안 만들기</h2><span id="phase-label" class="phase-label">확인 중</span></div>
+<p id="status" role="status" aria-live="polite">원본과 작업 범위를 확인하고 있습니다.</p>
+<div id="draft-shortcut"><p class="approval-summary">선택한 범위에 준비된 원고를 반영한 미승인 검토용 파일을 만듭니다.</p><label class="confirm-all"><input id="confirm-all" type="checkbox"><span>표시된 입력·범위로 <strong>새 검토용 HWPX 초안 생성</strong>을 허용합니다. 원본 변경·외부 제출 승인은 아닙니다.</span></label></div>
+<details class="approval-details"><summary>생성 범위·보존 정책</summary><p class="hint">원본과 범위 밖 내용·자원은 보존하며, 지원 범위 안에서만 합성합니다. 쪽 흐름·실제 배치는 생성본을 한글에서 확인해야 합니다.</p></details>
+<button id="make-draft" disabled>새 HWPX 초안 만들기</button>
+<p class="approval-footnote">원본은 덮어쓰지 않습니다.<br>사용할 수정본 선택은 생성 후에 합니다.</p>
+<details class="limits"><summary>이 화면의 검증 범위</summary><p>추출 텍스트와 내장 PNG를 비교하는 화면입니다. HWPX의 표·그림·줄바꿈·쪽 배치를 재현하지 않습니다.</p><p>실제 한글의 쪽수·줄바꿈·그림 번호 재계산은 미검증입니다. 생성한 검토본은 한글 시각 검수가 필요하며, 기존 Native 적용 계약의 검증 완료나 기관 제출·서명 승인이 아닙니다.</p><p>표시된 번호는 XML 저장 값입니다. 생성 후에는 이 작업을 재사용하지 않으며, 실패·잠금 기록을 지우거나 자동 재시도하지 않습니다.</p></details>
+</aside>
+</div>
+</main>
+<script nonce="__REVIEW_TOKEN__">
+'use strict';
+const token=document.querySelector('meta[name="review-token"]').content;
+const status=document.querySelector('#status'),error=document.querySelector('#error');
+const makeDraft=document.querySelector('#make-draft'),confirmAll=document.querySelector('#confirm-all');
+let current=null,busy=false,previewEpoch=0,activeJob=0;
+const previewURLs=[],jobViews=new Map(),showContext=new Map();
+function node(tag,text,className){const element=document.createElement(tag);if(text!==undefined)element.textContent=text;if(className)element.className=className;return element;}
+function filename(path){return path.split(/[\\/]/).pop();}
+function buttons(){
+ const completed=!!current?.artifacts?.length;
+ const blocked=!current||current.locked||current.execution_recorded||!!current.result_error;
+ makeDraft.disabled=busy||blocked||!confirmAll.checked;
+ makeDraft.hidden=blocked||completed;
+ confirmAll.disabled=busy||blocked||completed;
+ document.querySelector('#draft-shortcut').hidden=blocked||completed;
+ const panel=document.querySelector('.approval-panel');panel.dataset.blocked=String(!!blocked);
+}
+async function request(url,body){
+ const headers={'X-Review-Token':token};
+ if(body!==undefined){headers['Content-Type']='application/json';headers['If-Match']=current.revision;}
+ const response=await fetch(url,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:JSON.stringify(body)});
+ const data=await response.json();if(!response.ok)throw new Error(data.error||'요청 실패');return data;
+}
+function connectTabs(buttons,panels,selected,onSelect){
+ function select(index,focus=false){
+  buttons.forEach((button,i)=>{button.setAttribute('aria-selected',String(i===index));button.tabIndex=i===index?0:-1;panels[i].hidden=i!==index;});
+  onSelect(index);if(focus)buttons[index].focus();
+ }
+ buttons.forEach((button,index)=>{
+  button.addEventListener('click',()=>select(index));
+  button.addEventListener('keydown',event=>{
+   let next;
+   if(event.key==='ArrowRight')next=(index+1)%buttons.length;
+   else if(event.key==='ArrowLeft')next=(index+buttons.length-1)%buttons.length;
+   else if(event.key==='Home')next=0;else if(event.key==='End')next=buttons.length-1;else return;
+   event.preventDefault();select(next,true);
+  });
+ });
+ select(selected);
+}
+// Exact text matches are alignment hints, not HWPX object/paragraph identities.
+// Bound the matrix; large unmatched regions stay intact as a single change group.
+function diffBlocks(before,after,cellLimit=90000){
+ let prefix=0,suffix=0;
+ while(prefix<before.length&&prefix<after.length&&before[prefix]===after[prefix])prefix++;
+ while(suffix<before.length-prefix&&suffix<after.length-prefix&&before[before.length-1-suffix]===after[after.length-1-suffix])suffix++;
+ const matches=[];
+ for(let i=0;i<prefix;i++)matches.push([i,i]);
+ const rows=before.length-prefix-suffix,columns=after.length-prefix-suffix,stride=columns+1;
+ const grouped=(rows+1)*(columns+1)>cellLimit;
+ if(rows&&columns&&!grouped){
+  const lengths=new Uint32Array((rows+1)*stride);
+  for(let i=rows-1;i>=0;i--)for(let j=columns-1;j>=0;j--){
+   lengths[i*stride+j]=before[prefix+i]===after[prefix+j]?1+lengths[(i+1)*stride+j+1]:Math.max(lengths[(i+1)*stride+j],lengths[i*stride+j+1]);
+  }
+  let i=0,j=0;
+  while(i<rows&&j<columns){
+   if(before[prefix+i]===after[prefix+j]){matches.push([prefix+i,prefix+j]);i++;j++;}
+   else if(lengths[(i+1)*stride+j]>=lengths[i*stride+j+1])i++;else j++;
+  }
+ }
+ for(let i=suffix;i>0;i--)matches.push([before.length-i,after.length-i]);
+ const blocks=[];let oldIndex=0,newIndex=0;
+ for(const [oldMatch,newMatch] of matches){
+  if(oldIndex<oldMatch||newIndex<newMatch)blocks.push({same:false,before:before.slice(oldIndex,oldMatch),after:after.slice(newIndex,newMatch),oldIndex,newIndex});
+  const previous=blocks.at(-1);
+  if(previous?.same){previous.before.push(before[oldMatch]);previous.after.push(after[newMatch]);}
+  else blocks.push({same:true,before:[before[oldMatch]],after:[after[newMatch]],oldIndex:oldMatch,newIndex:newMatch});
+  oldIndex=oldMatch+1;newIndex=newMatch+1;
+ }
+ if(oldIndex<before.length||newIndex<after.length)blocks.push({same:false,before:before.slice(oldIndex),after:after.slice(newIndex),oldIndex,newIndex});
+ return {blocks,grouped};
+}
+function inlineText(element,blocks,side){
+ for(const block of blocks){
+  const text=block[side].join('');if(!text)continue;
+  element.append(block.same?document.createTextNode(text):node(side==='before'?'del':'ins',text));
+ }
+}
+function textComparison(job,index){
+ const before=job.preview.old_text,after=job.preview.new_text;
+ const {blocks,grouped}=diffBlocks(before,after),changes=blocks.filter(block=>!block.same),sameCount=blocks.filter(block=>block.same).reduce((count,block)=>count+block.before.length,0);
+ const panel=node('div'),description=node('div',undefined,'view-description');
+ const notice=node('p',undefined,'notice');
+ if(!before.length&&!after.length)notice.textContent='표시할 추출 텍스트가 없습니다. 내용이나 변경이 없다는 뜻은 아닙니다.';
+ else if(!changes.length)notice.textContent='추출 텍스트는 같습니다. 서식·표·그림·쪽 배치가 같다는 뜻은 아닙니다. 교체 범위는 그대로 검토해야 합니다.';
+ else notice.textContent='추출 텍스트가 달라졌습니다. − 삭제는 주황색 취소선, + 추가는 파란색 밑줄로 표시합니다.';
+ description.append(notice,node('p','추출 텍스트 비교입니다. 실제 문서 배치나 개체의 일대일 대응을 보여주지 않습니다. 문단 번호도 추출 순서이며 HWPX 원본 문단 번호가 아닙니다.'));
+ panel.append(description);
+ const toolbar=node('div',undefined,'compare-toolbar'),contextLabel=node('label'),context=node('input');
+ context.type='checkbox';context.checked=showContext.get(index)===true;context.dataset.context=String(index);
+ contextLabel.append(context,node('span','같은 문단도 표시'));toolbar.append(contextLabel);
+ const navigation=node('div',undefined,'change-navigation'),counter=node('span',undefined,'change-count');
+ const previous=node('button','이전 변경'),next=node('button','다음 변경');previous.type=next.type='button';
+ navigation.append(counter,previous,next);toolbar.append(navigation);panel.append(toolbar);
+ const headings=node('div',undefined,'compare-head');headings.append(node('div','− 삭제 · 기존 내용'),node('div','+ 추가 · 수정안'));panel.append(headings);
+ const summary=node('div',undefined,'context-summary'),showAll=node('button','전체 문단 보기');showAll.type='button';
+ summary.append(node('span','같은 추출 문단 '+sameCount+'개를 접었습니다.'),showAll);panel.append(summary);
+ const unchanged=[],targets=[];let changeIndex=0;
+ for(const block of blocks){
+  const section=node('section',undefined,'comparison-block '+(block.same?'diff-unchanged':'diff-changed'));
+  if(block.same)unchanged.push(section);else{section.tabIndex=-1;targets.push(section);}
+  const label=node('div',undefined,'block-label');
+  label.append(node('strong',block.same?'같은 추출 내용':'변경 '+String(++changeIndex).padStart(2,'0')),node('span','기존 '+block.before.length+'문단 → 수정 '+block.after.length+'문단'));
+  section.append(label);const row=node('div',undefined,'diff-row');
+  const inline=!block.same&&block.before.length===1&&block.after.length===1?diffBlocks(block.before[0].match(/\s+|[^\s]+/gu)||[],block.after[0].match(/\s+|[^\s]+/gu)||[],40000).blocks:null;
+  for(const [side,title,start] of [['before','− 삭제 · 기존 내용',block.oldIndex],['after','+ 추가 · 수정안',block.newIndex]]){
+   const column=node('div',undefined,'diff-side');column.dataset.side=side;column.append(node('span',title,'mobile-side-label'));
+   if(!block[side].length)column.append(node('p','이쪽에 표시할 추출 문단이 없습니다.','diff-empty'));
+   block[side].forEach((text,offset)=>{
+    const paragraph=node('div',undefined,'diff-paragraph'),number=node('span',String(start+offset+1),'paragraph-number'),content=node('p',undefined,'paragraph-text');
+    paragraph.dataset.index=String(start+offset);number.setAttribute('aria-label','추출 문단 '+(start+offset+1));
+    if(inline)inlineText(content,inline,side);else content.append(block.same?document.createTextNode(text):node(side==='before'?'del':'ins',text));
+    paragraph.append(number,content);column.append(paragraph);
+   });
+   row.append(column);
+  }
+  section.append(row);panel.append(section);
+ }
+ if(!blocks.length){const empty=node('div',undefined,'empty-comparison');empty.append(node('strong','비교할 추출 텍스트가 없습니다'),node('p','그림 비교와 범위·자원 상세를 확인하세요. 텍스트가 없다고 변경이 없는 것은 아닙니다.'));panel.append(empty);}
+ if(grouped)panel.append(node('p','긴 변경 구간은 묶어서 표시합니다. 추출 텍스트는 생략하지 않았으며, 같은 문단도 표시하면 전체 내용을 확인할 수 있습니다.','grouped-note'));
+ function updateContext(){unchanged.forEach(section=>section.hidden=!context.checked);summary.hidden=!sameCount||context.checked;showContext.set(index,context.checked);}
+ context.disabled=!sameCount;context.addEventListener('change',updateContext);showAll.addEventListener('click',()=>{context.checked=true;updateContext();context.focus();});updateContext();
+ let position=0;
+ function updateNavigation(){counter.textContent=changes.length?'텍스트 변경 '+(position+1)+' / '+changes.length:'텍스트 변경 묶음 없음';previous.disabled=position===0;next.disabled=position>=targets.length-1;}
+ function move(delta){position+=delta;targets[position].scrollIntoView({block:'center',behavior:'auto'});targets[position].focus({preventScroll:true});updateNavigation();}
+ previous.addEventListener('click',()=>move(-1));next.addEventListener('click',()=>move(1));updateNavigation();
+ return panel;
+}
+function imageReview(jobIndex){
+ const details=node('details',undefined,'image-review');details.append(node('summary','그림 변경 확인 · 내장 PNG'));
+ details.append(node('p','원본 PNG와 그림 속성의 차이를 확인합니다. HWPX 쪽·개체 렌더링이 아니며 자르기·회전·겹침·캡션 배치를 재현하지 않습니다. 기존/새 목록은 일대일 대응이 아닙니다.','image-intro'));
+ let loaded=false;const epoch=previewEpoch,base='/api/template-images/'+current.plan_sha256+'/'+jobIndex;
+ details.addEventListener('toggle',async()=>{
+  if(!details.open||loaded)return;loaded=true;
+  const progress=node('p','고정된 입력에서 그림 비교 자료를 확인하는 중입니다.','image-progress');progress.setAttribute('role','status');details.append(progress);
+  try{
+   const evidence=await request(base);if(epoch!==previewEpoch)return;
+   progress.textContent='비교 대상: 기존 '+evidence.before.length+'개 / 새 '+evidence.after.length+'개 · 같은 이미지·속성 '+evidence.matched_count+'개 생략. 생략된 그림이 있어도 문서 배치가 같다는 뜻은 아닙니다.';
+   const columns=node('div',undefined,'image-columns');details.append(columns);
+   for(const [side,title] of [['before','기존 대체 범위'],['after','새 삽입 범위']]){
+    const column=node('section');column.append(node('h3',title));columns.append(column);
+    if(!evidence[side].length)column.append(node('p','이 비교에 표시할 그림이 없습니다. 문서 변경이 없다는 뜻은 아닙니다.','hint'));
+    for(const item of evidence[side]){
+     const card=node('figure',undefined,'image-card');card.append(node('figcaption',item.caption));column.append(card);
+     const metadata=node('details',undefined,'image-metadata');metadata.append(node('summary','저장 크기·자원 정보'),node('p','저장된 개체 크기: '+(item.width??'?')+' × '+(item.height??'?')+' HWPUNIT (변환 미적용)'),node('p','PNG/내장 자원 SHA256: '+item.sha256,'hash'));
+     if(!item.available){card.append(node('p',item.reason,'image-note'),metadata);continue;}
+     const note=node('p','PNG 읽는 중…','image-note');card.append(note,metadata);
+     void (async()=>{
+      try{
+       const response=await fetch(base+'/'+side+'/'+item.index,{headers:{'X-Review-Token':token}});
+       if(!response.ok)throw new Error((await response.json()).error||'PNG 확인 실패');
+       if(response.headers.get('Content-Type')!=='image/png')throw new Error('PNG 응답이 아닙니다.');
+       const blob=await response.blob();if(epoch!==previewEpoch)return;
+       const url=URL.createObjectURL(blob);previewURLs.push(url);
+       const image=node('img');image.alt=title+' — '+item.caption+' (내장 PNG, 문서 배치 아님)';image.addEventListener('error',()=>{note.textContent='PNG를 표시하지 못했습니다. 실제 HWPX에서 확인하세요.';},{once:true});image.src=url;
+       const original=node('a','이미지 원본 크기로 열기');original.href=url;original.target='_blank';original.rel='noopener';card.insertBefore(image,note);card.insertBefore(original,note);note.textContent='PNG 원본 픽셀입니다. 개체 크기·자르기·회전은 적용하지 않았습니다.';
+      }catch(e){if(epoch===previewEpoch)note.textContent='미리보기 차단: '+e.message;}
+     })();
+    }
+   }
+  }catch(e){if(epoch===previewEpoch)progress.textContent='그림 비교를 확인할 수 없습니다: '+e.message+' 실제 HWPX에서 확인하세요.';}
+ });
+ return details;
+}
+function metadataList(entries){const list=node('dl',undefined,'metadata');for(const [key,value] of entries)list.append(node('dt',key),node('dd',value));return list;}
+function technicalDetails(job){
+ const p=job.preview,panel=node('div',undefined,'technical'),boundaries=node('div',undefined,'boundary-card');
+ for(const [title,lines] of [['앞 경계 · 이 내용 뒤에서 교체',job.before_anchor],['뒤 경계 · 이 내용 앞까지 교체',job.after_anchor]]){const entry=node('div');entry.append(node('span',title),node('p',lines.join(' / ')));boundaries.append(entry);}
+ panel.append(node('h3','정확한 교체 범위'),boundaries,metadataList([['원본 대체 범위',JSON.stringify(job.target_range)],['원고 삽입 범위',JSON.stringify(job.payload_ranges)],['범위 표기','최상위 문단의 0기준 반개구간입니다. 끝 번호는 포함하지 않습니다.'],['기존 범위의 그림',p.removed_pictures+'개']]));
+ panel.append(node('h3','입력 파일과 무결성'),metadataList([['원본 전체 위치',job.source_path],['원고 전체 위치',job.payload_path],['원본 SHA256',job.source_sha256],['원고 SHA256',job.payload_sha256],['생성 예정 SHA256',p.candidate_sha256]]));
+ panel.append(node('h3','추가 자원'),metadataList([['자원별 추가',JSON.stringify(p.resource_imports)],['글꼴 언어별 추가',JSON.stringify(p.font_imports)]]));
+ if(job.caption_policy)panel.append(node('h3','캡션·본문 참조'),metadataList([['캡션 정책',job.caption_policy],['개체 소속 캡션','표 '+p.native_table_captions+'개 · 그림 '+p.native_picture_captions+'개'],['본문 상호참조',p.body_cross_references+'개 · 기존 그림 '+p.caption_number_bases.PICTURE+'개 / 표 '+p.caption_number_bases.TABLE+'개 뒤에 이어 번호를 매깁니다. 실제 한글 재계산의 검증 결과는 아닙니다.']]));
+ return panel;
+}
+function render(){
+ const harness=current.report_harness;document.querySelector('#harness-panel').hidden=!harness;
+ document.querySelector('#harness-goal').textContent=harness?.goal||'';
+ document.querySelector('#harness-binding').textContent=harness?'고정 실행 SHA256: '+harness.binding_sha256:'';
+ document.querySelector('#harness-warnings').textContent=harness?.warnings?.length?'별도 확인: '+harness.warnings.join(' / '):'';
+ const decisions=document.querySelector('#harness-decisions');decisions.replaceChildren();for(const decision of harness?.decisions||[])decisions.append(node('li',decision));
+ previewEpoch++;for(const url of previewURLs.splice(0))URL.revokeObjectURL(url);
+ const jobs=document.querySelector('#jobs'),documentTabs=document.querySelector('#document-tabs');jobs.replaceChildren();documentTabs.replaceChildren();
+ activeJob=Math.min(activeJob,current.plan.jobs.length-1);
+ const tabs=[],panels=[],pictures=[];
+ for(const [i,job] of current.plan.jobs.entries()){
+  const p=job.preview,box=node('section',undefined,'panel');box.id='job-panel-'+i;box.hidden=i!==activeJob;box.setAttribute('role','tabpanel');box.setAttribute('aria-labelledby','document-tab-'+i);panels.push(box);
+  const documentTab=node('button');documentTab.type='button';documentTab.id='document-tab-'+i;documentTab.setAttribute('role','tab');documentTab.setAttribute('aria-controls',box.id);
+  documentTab.append(node('span',String(i+1).padStart(2,'0'),'document-index'),node('span',filename(job.source_path),'document-name'));documentTabs.append(documentTab);tabs.push(documentTab);
+  const header=node('div',undefined,'job-header'),title=node('div',undefined,'job-title'),icon=node('span','HWPX','file-icon'),heading=node('div');icon.setAttribute('aria-hidden','true');
+  const h=node('h2',job.label);h.id='job-'+i;heading.append(h);
+  const files=node('div',undefined,'file-pair');files.append(node('span',filename(job.source_path)),node('span','→','arrow'),node('span',filename(job.payload_path)));heading.append(files);title.append(icon,heading);header.append(title);
+  const counts=node('div',undefined,'counts');for(const value of ['최상위 문단 '+p.removed_paragraphs+'개를 '+p.inserted_paragraphs+'개로 교체','새 범위 표 '+p.inserted_tables+'개','새 범위 그림 '+p.inserted_pictures+'개'])counts.append(node('span',value));
+  header.append(counts,node('p','기존 범위를 삭제한 뒤 교체합니다. 원고 전체를 추가하는 방식이 아니며 원본은 덮어쓰지 않습니다.','scope-note'));box.append(header);
+  const viewTabs=node('div',undefined,'view-tabs');viewTabs.setAttribute('role','tablist');viewTabs.setAttribute('aria-label',job.label+' 비교 방식');box.append(viewTabs);
+  const image=imageReview(i);pictures.push(image);
+  const views=[textComparison(job,i),image,technicalDetails(job)],viewButtons=[];
+  for(const [j,label] of ['텍스트 비교','그림 비교','범위·자원 상세'].entries()){
+   const button=node('button',label);button.type='button';button.id='view-tab-'+i+'-'+j;button.dataset.view=['text','images','details'][j];button.setAttribute('role','tab');button.setAttribute('aria-controls','view-panel-'+i+'-'+j);viewTabs.append(button);viewButtons.push(button);
+   const panel=node('section',undefined,'view-panel');panel.id='view-panel-'+i+'-'+j;panel.setAttribute('role','tabpanel');panel.setAttribute('aria-labelledby',button.id);panel.append(views[j]);box.append(panel);views[j]=panel;
+  }
+  connectTabs(viewButtons,views,jobViews.get(i)||0,j=>{jobViews.set(i,j);if(j===1&&!box.hidden)image.open=true;});
+  jobs.append(box);
+ }
+ connectTabs(tabs,panels,activeJob,index=>{activeJob=index;if(jobViews.get(index)===1)pictures[index].open=true;});
+ const downloads=document.querySelector('#downloads');downloads.replaceChildren();document.querySelector('#result-panel').hidden=!(current.artifacts||[]).length;
+ for(const [i,item] of (current.artifacts||[]).entries()){
+  const p=node('p'),a=node('a',item.label+' — 원본 양식 포함 검토본 HWPX');a.href='/artifact/'+i;
+  a.addEventListener('click',async event=>{
+   event.preventDefault();
+   try{const response=await fetch(a.href,{headers:{'X-Review-Token':token}});if(!response.ok)throw new Error((await response.json()).error||'다운로드 실패');const url=URL.createObjectURL(await response.blob());const link=node('a');link.href=url;link.download='document-'+(i+1)+'-template-review.hwpx';link.click();setTimeout(()=>URL.revokeObjectURL(url),0);}
+   catch(e){error.textContent=e.message;current.artifacts=[];current.execution_recorded=true;current.result_error='파일 확인에 실패하여 완료 표시를 보류했습니다.';render();try{await load();}catch(refreshError){current.result_error='결과 상태를 재확인할 수 없습니다: '+refreshError.message;render();}error.focus();}
+  });p.append(a);
+  const accept=node('button',item.accepted?'✓ 이 수정본 사용 중':'이 수정본 사용');accept.type='button';accept.disabled=item.accepted===true||busy;accept.addEventListener('click',()=>action('/api/template-accept',{index:i,sha256:item.sha256}));p.append(accept);downloads.append(p);
+ }
+ const completed=!!current.artifacts?.length,recorded=current.locked||current.execution_recorded||!!current.result_error;
+ let step=null,phase;
+ if(completed){step='inspect';phase=current.artifacts.every(item=>item.accepted)?'수정본 선택됨':'검토용 초안';status.textContent='HWPX를 열어 확인하고 사용할 수정본을 선택하세요. 문서는 다시 생성하지 않습니다.';}
+ else if(recorded){phase='작업 기록 확인';status.textContent='완료되지 않은 실행 기록이 있습니다. 자동 재생성하지 않으며 자료를 보존합니다.';}
+ else{step='create';phase='초안 생성 전';status.textContent='새 검토용 초안을 만들 수 있습니다. 실제 문서 확인과 사용할 수정본 선택은 생성 후에 합니다.';}
+ document.querySelector('#phase-label').textContent=phase;
+ for(const item of document.querySelectorAll('[data-step]')){if(item.dataset.step===step)item.setAttribute('aria-current','step');else item.removeAttribute('aria-current');}
+ document.querySelector('#result-error').textContent=current.result_error||'';buttons();
+}
+async function load(){current=await request('/api/template-state');render();}
+async function action(url,body){
+ busy=true;error.textContent='';status.textContent=url==='/api/template-draft'?'초안 생성과 자동 검사를 진행합니다. 완료 상태를 확인하기 전에는 다시 요청하지 마세요.':'현재 수정본의 정확한 파일을 확인합니다.';buttons();
+ let succeeded=false;
+ try{await request(url,body);await load();succeeded=true;}catch(e){error.textContent=e.message;error.focus();try{await load();}catch(_){}}
+ finally{
+  busy=false;buttons();
+  if(succeeded){
+   if(current.artifacts?.length)document.querySelector('#downloads a')?.focus();
+  }
+ }
+}
+confirmAll.addEventListener('change',buttons);
+makeDraft.addEventListener('click',()=>action('/api/template-draft',{plan_sha256:current.plan_sha256,draft_only_confirmed:true}));
+load().catch(e=>{error.textContent=e.message;status.textContent='입력이 바뀌었거나 지원 범위 밖의 내용입니다. 새 작업에서 확인하세요.';buttons();});
+</script></body></html>

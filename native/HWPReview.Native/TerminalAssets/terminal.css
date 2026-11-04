@@ -1,0 +1,21 @@
+:root {
+  color-scheme: dark light;
+  font-family: "Malgun Gothic", "Segoe UI", sans-serif;
+  background: #101318;
+  color: #eef1f6;
+}
+html, body { height: 100%; width: 100%; margin: 0; overflow: hidden; }
+body { display: flex; flex-direction: column; }
+#terminal { flex: 1 1 auto; min-height: 0; min-width: 0; padding: 6px; background: #101318; color: #eef1f6; }
+#notice { flex: 0 0 auto; margin: 0; padding: 4px 8px; min-height: 1.2em; font-size: 12px; background: #1d2530; color: #eef1f6; overflow-wrap: anywhere; }
+.xterm { height: 100%; }
+.xterm:focus-within { outline: 1px solid #a8caff; outline-offset: 2px; }
+.xterm .xterm-viewport { scrollbar-color: #8191a7 #101318; }
+@media (forced-colors: active) {
+  :root, #terminal, #notice { background: Canvas; color: CanvasText; }
+  .xterm:focus-within { outline-color: Highlight; }
+  .xterm .xterm-viewport { scrollbar-color: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+}

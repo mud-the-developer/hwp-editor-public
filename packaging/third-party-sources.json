@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "purpose": "Pinned source archives accompanying a release that uses these exact renderer versions. Data only; do not execute/install downloaded sources automatically.",
+  "pymupdf": {
+    "version": "1.26.7",
+    "filename": "pymupdf-1.26.7.tar.gz",
+    "url": "https://files.pythonhosted.org/packages/48/d6/09b28f027b510838559f7748807192149c419b30cb90e6d5f0cf916dc9dc/pymupdf-1.26.7.tar.gz",
+    "metadata_url": "https://pypi.org/pypi/PyMuPDF/1.26.7/json",
+    "bytes": 84327033,
+    "sha256": "71add8bdc8eb1aaa207c69a13400693f06ad9b927bea976f5d5ab9df0bb489c3",
+    "license": "AGPL-3.0, unmodified upstream COPYING included in archive"
+  },
+  "mupdf": {
+    "version": "1.26.12",
+    "filename": "mupdf-1.26.12-source.tar.gz",
+    "url": "https://github.com/ArtifexSoftware/mupdf-downloads/releases/download/1.26.12/mupdf-1.26.12-source.tar.gz",
+    "metadata_url": "https://api.github.com/repos/ArtifexSoftware/mupdf-downloads/releases/tags/1.26.12",
+    "bytes": 64536473,
+    "sha256": "6baf910928f404167ba49be6340195dec340795724722b331f5a2143f5aa0d01",
+    "license": "AGPL-3.0 with upstream thirdparty/font notices retained in full archive"
+  },
+  "mupdf_notices": {
+    "path": "packaging/licenses/MuPDF-1.26.12-NOTICES.txt",
+    "sha256": "eceb55e878f870958f10cb1a7c1aa5dc2652b371265b91386edbc2b52c0cdd3c",
+    "assembly": "25 unmodified notice/readme texts with upstream path headings; full source archive remains authoritative for other file-specific terms."
+  },
+  "supplemental_notice_files_sha256": {
+    "Expat-2.8.5-COPYING.txt": "31b15de82aa19a845156169a17a5488bf597e561b2c318d159ed583139b25e87",
+    "OpenSSL-3.5.9-LICENSE.txt": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+    "LibTomMath-Tcl-9.0.4-LICENSE.txt": "2fa64b163659f41965c9815882a8296d3d03ff546b76153e11445f9bdecf955a",
+    "zlib-Tcl-1.3.2-LICENSE.txt": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2",
+    "zlib-ng-2.2.4-LICENSE.txt": "6c9f0d975b41afaa34d22f55bb8986ce69e5cb7ad327cb2b28820cd425edf5ee",
+    "XZ-5.2.5-COPYING.txt": "bcb02973ef6e87ea73d331b3a80df7748407f17efdb784b61b47e0e610d3bb5c",
+    "rhwp-0.8.7-THIRD-PARTY-LICENSES.txt": "bb40fa5d0fa44bf2ff8b2b5dd7085562b58557a69eaa08b6bb5a4fc94252af88",
+    "Volexity-hwp-extract-e5f8b5e-LICENSE.txt": "082dfc368e85781c31cdb1077afc0aaa89a2e7c3a5ade4af316fe3c3a6af263b",
+    "rhwp-0.8.7-rust-dependency-NOTICES.txt": "717d1d412b5ef2ea4e0f98b07e99107869ac4ab1a47fb849954f0b6d0a33cedb"
+  },
+  "bundled_runtime_notice_provenance": {
+    "python_version": "3.14.8",
+    "tcl_tk_version": "9.0.4",
+    "scope": "Original notices rebound previously to these exact selected frozen DLL/PYD bytes. Each NEW frozen inventory must match before reusing that binary binding; collector checks notice originals only, not DLL inclusion or Microsoft entitlement.",
+    "selected_component_sha256": {
+      "python314.dll": "854fe7549eb4b2ac478935a38ae2ca1b774c6fdc3d87f0263fbd697ff86d7149",
+      "libcrypto-3.dll": "75495fe0e079ab00d49be740d3c710a0b94e3f74f9648cb7cc9f768fc7f52319",
+      "libssl-3.dll": "8957182a9c385bfd9f3f790921de2ddc614cf91f99edbed4e9e5446a46504e32",
+      "libffi-8.dll": "eff52743773eb550fcc6ce3efc37c85724502233b6b002a35496d828bd7b280a",
+      "libtommath.dll": "2d760fefb452665b6af8c8d9d29f3a8378f10fc0847cdd9938ea0cb5edf1d573",
+      "zlib1.dll": "f07195206534ebb1fe75093d4ec6c54a7a9227281b0c09d2113465b71da9e900",
+      "pyexpat.pyd": "36d775e2c2fa5bbda86ddc7c6ea632414df04f7a403b9e17587c99088d29cd7b",
+      "_lzma.pyd": "9099ef451fe61d8feef9e02894902b88fdc8ee404e3f8b7412b150878c973803",
+      "MSVCP140.dll": "7c26614e1d733892c2deac7e245ce115504b1d80592dd0a01b08e3e5a55f89ca",
+      "VCRUNTIME140.dll": "d1f4225df2cd877dbf130d5668a021dce3f94118455ff5ec952061c30afc9ce7",
+      "VCRUNTIME140_1.dll": "a7146c08f89fe5b04541ab507cdb59ff7b44534d4ba3c668a426c6450a03434e",
+      "Pythonwin/mfc140u.dll": "643ce7fe6a203c53a96a00f272a1a5b42d5b0c320c84364a6fe866307a19bb65"
+    },
+    "originals": [
+      {
+        "component": "Expat",
+        "version_evidence": "2.8.5",
+        "path": "packaging/licenses/Expat-2.8.5-COPYING.txt",
+        "url": "https://raw.githubusercontent.com/python/cpython/v3.14.8/Modules/expat/COPYING",
+        "bytes": 1144,
+        "sha256": "31b15de82aa19a845156169a17a5488bf597e561b2c318d159ed583139b25e87",
+        "scope": "required missing copyright and permission notice"
+      },
+      {
+        "component": "OpenSSL",
+        "version_evidence": "3.5.9",
+        "path": "packaging/licenses/OpenSSL-3.5.9-LICENSE.txt",
+        "url": "https://raw.githubusercontent.com/python/cpython-source-deps/openssl-3.5.9/LICENSE.txt",
+        "bytes": 10175,
+        "sha256": "7d5450cb2d142651b8afa315b5f238efc805dad827d91ba367d8516bc9d49e7a",
+        "scope": "original component-specific Apache-2.0 terms; existing Python notice also supplies Apache terms"
+      },
+      {
+        "component": "LibTomMath",
+        "version_evidence": "1.3.0 source provenance",
+        "path": "packaging/licenses/LibTomMath-Tcl-9.0.4-LICENSE.txt",
+        "url": "https://raw.githubusercontent.com/python/cpython-source-deps/tcl-9.0.4.0/libtommath/LICENSE",
+        "bytes": 1257,
+        "sha256": "2fa64b163659f41965c9815882a8296d3d03ff546b76153e11445f9bdecf955a",
+        "scope": "original public-domain permission and disclaimer; no binary notice retention condition asserted"
+      },
+      {
+        "component": "Tcl zlib",
+        "version_evidence": "1.3.2 source provenance",
+        "path": "packaging/licenses/zlib-Tcl-1.3.2-LICENSE.txt",
+        "url": "https://raw.githubusercontent.com/python/cpython-source-deps/tcl-9.0.4.0/compat/zlib/LICENSE",
+        "bytes": 1002,
+        "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2",
+        "scope": "original zlib terms; source retention and origin conditions, no mandatory binary acknowledgement asserted"
+      },
+      {
+        "component": "zlib-ng",
+        "version_evidence": "2.2.4 source provenance",
+        "path": "packaging/licenses/zlib-ng-2.2.4-LICENSE.txt",
+        "url": "https://raw.githubusercontent.com/python/cpython-source-deps/zlib-ng-2.2.4/LICENSE.md",
+        "bytes": 867,
+        "sha256": "6c9f0d975b41afaa34d22f55bb8986ce69e5cb7ad327cb2b28820cd425edf5ee",
+        "scope": "statically linked CPython dependency; original zlib terms"
+      },
+      {
+        "component": "XZ liblzma",
+        "version_evidence": "5.2.5 source provenance",
+        "path": "packaging/licenses/XZ-5.2.5-COPYING.txt",
+        "url": "https://raw.githubusercontent.com/python/cpython-source-deps/xz-5.2.5/COPYING",
+        "bytes": 2775,
+        "sha256": "bcb02973ef6e87ea73d331b3a80df7748407f17efdb784b61b47e0e610d3bb5c",
+        "scope": "original liblzma public-domain scope and alternative permission; not a blanket GPL/LGPL classification"
+      }
+    ],
+    "microsoft_crt_mfc": "Proprietary components, not AGPL/MIT relicensed. Prior owner entitlement/recipient-condition attestation exists; not independent certification or automatic agreement by a new recipient."
+  },
+  "rhwp_supplemental_notice_provenance": {
+    "source_commit": "1a76570e833917d15817415a53c09ad61ab3203f",
+    "upstream_notice": {
+      "source_path": "THIRD_PARTY_LICENSES.md",
+      "git_blob_sha1": "0147568008d8ec634b0105ef044de51e0bc07485",
+      "url": "https://raw.githubusercontent.com/edwardkim/rhwp/1a76570e833917d15817415a53c09ad61ab3203f/THIRD_PARTY_LICENSES.md",
+      "path": "packaging/licenses/rhwp-0.8.7-THIRD-PARTY-LICENSES.txt"
+    },
+    "ported_algorithm": {
+      "source_commit": "e5f8b5e1590dee973630666e687e919fa70da2e2",
+      "source_path": "LICENSE.md",
+      "git_blob_sha1": "26998ecd5f074758aa689efc7099af38cd0bf4e3",
+      "url": "https://raw.githubusercontent.com/volexity/hwp-extract/e5f8b5e1590dee973630666e687e919fa70da2e2/LICENSE.md",
+      "path": "packaging/licenses/Volexity-hwp-extract-e5f8b5e-LICENSE.txt"
+    },
+    "rust_notice_corpus": {
+      "path": "packaging/licenses/rhwp-0.8.7-rust-dependency-NOTICES.txt",
+      "registry_archives": 173,
+      "archive_digest_source": "Exact upstream Cargo.lock registry checksums; source archive pins/member hashes accompany the recipient kit",
+      "scope": "356 byte-preserved license/notice/author/metadata originals from conservative WASM-rooted lock graph, not an exact linked-WASM SBOM. Includes target/optional/build-only packages. r-efi ships author/metadata declarations but no standalone license text and is target-specific UEFI, not established as a WASM component."
+    },
+    "upstream_table_limit": "Original upstream summary is retained unchanged, including stale npm/dependency versions; Cargo.lock and actual selected WASM bytes, not the summary table, identify exact inputs."
+  }
+}
