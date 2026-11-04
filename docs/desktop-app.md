@@ -40,6 +40,8 @@ WebView2 **SDK 1.0.4314.35**의 고정 Core/Wpf assembly·x64 Loader 3개와 LIC
 
 고정 SDK DLL과 `packaging/terminal-dependencies.json`, `packaging/hwpx-renderer-dependencies.json`, `packaging/icon-dependencies.json`에 선언된 로컬 자산·원문 고지를 준비합니다. 소스 ZIP만 풀면 모든 개발 도구·upstream 빌드 입력이 생긴다고 가정하지 마세요.
 
+`npm run check`는 lint·Node 회귀, Python 전체 회귀의 서로 보완적인 두 discovery 묶음, 합성 UI 흐름을 순서대로 실행합니다. Python은 묶음마다 별도 프로세스와 같은 300초 제한을 사용하며 하나가 실패하면 이후 검사를 실행하지 않습니다. CI는 Python 3.14.8과 10분 작업 제한을 사용합니다. 검사를 나누는 것은 항목 제외나 실제 모델·한글·설치 검증의 대체가 아닙니다.
+
 아직 없는 출력 경로를 골라 저장소 루트에서 명시적으로 빌드·등록합니다.
 
 ```powershell
