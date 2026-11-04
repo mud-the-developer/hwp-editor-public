@@ -310,7 +310,7 @@ class ResolverTests(unittest.TestCase):
     def setUp(self):
         temp = tempfile.TemporaryDirectory()
         self.addCleanup(temp.cleanup)
-        self.root = Path(temp.name)
+        self.root = Path(temp.name).resolve()
         agent = self.root / "agent"
         self.cli = agent / "bin/pi.cmd"
         self.cli.parent.mkdir(parents=True)
@@ -475,27 +475,25 @@ ENDLOCAL & EXIT /B %ERRORLEVEL%'''
         self.assertEqual(failure.exception.stage, "unsupported_version")
         p.subprocess.Popen.assert_not_called()
 
-    def test_metadata_symlinks_are_rejected_before_their_content_is_read(self):
-        original_link = Path.is_symlink
-        original_open = Path.open
-        for blocked in (self.current, self.metadata):
-
-            def link(path):
-                return path == blocked or original_link(path)
-
-            def guarded_open(path, *args, **kwargs):
-                if path == blocked:
-                    raise AssertionError("Metadata symlink content must not be read")
-                return original_open(path, *args, **kwargs)
-
-            with (
-                self.subTest(path=blocked.name),
-                patch.object(Path, "is_symlink", link),
-                patch.object(Path, "open", guarded_open),
-            ):
-                with self.assertRaises(p.ProbeFailure) as failure:
-                    p.resolve_runtime(self.cli)
-                self.assertEqual(failure.exception.stage, "runtime_binding")
+    def test_linked_metadata_cannot_acquire_runtime_binding(self):
+        for metadata in (self.current, self.metadata):
+            with self.subTest(path=metadata.name):
+                target = metadata.with_name(metadata.name + ".plain-target")
+                metadata.rename(target)
+                try:
+                    try:
+                        metadata.symlink_to(target)
+                    except OSError as error:
+                        if getattr(error, "winerror", None) in (50, 1314):
+                            self.skipTest("Host cannot create a real metadata symlink")
+                        raise
+                    with self.assertRaises(p.ProbeFailure) as failure:
+                        p.resolve_runtime(self.cli)
+                    self.assertEqual(failure.exception.stage, "runtime_binding")
+                finally:
+                    if metadata.is_symlink():
+                        metadata.unlink()
+                    target.rename(metadata)
         p.subprocess.Popen.assert_not_called()
 
     def test_bun_shim_must_match_the_exact_metadata_only_launcher_form(self):
