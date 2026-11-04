@@ -152,7 +152,7 @@ def mutate(raw, part, function):
 class TemplateDraftTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
-        self.root = Path(self.temporary.name)
+        self.root = Path(self.temporary.name).resolve()
         self.source = self.root / "source.hwpx"
         self.source.write_bytes(fixture())
         self.payload = self.root / "payload.hwpx"

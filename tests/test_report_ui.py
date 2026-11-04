@@ -22,7 +22,7 @@ class ReportInputFixture(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
-        self.root = Path(self.tmp.name)
+        self.root = Path(self.tmp.name).resolve()
         self.source = self.root / "source.hwpx"
         self.payload = self.root / "payload.hwpx"
         self.source.write_bytes(fixture())
@@ -184,7 +184,7 @@ class ReportInputTests(ReportInputFixture):
             path.write_text(json.dumps(feedback), encoding="utf-8")
             imported = ui._import_json(path, "feedback")
             self.assertEqual(imported["mode"], mode)
-            self.assertEqual(imported["baselines"][0]["path"], str(baseline))
+            self.assertTrue(Path(imported["baselines"][0]["path"]).samefile(baseline))
             self.assertEqual(imported.get("image_scope"), feedback.get("image_scope"))
             with self.assertRaises(ValueError):
                 self.basic(feedback=imported)
