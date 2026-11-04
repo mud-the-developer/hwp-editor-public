@@ -13,5 +13,6 @@
 - 현재 사용자 설치·제거는 닫힌 manifest와 `hwp-user-install-receipt-v2` 소유권을 사용합니다. 문서·인증·공유 도구는 제거하지 않습니다.
 - 기존 HWP 고급 도구의 strict schema·Native·외부 binding·바이트 보존 경계를 유지합니다.
 - 공개 저장소 문서와 소스 위치를 `https://github.com/mud-the-developer/hwp-editor-public`로 분리합니다. 공개 배포물은 해당 공개 commit에서 새로 제작해야 합니다.
+- 공개 CI의 Python을 로컬 제작·합성 검증과 같은 `3.14.8`로 고정합니다. 검사·작업 제한 시간과 테스트·Native guard는 완화하지 않습니다.
 
 현재 한계와 증거 수준은 [현재 상태](docs/status.md), 배포 세트의 식별과 공개용 정제는 [릴리스 규칙](docs/releases.md)을 따릅니다. 과거 후보의 결과를 공개 스냅샷에 승계하지 않습니다.
