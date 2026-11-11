@@ -4,8 +4,8 @@ title TOY HWP Review - http://127.0.0.1:8766
 cd /d "%~dp0"
 set "TOY_SOURCE=work\toy-source\TOY-ONLY-template.hwp"
 set "TOY_WORKSPACE=work\toy-review-security"
-if not exist ".venv\Scripts\python.exe" (
-    echo ERROR: Project Python environment is missing.
+call "%~dp0setup-source.cmd"
+if errorlevel 1 (
     pause
     exit /b 1
 )

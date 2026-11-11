@@ -1,9 +1,8 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-if not exist ".venv\Scripts\pythonw.exe" (
-    echo Project Python environment is missing.
-    echo Follow README setup first. No dependency will be installed automatically.
+call "%~dp0setup-source.cmd"
+if errorlevel 1 (
     pause
     exit /b 1
 )

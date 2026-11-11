@@ -1,7 +1,8 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-if not exist ".venv\Scripts\python.exe" exit /b 1
+call "%~dp0setup-source.cmd"
+if errorlevel 1 exit /b 1
 if not exist "work\toy-review-security\proposal-layout.json" exit /b 2
 ".venv\Scripts\python.exe" scripts\hwp_review.py check-plan work\toy-review-security work\toy-review-security\proposal-layout.json
 if errorlevel 1 exit /b 2

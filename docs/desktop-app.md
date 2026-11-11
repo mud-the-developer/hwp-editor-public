@@ -36,7 +36,13 @@ WebView2 **SDK 1.0.4314.35**의 고정 Core/Wpf assembly·x64 Loader 3개와 LIC
 
 ## 개발 소스 준비
 
-개발자는 Windows x64, 준비된 Python `.venv`, `requirements.txt`와 필요한 `requirements-build.txt`/`requirements-dev.txt`의 고정 의존성, `package.json`/lockfile의 Node 개발 도구, **.NET 10 SDK**(고정 근거 10.0.401)를 준비해야 합니다. 의존성 파일이 정확한 버전의 기준입니다. 실행 스크립트는 환경 생성·패키지 설치·빌드를 대신하지 않습니다.
+설치된 Windows x64 Python 3.11 이상이 필요하며 검증 기준은 3.14.8입니다. `start-*.cmd` 소스 진입점은 공통 `setup-source.cmd`를 먼저 실행합니다. 환경만 준비하려면 저장소 루트에서 `.\setup-source.cmd`를 실행하세요. 이 명령 자체는 앱·모델·한글을 열지 않습니다.
+
+- `.venv`가 없으면 새 가상환경을 만들고 `requirements.txt`의 정확한 실행 의존성만 공식 PyPI wheel로 설치합니다. 최초 준비에는 네트워크가 필요하며 소스 패키지 빌드·자동 재시도는 하지 않습니다.
+- 기존 `.venv`는 필요한 버전·실제 모듈을 읽어 확인한 뒤 그대로 재사용합니다. 부족한 패키지·다른 버전·불완전한 환경·연결 경로는 자동 업그레이드·삭제·재생성 없이 중단합니다. 실패한 새 환경도 진단을 위해 남깁니다.
+- Python 본체·전역 PATH·개인 설정·보고서 작업 폴더는 바꾸지 않습니다. EXE 배포본은 Python을 포함하므로 이 `.venv` 준비가 필요 없습니다.
+
+검사/제작용 `requirements-dev.txt`·`requirements-build.txt`, Node 개발 도구, **.NET 10 SDK**(고정 근거 10.0.401)와 네이티브 UI 빌드·등록은 별도로 준비합니다. 소스 환경 자동 준비를 SDK 설치나 네이티브 빌드로 해석하지 마세요.
 
 고정 SDK DLL과 `packaging/terminal-dependencies.json`, `packaging/hwpx-renderer-dependencies.json`, `packaging/icon-dependencies.json`에 선언된 로컬 자산·원문 고지를 준비합니다. 소스 ZIP만 풀면 모든 개발 도구·upstream 빌드 입력이 생긴다고 가정하지 마세요.
 

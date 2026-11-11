@@ -2,8 +2,8 @@
 setlocal
 title HWP Page Review - http://127.0.0.1:8765
 cd /d "%~dp0"
-if not exist ".venv\Scripts\python.exe" (
-    echo ERROR: Project Python environment is missing.
+call "%~dp0setup-source.cmd"
+if errorlevel 1 (
     pause
     exit /b 1
 )
