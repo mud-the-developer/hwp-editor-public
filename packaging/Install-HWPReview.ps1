@@ -465,16 +465,18 @@ function Requirements-Check([string]$Tag) {
     $code = Run-Exe ('--check-requirements "' + $reportPath + '"') $Tag
     if ($code -ne 0 -and $code -ne 2) { Stop-Install 5 '필수 항목 읽기 전용 확인이 실패했습니다. 로그를 보존합니다.' }
     $report = Read-Json $reportPath
-    if ($report.contract -cne 'hwp-requirements-status-v1' -or $report.ready -isnot [bool] -or $report.reboot_required -isnot [bool] -or $null -eq $report.components -or @($report.components.PSObject.Properties).Count -eq 0) { Stop-Install 5 '필수 항목 확인 기록 형식이 다릅니다.' }
+    if ($report.contract -cne 'hwp-requirements-status-v2' -or $report.ready -isnot [bool] -or $report.reboot_required -isnot [bool] -or $null -eq $report.components -or @($report.components.PSObject.Properties).Count -eq 0) { Stop-Install 5 '필수 항목 확인 기록 형식이 다릅니다.' }
     if ($report.reboot_required) { Stop-Install 3010 '재부팅이 필요합니다. 자동 재부팅하거나 앱을 시작하지 않습니다.' }
-    $componentIds = @('powershell7', 'd2coding_propo', 'dotnet10', 'webview2', 'omp_runtime')
+    $componentIds = @('powershell7', 'd2coding_propo', 'dotnet10', 'webview2', 'omp_runtime', 'hwp_security')
     $reportedIds = @($report.components.PSObject.Properties.Name)
     if ($reportedIds.Count -ne $componentIds.Count) { Stop-Install 5 '필수 항목 목록이 완전하지 않습니다.' }
     foreach ($id in $componentIds) { if ($reportedIds -cnotcontains $id) { Stop-Install 5 '필수 항목 확인 결과에 누락이 있습니다.' } }
     $allReady = $true
     foreach ($component in $report.components.PSObject.Properties) {
-        if ($component.Value.installed -isnot [bool]) { Stop-Install 5 '필수 항목 설치 상태를 확인할 수 없습니다.' }
-        if (-not $component.Value.installed) { $allReady = $false }
+        $fields = @($component.Value.PSObject.Properties.Name)
+        if ($fields -cnotcontains 'required' -or $fields -cnotcontains 'installed' -or $fields -cnotcontains 'detail' -or $component.Value.required -isnot [bool] -or $component.Value.installed -isnot [bool] -or $component.Value.detail -isnot [string]) { Stop-Install 5 '필수 항목의 적용 여부·설치 상태·설명을 확인할 수 없습니다.' }
+        if (-not $component.Value.required -and ($component.Name -cne 'hwp_security' -or $component.Value.installed)) { Stop-Install 5 '한글 자동화 보안모듈 외에는 필수 항목을 제외할 수 없으며, 적용되지 않는 항목을 설치됨으로 표시할 수 없습니다.' }
+        if ($component.Value.required -and -not $component.Value.installed) { $allReady = $false }
     }
     if ($report.ready -ne $allReady -or (($code -eq 0) -ne $report.ready)) { Stop-Install 5 '필수 항목 확인 종료 코드와 기록이 다릅니다.' }
     $result.prerequisites_checked = $true

@@ -96,7 +96,7 @@ class LicenseNoticeTests(unittest.TestCase):
             target = self.source / relative
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((repository / relative).read_bytes())
-        self.dependencies = {"contract": "hwp-windows-dependencies-v2", "components": [], "license_files_sha256": {}}
+        self.dependencies = {"contract": "hwp-windows-dependencies-v3", "components": [], "license_files_sha256": {}}
         for key, name, version, _, notices in licenses.SETUP_NOTICES:
             self.dependencies["components"].append({
                 "id": key, "name": name, "version": version,

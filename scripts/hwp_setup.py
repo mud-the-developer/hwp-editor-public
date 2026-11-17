@@ -25,9 +25,10 @@ import zipfile
 
 from hwp_resources import resource_root
 from hwp_setup_runtime import RUNTIME_ASSETS
+from hwp_security import SECURITY_ASSET, automation_status, ensure_security_module
 
-CONTRACT = "hwp-windows-dependencies-v2"
-COMPONENT_IDS = ("powershell7", "d2coding_propo", "dotnet10", "webview2", "omp_runtime")
+CONTRACT = "hwp-windows-dependencies-v3"
+COMPONENT_IDS = ("powershell7", "d2coding_propo", "dotnet10", "webview2", "omp_runtime", "hwp_security")
 _ASSETS = {
     "powershell7": {
         "name": "PowerShell 7", "version": "7.6.9", "kind": "msi",
@@ -44,11 +45,12 @@ _ASSETS = {
         "release_url": "https://github.com/ryanoasis/nerd-fonts/releases/tag/v3.5.1",
     },
     **RUNTIME_ASSETS,
+    "hwp_security": SECURITY_ASSET,
 }
 _FONT_REGISTRY = r"Software\Microsoft\Windows NT\CurrentVersion\Fonts"
 _RELEASE_HOSTS = frozenset(("github.com", "release-assets.githubusercontent.com",
                             "objects.githubusercontent.com", "github-releases.githubusercontent.com",
-                            "download.microsoft.com", "builds.dotnet.microsoft.com",
+                            "raw.githubusercontent.com", "download.microsoft.com", "builds.dotnet.microsoft.com",
                             "msedge.sf.dl.delivery.mp.microsoft.com", "registry.npmjs.org"))
 _CHUNK = 1024 * 1024
 _SIGNATURE_COMMAND = r"""$ErrorActionPreference = 'Stop'
@@ -501,22 +503,48 @@ def _font_status(component):
     return {"installed": False, "detail": f"{family}가 등록되어 있지 않습니다. 문서 글꼴은 변경하지 않습니다."}
 
 
+def _validate_status(identifier, status):
+    if (not isinstance(status, dict) or type(status.get("required")) is not bool
+            or type(status.get("installed")) is not bool or not isinstance(status.get("detail"), str)
+            or (identifier != "hwp_security" and not status["required"])
+            or (not status["required"] and status["installed"])):
+        raise ValueError("필수 구성원의 적용 여부·설치 상태·설명을 신뢰할 수 없습니다.")
+    return status
+
+
+def statuses_ready(statuses):
+    """Validate the complete status contract and require only applicable rows."""
+    if not isinstance(statuses, dict) or set(statuses) != set(COMPONENT_IDS):
+        raise ValueError("필수 구성원 여섯 개의 상태가 정확히 필요합니다.")
+    for identifier, status in statuses.items():
+        _validate_status(identifier, status)
+    return all(not status["required"] or status["installed"] for status in statuses.values())
+
+
 def _component_status(component):
-    if component["id"] == "powershell7":
-        return _powershell_status(component)
-    if component["id"] == "d2coding_propo":
-        return _font_status(component)
-    from hwp_setup_runtime import component_status
-    return component_status(component)
+    identifier = component["id"]
+    if identifier == "hwp_security":
+        status = automation_status()
+    elif identifier == "powershell7":
+        status = {**_powershell_status(component), "required": True}
+    elif identifier == "d2coding_propo":
+        status = {**_font_status(component), "required": True}
+    else:
+        from hwp_setup_runtime import component_status
+        status = {**component_status(component), "required": True}
+    return _validate_status(identifier, status)
 
 
 def installed_status(manifest=None):
     """Read-only Windows x64 metadata/registry/font inspection, no process launch."""
     value = _manifest(manifest)
     if not _windows_x64():
-        return {identifier: {"installed": False, "detail": "필수 준비는 Windows x64에서만 지원됩니다."}
+        return {identifier: {"required": True, "installed": False,
+                             "detail": "필수 준비는 Windows x64에서만 지원됩니다."}
                 for identifier in COMPONENT_IDS}
-    return {row["id"]: _component_status(row) for row in value["components"]}
+    statuses = {row["id"]: _component_status(row) for row in value["components"]}
+    statuses_ready(statuses)
+    return statuses
 
 
 def write_status_report(destination):
@@ -531,12 +559,12 @@ def write_status_report(destination):
         raise ValueError("설치 상태 보고서의 실제 상위 폴더가 필요합니다.")
     if os.path.lexists(target):
         raise FileExistsError("기존 설치 상태 보고서를 덮어쓰지 않습니다.")
-    report = {"contract": "hwp-requirements-status-v1", "ready": False,
+    report = {"contract": "hwp-requirements-status-v2", "ready": False,
               "components": {}, "reboot_required": False}
     try:
         statuses = installed_status()
         report["components"] = statuses
-        report["ready"] = all(item["installed"] is True for item in statuses.values())
+        report["ready"] = statuses_ready(statuses)
     except Exception as error:
         report["error"] = {"type": type(error).__name__, "detail": str(error)}
     _write_new(target, _json_bytes(report))
@@ -825,27 +853,39 @@ def _install_fonts(component, staged, record):
     record["detail"] = "사용자용 Propo Regular/Bold를 설치했습니다. 터미널을 새로 열거나 앱을 다시 시작하세요. 문서 글꼴은 변경하지 않았습니다."
 
 
-def install_missing(*, manifest=None, download_root=None, progress=None):
+def install_missing(*, manifest=None, download_root=None, progress=None, security_consent=False):
     """Prepare only absent required components; no retry, rollback or child kill.
 
     Existing compatible metadata is preserved without upgrades. When all required
     components are present, no run or other path is created. download_root
     overrides only the run base, never installed destinations or executables.
     SetupError/SetupCancelled carries the preserved partial receipt.
+    A missing required Hancom module needs explicit security_consent before any
+    setup mutation; an inapplicable module remains uninstalled and is skipped.
     """
     value = _manifest(manifest)
     if progress is not None and not callable(progress):
         raise ValueError("진행 알림은 호출 가능한 함수여야 합니다.")
+    if type(security_consent) is not bool:
+        raise ValueError("한글 자동화 보안모듈 설치 동의는 참/거짓 값이어야 합니다.")
     if not _windows_x64():
         raise SetupError("필수 준비는 Windows x64에서만 지원됩니다.")
     components = {row["id"]: row for row in value["components"]}
     statuses = {identifier: _component_status(components[identifier]) for identifier in COMPONENT_IDS}
-    missing = [identifier for identifier in COMPONENT_IDS if not statuses[identifier]["installed"]]
+    statuses_ready(statuses)
+    missing = [identifier for identifier in COMPONENT_IDS
+               if statuses[identifier]["required"] and not statuses[identifier]["installed"]]
     receipt = {"run_directory": None, "components": [], "reboot_required": False,
                "windows_powershell_5_1": "retained", "automatic_reboot": False}
+    if "hwp_security" in missing and not security_consent:
+        raise SetupError("한글 자동화 보안모듈은 파일 접근 확인창을 생략합니다. 사용 고지를 확인하고 설치에 명시적으로 동의해야 합니다.",
+                         receipt=receipt)
     if not missing:
-        receipt["components"] = [{"id": identifier, "status": "skipped", "detail": statuses[identifier]["detail"]}
-                                 for identifier in COMPONENT_IDS]
+        receipt["components"] = [
+            {"id": identifier, "required": statuses[identifier]["required"],
+             "status": "skipped" if statuses[identifier]["required"] else "not_applicable",
+             "detail": statuses[identifier]["detail"]}
+            for identifier in COMPONENT_IDS]
         return receipt
     base = _directory(Path(download_root) if download_root is not None else _local_app_data() / "HwpReview/SetupRuns")
     run = _unlinked(base / (datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ-") + uuid.uuid4().hex))
@@ -853,13 +893,24 @@ def install_missing(*, manifest=None, download_root=None, progress=None):
     receipt["run_directory"] = str(run)
     current = None
     try:
-        _write_new(run / "request.json", _json_bytes({"required": list(COMPONENT_IDS), "missing": missing,
-                                                       "manifest": value}))
+        _write_new(run / "request.json", _json_bytes({
+            "required": [identifier for identifier in COMPONENT_IDS if statuses[identifier]["required"]],
+            "missing": missing, "security_consent": security_consent, "manifest": value}))
         for identifier in COMPONENT_IDS:
             component = components[identifier]
             current = {"id": identifier, "status": "checking", "detail": "필수 구성원의 설치 여부를 다시 확인합니다."}
             receipt["components"].append(current)
-            status = statuses[identifier] if identifier not in missing else _component_status(component)
+            status = (_component_status(component)
+                      if identifier in missing or identifier == "hwp_security" else statuses[identifier])
+            _validate_status(identifier, status)
+            current["required"] = status["required"]
+            if not status["required"]:
+                current.update(status="not_applicable", detail=status["detail"])
+                if progress:
+                    progress(status["detail"])
+                continue
+            if identifier == "hwp_security" and not status["installed"] and not security_consent:
+                raise SetupError("한글 자동화 보안모듈 설치에는 사용 고지 확인과 명시적 동의가 필요합니다.")
             if status["installed"]:
                 current.update(status="skipped", detail=status["detail"])
                 if progress:
@@ -896,15 +947,38 @@ def install_missing(*, manifest=None, download_root=None, progress=None):
                 current["notices"] = [str(staged[row["member"]]) for row in component["notice_files"]]
             # Another installer/user may have completed setup during the download.
             status = _component_status(component)
+            _validate_status(identifier, status)
+            current["required"] = status["required"]
+            if not status["required"]:
+                current.update(status="not_applicable", detail=status["detail"])
+                continue
             if status["installed"]:
                 current.update(status="skipped", detail=status["detail"])
                 continue
             if progress:
-                progress(f"{component['name']} 필수 준비 중. 설치 창과 UAC 승인은 사용자가 직접 진행합니다.")
+                progress("한글 자동화 보안모듈을 현재 사용자 경로와 HKCU에 등록할 준비 중입니다."
+                         if identifier == "hwp_security" else
+                         f"{component['name']} 필수 준비 중. 설치 창과 UAC 승인은 사용자가 직접 진행합니다.")
             current["status"] = "installing"
             reboot = False
             if identifier == "d2coding_propo":
                 _install_fonts(component, staged, current)
+            elif identifier == "hwp_security":
+                with _locked_read(payload) as source:
+                    _verify_stream(source, component)
+                    status = _component_status(component)
+                    _validate_status(identifier, status)
+                    current["required"] = status["required"]
+                    if not status["required"]:
+                        current.update(status="not_applicable", detail=status["detail"])
+                        continue
+                    if status["installed"]:
+                        current.update(status="skipped", detail=status["detail"])
+                        continue
+                    if not security_consent:
+                        raise SetupError("한글 자동화 보안모듈 설치 동의가 없어 파일·등록을 변경하지 않습니다.")
+                    current["security_module"] = ensure_security_module(
+                        package=payload, local_appdata=_local_app_data())
             elif component["kind"] in ("msi", "exe"):
                 with _locked_read(payload) as source:
                     _verify_stream(source, component)
@@ -926,6 +1000,7 @@ def install_missing(*, manifest=None, download_root=None, progress=None):
                 reboot = install_component(component, payloads, run, current)
             receipt["reboot_required"] |= reboot
             status = _component_status(component)
+            _validate_status(identifier, status)
             current["metadata_confirmed"] = status["installed"]
             if not status["installed"] and not reboot:
                 raise SetupError(f"{component['name']} 설치 뒤 실제 준비 상태를 확인하지 못했습니다. 성공으로 표시하지 않고 증거를 보존합니다.")
@@ -942,7 +1017,7 @@ def install_missing(*, manifest=None, download_root=None, progress=None):
         return deepcopy(receipt)
     except BaseException as exc:
         cancelled = isinstance(exc, (SetupCancelled, KeyboardInterrupt))
-        if current is not None and current["status"] not in ("installed", "skipped", "reboot_required"):
+        if current is not None and current["status"] not in ("installed", "skipped", "not_applicable", "reboot_required"):
             current.update(status="cancelled" if cancelled else "failed", detail=str(exc))
         receipt["error"] = {"type": type(exc).__name__, "detail": str(exc), "cancelled": cancelled}
         # Do not remove partial copies, registrations, logs or running processes.

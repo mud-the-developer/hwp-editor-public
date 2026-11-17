@@ -1,5 +1,6 @@
 """Owned synthetic installer boundaries; no registration or real app install."""
 
+from copy import deepcopy
 import json
 import os
 from pathlib import Path
@@ -319,6 +320,131 @@ try{
         self.assertEqual(result["exit_code"], 7)
         self.assertEqual(result["stdout"], "HWP_CHILD_STDOUT")
         self.assertEqual(result["stderr"], "HWP_CHILD_STDERR")
+
+
+@unittest.skipUnless(os.name == "nt", "Windows PowerShell requirements consumer")
+class RequirementsCheckTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve()
+        self.report = {
+            "contract": "hwp-requirements-status-v2", "ready": True, "reboot_required": False,
+            "components": {
+                identifier: {"required": True, "installed": True, "detail": "INERT inspected metadata"}
+                for identifier in ("powershell7", "d2coding_propo", "dotnet10", "webview2",
+                                   "omp_runtime", "hwp_security")
+            },
+        }
+
+    def consume(self, cases):
+        inputs = []
+        for index, (report, code) in enumerate(cases):
+            tag = f"probe-{index}"
+            path = self.root / (f"fixture-{index}.json")
+            path.write_text(json.dumps(report), encoding="utf-8")
+            inputs.append({"tag": tag, "code": code, "fixture": str(path)})
+        case_path = self.root / "cases.json"
+        case_path.write_text(json.dumps(inputs), encoding="utf-8")
+        probe = self.root / "consume-requirements.ps1"
+        probe.write_text(
+            r"""param([string]$Engine,[string]$Run,[string]$Cases)
+Set-StrictMode -Version Latest
+$ErrorActionPreference='Stop'
+[Console]::OutputEncoding=New-Object Text.UTF8Encoding($false)
+$script:Run=$Run
+function Run-Exe([string]$Arguments,[string]$Tag){
+    [IO.File]::Copy($script:FixtureReport,(Join-Path $script:Run ($Tag + '.json')))
+    return $script:RequestedCode
+}
+function Read-Json([string]$Path){return ([IO.File]::ReadAllText($Path) | ConvertFrom-Json)}
+$tokens=$null; $errors=$null
+$ast=[Management.Automation.Language.Parser]::ParseFile($Engine,[ref]$tokens,[ref]$errors)
+if($errors.Count -ne 0){throw 'The actual installer script could not be parsed.'}
+foreach($node in $ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst]},$false)){
+    if($node.Name -in @('Stop-Install','Requirements-Check')){. ([scriptblock]::Create($node.Extent.Text))}
+}
+$answers=New-Object 'Collections.Generic.List[object]'
+foreach($case in (Read-Json $Cases)){
+    $script:RequestedCode=[int]$case.code
+    $script:FixtureReport=[string]$case.fixture
+    $script:ExitCode=1
+    $result=[ordered]@{prerequisites_checked=$false}
+    try{
+        $ready=Requirements-Check $case.tag
+        $answers.Add([ordered]@{accepted=$true;ready=$ready;prerequisites_checked=$result.prerequisites_checked;exit_code=0})
+    }catch{
+        $answers.Add([ordered]@{accepted=$false;ready=$false;prerequisites_checked=$result.prerequisites_checked;exit_code=$script:ExitCode;detail=$_.Exception.Message})
+    }
+}
+ConvertTo-Json -InputObject @($answers.ToArray()) -Depth 8
+""", encoding="utf-8-sig",
+        )
+        before = {path.name: path.read_bytes() for path in self.root.iterdir()}
+        command = [
+            str(Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"),
+            "-NoLogo", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(probe),
+            "-Engine", str(ROOT / "packaging/Install-HWPReview.ps1"),
+            "-Run", str(self.root), "-Cases", str(case_path),
+        ]
+        completed = subprocess.run(command, capture_output=True, timeout=90, check=False)
+        self.assertEqual(completed.returncode, 0, completed.stderr.decode(errors="replace"))
+        self.assertEqual(before, {name: (self.root / name).read_bytes() for name in before})
+        self.assertEqual({path.name for path in self.root.iterdir()},
+                         set(before) | {case["tag"] + ".json" for case in inputs})
+        return json.loads(completed.stdout.decode("utf-8-sig", errors="replace"))
+
+    def test_actual_consumer_calculates_readiness_from_applicable_requirements(self):
+        optional = deepcopy(self.report)
+        optional["components"]["hwp_security"].update(required=False, installed=False)
+        missing = deepcopy(self.report)
+        missing["components"]["hwp_security"]["installed"] = False
+        missing["ready"] = False
+        other_missing = deepcopy(optional)
+        other_missing["components"]["powershell7"]["installed"] = False
+        other_missing["ready"] = False
+        reports = [self.report, optional, missing, other_missing]
+        results = self.consume([(report, 0 if report["ready"] else 2) for report in reports])
+        self.assertEqual([result["ready"] for result in results], [True, True, False, False])
+        self.assertTrue(all(result["accepted"] and result["prerequisites_checked"] for result in results))
+
+    def test_actual_consumer_rejects_incomplete_or_untrusted_required_fields(self):
+        reports = []
+        legacy = deepcopy(self.report)
+        legacy["contract"] = "hwp-requirements-status-v1"
+        reports.append(legacy)
+        missing = deepcopy(self.report)
+        del missing["components"]["hwp_security"]
+        reports.append(missing)
+        extra = deepcopy(self.report)
+        extra["components"]["unexpected"] = deepcopy(extra["components"]["hwp_security"])
+        reports.append(extra)
+        for field in ("required", "installed", "detail"):
+            missing_field = deepcopy(self.report)
+            del missing_field["components"]["hwp_security"][field]
+            reports.append(missing_field)
+        for identifier, field, value in (
+                ("hwp_security", "required", 0), ("hwp_security", "required", "false"),
+                ("hwp_security", "installed", 1), ("hwp_security", "installed", "true"),
+                ("hwp_security", "detail", None), ("powershell7", "required", False)):
+            changed = deepcopy(self.report)
+            changed["components"][identifier][field] = value
+            reports.append(changed)
+        false_installed = deepcopy(self.report)
+        false_installed["components"]["hwp_security"]["required"] = False
+        reports.append(false_installed)
+        results = self.consume([(report, 0) for report in reports])
+        self.assertTrue(all(not result["accepted"] and not result["prerequisites_checked"]
+                            and result["exit_code"] == 5 for result in results), results)
+
+    def test_actual_consumer_rejects_claimed_ready_or_exit_code_disagreement(self):
+        false_ready = deepcopy(self.report)
+        false_ready["components"]["hwp_security"]["installed"] = False
+        false_not_ready = deepcopy(self.report)
+        false_not_ready["ready"] = False
+        results = self.consume([(false_ready, 0), (false_not_ready, 2), (self.report, 2)])
+        self.assertTrue(all(not result["accepted"] and result["exit_code"] == 5
+                            for result in results), results)
 
 
 if __name__ == "__main__":

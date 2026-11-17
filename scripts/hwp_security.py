@@ -1,6 +1,7 @@
-"""User-authorized Hancom Automation module, pinned to the supplied local ZIP.
-No network, elevated/system installs, generic DLL loading or approval-file writes.
-The supplied example allows all file access in the owned HWP instance.
+"""Pinned official Hancom Automation module; no network or COM creation here.
+
+Only prerequisite setup installs the module. Native admission is read-only.
+The example suppresses file-access confirmation in the owned HWP instance.
 """
 
 from __future__ import annotations
@@ -18,18 +19,106 @@ from threading import RLock, local
 from typing import NoReturn
 import zipfile
 
-ROOT = Path(__file__).resolve().parents[1]
 MODULE_ALIAS = "FilePathCheckerModuleExample"
 MODULE_TYPE = "FilePathCheckDLL"
 DLL_NAME = MODULE_ALIAS + ".dll"
 REGISTRY_KEY = "Software\\HNC\\HwpAutomation\\Modules"
-ZIP_PATH = ROOT / "보안모듈(Automation).zip"
-# Exact archive/DLL supplied and explicitly authorized by this project's owner.
+# Exact official archive/DLL; only the root DLL member may be installed.
 ZIP_SHA256 = "5d87292efafd7311cba6d35e4b416ac8bfa78608a64dde1656c8cb827b051bd8"
 DLL_SHA256 = "9ac5b97c47ac8aed1e8bca27a3eef39411361d8f68c262509f0c40a8f9d21bb6"
 DLL_MACHINE = 0x14C
 MAX_ZIP_BYTES = 2 * 1024 * 1024
 MAX_MEMBER_BYTES = 2 * 1024 * 1024
+SECURITY_ASSET = {
+    "name": "한글 자동화 보안모듈",
+    "version": "2022-08-19 (x86)",
+    "kind": "hwp_security_zip",
+    "url": "https://raw.githubusercontent.com/hancom-io/devcenter-archive/"
+    "64aaf36475004fb86aafe990708e5ef9279c9a56/hwp-automation/"
+    "%EB%B3%B4%EC%95%88%EB%AA%A8%EB%93%88(Automation).zip",
+    "size": 142064,
+    "sha256": ZIP_SHA256,
+    "release_url": "https://developer.hancom.com/hwpautomation",
+}
+
+
+class UnsupportedHwpArchitecture(ValueError):
+    """Recognized Hancom executable architecture unsupported by the x86 module."""
+
+
+def _registry(registry):
+    if registry is None:
+        if os.name != "nt":
+            raise RuntimeError("한글 자동화에는 Windows 한글이 필요합니다.")
+        import winreg
+
+        return winreg
+    return registry
+
+
+def _canonical_path(path: Path) -> Path:
+    # Inspect lexical ancestry BEFORE normalization can hide a linked segment.
+    path = Path(path)
+    if not path.is_absolute():
+        raise ValueError("한글 보안모듈에는 절대 경로가 필요합니다.")
+    for part in (*reversed(path.parents), path):
+        try:
+            info = part.lstat()
+        except FileNotFoundError:
+            continue
+        if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & 0x400:
+            raise ValueError("한글 보안모듈 경로에 링크나 재분석 지점을 사용할 수 없습니다.")
+    # Lazy imports reuse setup's file admission without a module import cycle.
+    from hwp_setup import _unlinked
+
+    return _unlinked(_unlinked(path).resolve())
+
+
+def _checked_module(path: Path) -> Path:
+    from hwp_setup import _locked_read, _regular
+
+    path = _canonical_path(path)
+    _regular(path, MAX_MEMBER_BYTES)
+    with _locked_read(path) as stream:
+        checked_dll(stream.read(MAX_MEMBER_BYTES + 1))
+    return path
+
+
+def _module_info(path: Path, *, installed=False, updated=False) -> dict:
+    return {
+        "alias": MODULE_ALIAS,
+        "dll": str(path),
+        "dll_sha256": DLL_SHA256,
+        "auto_installed": installed,
+        "registry_updated": updated,
+    }
+
+
+def _registered_path(registry) -> Path | None:
+    try:
+        with registry.OpenKey(
+            registry.HKEY_CURRENT_USER,
+            REGISTRY_KEY,
+            0,
+            registry.KEY_READ | registry.KEY_WOW64_32KEY,
+        ) as key:
+            value, kind = registry.QueryValueEx(key, MODULE_ALIAS)
+    except FileNotFoundError:
+        return None
+    if kind != registry.REG_SZ or not isinstance(value, str) or not value:
+        raise ValueError("한글 보안모듈 등록은 비어 있지 않은 REG_SZ 경로여야 합니다.")
+    return _checked_module(Path(value))
+
+
+def _managed_target(local_appdata=None) -> Path:
+    if local_appdata is None:
+        from hwp_setup import _local_app_data
+
+        local_appdata = _local_app_data()
+    base = _canonical_path(local_appdata)
+    return _canonical_path(
+        base / "HwpReview" / "SecurityModules" / DLL_SHA256 / DLL_NAME
+    )
 
 
 def digest(data: bytes) -> str:
@@ -50,7 +139,7 @@ def pe_info(data: bytes) -> tuple[int, int]:
 def checked_dll(data: bytes) -> bytes:
     if len(data) > MAX_MEMBER_BYTES or digest(data) != DLL_SHA256:
         raise ValueError(
-            "Security DLL differs from the explicitly authorized module; stopped"
+            "한글 보안모듈 DLL이 고정된 공식 파일과 다릅니다. 변경하지 않습니다."
         )
     machine, characteristics = pe_info(data)
     if machine != DLL_MACHINE or not characteristics & 0x2000:
@@ -59,16 +148,17 @@ def checked_dll(data: bytes) -> bytes:
 
 
 def read_package(path: Path) -> bytes:
-    if not path.is_file():
-        raise FileNotFoundError(
-            "Security DLL missing and local approved ZIP not found: " + str(path)
-        )
-    if path.stat().st_size > MAX_ZIP_BYTES:
+    from hwp_setup import _locked_read, _regular
+
+    path = _canonical_path(path)
+    _regular(path, MAX_ZIP_BYTES)
+    with _locked_read(path) as stream:
+        raw = stream.read(MAX_ZIP_BYTES + 1)
+    if len(raw) > MAX_ZIP_BYTES:
         raise ValueError("Security ZIP too large")
-    raw = path.read_bytes()
     if digest(raw) != ZIP_SHA256:
         raise ValueError(
-            "Security ZIP differs from the owner-authorized archive; stopped"
+            "한글 보안모듈 ZIP이 고정된 공식 배포 파일과 다릅니다. 설치하지 않습니다."
         )
     with zipfile.ZipFile(io.BytesIO(raw)) as archive:
         members = archive.infolist()
@@ -105,175 +195,186 @@ def read_package(path: Path) -> bytes:
 
 
 def hwp_executable(registry) -> Path:
-    # HwpObject is an out-of-process server; module bitness must match Hwp, not Python.
+    # HwpObject is an out-of-process server; match Hwp bitness, not Python.
+    from hwp_setup import _locked_read
+
     for view in (registry.KEY_WOW64_32KEY, registry.KEY_WOW64_64KEY):
         try:
-            with registry.OpenKey(
+            key = registry.OpenKey(
                 registry.HKEY_CLASSES_ROOT,
                 "HWPFrame.HwpObject\\CLSID",
                 0,
                 registry.KEY_READ | view,
-            ) as key:
-                clsid = registry.QueryValue(key, None)
+            )
+        except FileNotFoundError:
+            continue
+        try:
+            with key:
+                clsid, kind = registry.QueryValueEx(key, None)
+            if (
+                kind != registry.REG_SZ
+                or not isinstance(clsid, str)
+                or re.fullmatch(
+                    r"\{[0-9A-Fa-f]{8}(?:-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}\}",
+                    clsid,
+                ) is None
+            ):
+                raise ValueError("설치된 한글 Automation COM의 CLSID가 올바르지 않습니다.")
             with registry.OpenKey(
                 registry.HKEY_CLASSES_ROOT,
                 "CLSID\\" + clsid + "\\LocalServer32",
                 0,
                 registry.KEY_READ | view,
-            ) as key:
-                command = registry.QueryValue(key, None)
-        except FileNotFoundError:
-            continue
+            ) as server:
+                command, kind = registry.QueryValueEx(server, None)
+        except FileNotFoundError as error:
+            raise ValueError("설치된 한글 Automation COM 등록이 불완전합니다.") from error
+        if kind != registry.REG_SZ or not isinstance(command, str):
+            raise ValueError("설치된 한글 Automation 실행 명령은 REG_SZ 문자열이어야 합니다.")
         match = re.match(
             r'\s*(?:"([^"]+\.exe)"|(.+?\.exe))(?=\s|$)', command, re.IGNORECASE
         )
         if not match:
-            raise ValueError("Cannot parse installed Hwp COM executable")
+            raise ValueError("설치된 한글 Automation 실행 파일 경로를 해석할 수 없습니다.")
         path = Path(os.path.expandvars(match.group(1) or match.group(2)))
-        if (
-            not path.is_absolute()
-            or path.name.lower() != "hwp.exe"
-            or not path.is_file()
-        ):
-            raise ValueError("Installed Hwp COM executable is missing or unexpected")
-        if pe_info(path.read_bytes())[0] != DLL_MACHINE:
-            raise ValueError(
-                "Installed Hwp bitness differs from the supplied 32-bit security DLL"
-            )
+        if not path.is_absolute() or path.name.lower() != "hwp.exe":
+            raise ValueError("설치된 한글 Automation 실행 파일이 없거나 예상 경로와 다릅니다.")
+        try:
+            path = _canonical_path(path)
+            with _locked_read(path) as stream:
+                machine, characteristics = pe_info(stream.read())
+        except FileNotFoundError as error:
+            raise ValueError("설치된 한글 Automation 실행 파일이 없습니다.") from error
+        if not characteristics & 0x0002 or characteristics & 0x2000:
+            raise ValueError("설치된 한글 Automation 파일이 실행 가능한 EXE 형식이 아닙니다.")
+        if machine != DLL_MACHINE:
+            if machine in (0x8664, 0xAA64, 0x1C0, 0x1C4, 0x200, 0xA641, 0xA64E):
+                raise UnsupportedHwpArchitecture(
+                    "설치된 한글의 실행 구조는 공식 x86 보안모듈과 호환되지 않습니다."
+                )
+            raise ValueError("설치된 한글 Automation 실행 파일의 PE 구조를 인식할 수 없습니다.")
         return path
-    raise FileNotFoundError("HwpObject Automation COM registration not found")
+    raise FileNotFoundError("한글 Automation COM 등록이 없습니다.")
+
+
+def automation_status(*, registry=None) -> dict:
+    """Inspect applicability and exact registration without changing any state."""
+    registry = _registry(registry)
+    # A declared but corrupt module is never hidden by a not-applicable result.
+    registered = _registered_path(registry)
+    try:
+        hwp_executable(registry)
+    except FileNotFoundError:
+        return {
+            "installed": False,
+            "required": False,
+            "detail": "한글 Automation COM이 없습니다. 순수 HWPX 사용은 가능하지만 한글 자동화는 사용할 수 없습니다.",
+        }
+    except UnsupportedHwpArchitecture:
+        return {
+            "installed": False,
+            "required": False,
+            "detail": "설치된 한글은 공식 x86 보안모듈이 지원하지 않는 실행 구조입니다. 한글 자동화는 사용할 수 없으며 순수 HWPX 사용은 가능합니다.",
+        }
+    if registered is not None:
+        return {
+            "installed": True,
+            "required": True,
+            "detail": "호환되는 한글과 공식 x86 보안모듈 등록을 확인했습니다. 기존 파일과 등록을 유지합니다.",
+        }
+    target = _managed_target()
+    if os.path.lexists(target):
+        _checked_module(target)
+    return {
+        "installed": False,
+        "required": True,
+        "detail": "한글 자동화 보안모듈이 등록되어 있지 않습니다. 필수 준비에서 사용 안내를 확인하고 명시적으로 동의한 뒤 설정하세요.",
+    }
 
 
 def install_package(target: Path, package: Path) -> bool:
-    if target.is_symlink():
-        raise ValueError("Security cache must not be a symlink")
-    if target.is_file():
-        checked_dll(target.read_bytes())
+    from hwp_setup import _directory, _new_file
+
+    target = _canonical_path(target)
+    if os.path.lexists(target):
+        _checked_module(target)
         return False
     data = read_package(package)
-    target.parent.mkdir(parents=True, exist_ok=True)
-    if any(p.is_symlink() for p in [target.parent, *target.parent.parents]):
-        raise ValueError("Security install path must not cross a symlink")
+    _directory(target.parent)
+    if _canonical_path(target) != target:
+        raise ValueError("한글 보안모듈 설치 경로가 변경되었습니다.")
     try:
-        with target.open("xb") as stream:
+        with _new_file(target) as stream:
             stream.write(data)
             stream.flush()
             os.fsync(stream.fileno())
     except FileExistsError:
-        checked_dll(
-            target.read_bytes()
-        )  # concurrent identical install is safe, no overwrite
+        # Only identical, unlinked concurrent files are reusable; never replace.
+        _checked_module(target)
         return False
-    checked_dll(target.read_bytes())
+    # Keep partial files on every failure; setup's receipt owns failure evidence.
+    _checked_module(target)
     return True
 
 
 def registered_security_module(*, registry=None) -> dict:
     """Read-only desktop preflight. NEVER install a DLL or change registry values."""
-    if registry is None:
-        if os.name != "nt":
-            raise RuntimeError("문서 준비에는 Windows 한글이 필요합니다.")
-        import winreg
-
-        registry = winreg
+    registry = _registry(registry)
     hwp_executable(registry)
-    try:
-        with registry.OpenKey(
-            registry.HKEY_CURRENT_USER,
-            REGISTRY_KEY,
-            0,
-            registry.KEY_READ | registry.KEY_WOW64_32KEY,
-        ) as key:
-            value, kind = registry.QueryValueEx(key, MODULE_ALIAS)
-    except FileNotFoundError as error:
+    path = _registered_path(registry)
+    if path is None:
         raise RuntimeError(
-            "승인된 한글 보안 모듈이 등록되어 있지 않습니다. 원본 도구의 보안 모듈 설정을 먼저 완료하세요. 앱은 DLL을 설치하거나 내려받지 않습니다."
-        ) from error
-    if (
-        kind != registry.REG_SZ
-        or not isinstance(value, str)
-        or not Path(value).is_absolute()
-    ):
-        raise ValueError("한글 보안 모듈 등록 경로가 올바르지 않습니다.")
-    path = Path(value)
-    checked_dll(path.read_bytes())
-    return {
-        "alias": MODULE_ALIAS,
-        "dll": str(path),
-        "dll_sha256": DLL_SHA256,
-        "auto_installed": False,
-        "registry_updated": False,
-    }
+            "한글 자동화 보안모듈이 등록되어 있지 않습니다. 앱의 필수 준비에서 사용 안내를 확인하고 동의한 뒤 설정하세요. 문서 작업 중에는 DLL을 설치하거나 내려받지 않습니다."
+        )
+    return _module_info(path)
 
 
 def ensure_security_module(
-    *, registry=None, local_appdata: Path | None = None, package: Path | None = None
+    *, package: Path, registry=None, local_appdata: Path | None = None
 ) -> dict:
-    if registry is None:
-        if os.name != "nt":
-            raise RuntimeError("Hancom security module requires Windows")
-        import winreg
+    """Install only a missing approved module; never repair declared state."""
+    from hwp_setup import _locked_read, _regular
 
-        registry = winreg
-    hwp_executable(
-        registry
-    )  # fail before installation/registry writes on incompatible Hwp
-    access = registry.KEY_READ | registry.KEY_WOW64_32KEY
-    value = None
-    try:
-        with registry.OpenKey(
-            registry.HKEY_CURRENT_USER, REGISTRY_KEY, 0, access
+    registry = _registry(registry)
+    hwp_executable(registry)
+    existing = _registered_path(registry)
+    if existing is not None:
+        return _module_info(existing)
+    target = _managed_target(local_appdata)
+    installed = install_package(target, package)
+    # Recheck both admission and absence after file work, before any registry write.
+    hwp_executable(registry)
+    if _registered_path(registry) is not None:
+        raise ValueError("한글 보안모듈 등록이 설정 중 변경되었습니다. 덮어쓰지 않습니다.")
+    # Hold the verified DLL read-only through registration; preserve it on failure.
+    if _canonical_path(target) != target:
+        raise ValueError("한글 보안모듈 등록 대상 경로가 변경되었습니다.")
+    with _locked_read(target) as stream:
+        checked_dll(stream.read(MAX_MEMBER_BYTES + 1))
+        with registry.CreateKeyEx(
+            registry.HKEY_CURRENT_USER,
+            REGISTRY_KEY,
+            0,
+            registry.KEY_READ | registry.KEY_SET_VALUE | registry.KEY_WOW64_32KEY,
         ) as key:
-            value, kind = registry.QueryValueEx(key, MODULE_ALIAS)
-        if kind != registry.REG_SZ or not isinstance(value, str) or not value:
-            raise ValueError("Module registry value must be a nonempty REG_SZ DLL path")
-    except FileNotFoundError:
-        pass
-    if value is not None:
-        path = Path(value)
-        if not path.is_absolute():
-            raise ValueError("Module registry path must be absolute")
-        if path.is_file():
-            checked_dll(path.read_bytes())
-            return {
-                "alias": MODULE_ALIAS,
-                "dll": str(path),
-                "dll_sha256": DLL_SHA256,
-                "auto_installed": False,
-                "registry_updated": False,
-            }
-    if local_appdata is None:
-        location = os.environ.get("LOCALAPPDATA")
-        if not location:
-            raise RuntimeError(
-                "LOCALAPPDATA is missing; no alternate/system install attempted"
-            )
-        local_appdata = Path(location)
-    if not local_appdata.is_absolute():
-        raise ValueError(
-            "Security install requires an absolute user-local app data path"
-        )
-    target = local_appdata / "HwpReview" / "SecurityModules" / DLL_SHA256 / DLL_NAME
-    installed = install_package(target, package or ZIP_PATH)
-    # Set ONLY this declared module alias in HKCU; no HKLM/system policy/other values.
-    with registry.CreateKeyEx(
-        registry.HKEY_CURRENT_USER,
-        REGISTRY_KEY,
-        0,
-        registry.KEY_SET_VALUE | registry.KEY_WOW64_32KEY,
-    ) as key:
-        registry.SetValueEx(key, MODULE_ALIAS, 0, registry.REG_SZ, str(target))
-    return {
-        "alias": MODULE_ALIAS,
-        "dll": str(target),
-        "dll_sha256": DLL_SHA256,
-        "auto_installed": installed,
-        "registry_updated": True,
-    }
+            hwp_executable(registry)
+            if _canonical_path(target) != target:
+                raise ValueError("한글 보안모듈 등록 대상 경로가 변경되었습니다.")
+            _regular(target, MAX_MEMBER_BYTES)
+            try:
+                registry.QueryValueEx(key, MODULE_ALIAS)
+            except FileNotFoundError:
+                pass
+            else:
+                raise ValueError("한글 보안모듈 등록이 설정 직전 변경되었습니다. 덮어쓰지 않습니다.")
+            registry.SetValueEx(key, MODULE_ALIAS, 0, registry.REG_SZ, str(target))
+    if _registered_path(registry) != target:
+        raise ValueError("한글 보안모듈 설정 후 등록 경로가 변경되었습니다.")
+    return _module_info(target, installed=installed, updated=True)
 
 
 def register_security_module(app) -> dict:
-    info = ensure_security_module()
+    info = registered_security_module()
     if not app.RegisterModule(MODULE_TYPE, MODULE_ALIAS):
         raise RuntimeError(
             "Hancom rejected the explicitly authorized FilePathCheckDLL module; no document opened"

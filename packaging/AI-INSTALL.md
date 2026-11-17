@@ -21,10 +21,11 @@
 | Bun 1.4.4 / OMP 18.15.0 | 정확한 기존 지원 런타임을 재사용하거나 버전별 앱 전용 `Dependencies`에 새로 준비합니다. 기존 `~/.bun`·개인 프로필·인증·전역 PATH를 덮어쓰지 않습니다. 패키지 lifecycle script를 실행하지 않고 기존 21개 런타임 바이트 검사를 통과해야 합니다. 온라인 의존성 해석이 있으므로 오프라인 설치라고 표시하지 않습니다. |
 | PowerShell 7 | Windows PowerShell 5.1을 유지합니다. 누락 시 고정 MSI의 해시와 Microsoft 서명을 확인한 뒤 설치기/UAC에서 직접 확인합니다. 전역 PATH·원격 기능·Microsoft 자동 업데이트는 설치기 기본값으로 추가하지 않습니다. |
 | D2Coding 계열 Propo 글꼴 | 정확한 Regular/Bold만 현재 사용자 글꼴로 준비합니다. 실제 이름은 **D2KodingLigature Nerd Font Propo**입니다. 기존 파일·등록과 문서·터미널의 기본 글꼴은 바꾸지 않습니다. |
+| Hancom Automation security module (x86) | For compatible installed x86 Hancom only: obtain the pinned official HTTPS archive through the same setup engine after explicit human acknowledgement of file-access confirmation suppression and per-user registration. Preserve valid existing registrations; stop on conflicts. Without compatible Hancom, mark it not applicable, not installed, and retain pure HWPX use. Commercial Automation integration requires separate Hancom approval. |
 
 앱 프로세스의 Bun/OMP 도구 탐색 경로에는 선택된 런타임의 `bin`을 사용합니다. 이는 해당 자식 프로세스에만 적용하며 Windows의 사용자/시스템 PATH를 편집하지 않습니다.
 
-한글, 보안 DLL, COM cache, 모델 계정, 기관 인증서·직인·서명은 이 설치 경로의 자동 준비 대상이 아닙니다. 앱과 문서의 라이선스/제출 권한은 설치 허용과 별개입니다.
+Hancom itself, COM wrapper caches, model accounts, institutional certificates, seals and signatures are not automatically prepared. Only the compatible Automation module may be registered by the existing consent-based prerequisite flow. Installation permission does not grant application, document, Automation or submission rights.
 
 ## AI에게 맡길 때의 작업 범위
 
@@ -38,7 +39,7 @@ AI의 규칙:
 - 별도 `winget`, `curl | shell`, 임의 GitHub 스크립트, `bun upgrade`, `bun pm trust`, 설치 guard 수정 또는 다른 OMP 버전으로 우회하지 않습니다.
 - 개인 `.omp`/SDK 인증, `.npmrc`, Bun 설정, SSH 키·기관 계정을 탐색·복사·업로드하지 않습니다.
 - 해시·서명·버전·바이트 기준이 다르면 파일을 실행하지 않습니다. ZIP과 함께 받은 해시만으로 배포자의 신원이 인증된다고 설명하지 않습니다.
-- 약관 수락·UAC 승인·로그인/인증은 명시적으로 허용받은 사람이 확인합니다. 이를 대신 클릭하거나 보안 보호를 끄지 않습니다.
+- A human must explicitly accept external terms, the Hancom module's file-access confirmation suppression and registration, UAC and login. Do not acknowledge these controls on the user's behalf or disable security protections.
 - 프로그램이 실행 중이면 사용자에게 정상 종료를 요청합니다. 설치·제거를 위해 앱이나 OMP 프로세스를 강제 종료하지 않습니다.
 
 ## 변경 없는 설치 키트 확인

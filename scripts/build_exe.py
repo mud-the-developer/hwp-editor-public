@@ -43,6 +43,7 @@ ASSETS = (
     "packaging/licenses/PowerShell-7.6.9-LICENSE.txt",
     "packaging/licenses/DotNet-WindowsDesktop-10.0.14-LICENSE.txt",
     "packaging/licenses/WebView2-Runtime-156.0.4314.58-EULA.html",
+    "packaging/licenses/Hancom-Automation-Usage-Notice.txt",
     "packaging/licenses/Bun-1.4.4-LICENSE.md",
     "packaging/licenses/OMP-18.15.0-LICENSE.txt",
     "packaging/licenses/OMP-18.15.0-THIRD-PARTY-NOTICES.txt",

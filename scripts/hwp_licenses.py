@@ -100,6 +100,10 @@ SETUP_NOTICES = (
         ("packaging/licenses/OMP-Win32-x64-18.15.0-LICENSE.txt", "OMP-Win32-x64-18.15.0-LICENSE.txt"),
         ("packaging/licenses/OMP-Win32-x64-18.15.0-THIRD-PARTY-NOTICES.txt", "OMP-Win32-x64-18.15.0-THIRD-PARTY-NOTICES.txt"),
     )),
+    ("hwp_security", "한글 자동화 보안모듈", "2022-08-19 (x86)",
+     "Hancom Automation usage conditions; commercial integration requires separate Hancom approval", (
+        ("packaging/licenses/Hancom-Automation-Usage-Notice.txt", "Hancom-Automation-Usage-Notice.txt"),
+    )),
 )
 SUPPLEMENTAL_NOTICE_FILES = (
     "Expat-2.8.5-COPYING.txt",
@@ -215,7 +219,7 @@ def write_licenses(source_root, directory, pinned_notices, *, app_version):
     dependencies_path = source_root / "packaging/windows-dependencies.json"
     dependencies = json.loads(_regular(dependencies_path).read_text(encoding="utf-8"))
     components = dependencies.get("components")
-    if (dependencies.get("contract") != "hwp-windows-dependencies-v2"
+    if (dependencies.get("contract") != "hwp-windows-dependencies-v3"
             or not isinstance(components, list)
             or len(components) != len(SETUP_NOTICES)
             or any(not isinstance(row, dict) for row in components)):

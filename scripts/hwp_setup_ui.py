@@ -13,10 +13,6 @@ from hwp_resources import resource_root
 import hwp_setup as setup
 
 
-def _all_installed(statuses):
-    return all(statuses[identifier]["installed"] is True for identifier in setup.COMPONENT_IDS)
-
-
 class _NoticeText(HTMLParser):
     """Display extraction only; original HTML bytes remain bundled and pinned."""
     def __init__(self):
@@ -40,7 +36,7 @@ class SetupWindow:
         self.root, self.backend = root, backend
         self.manifest = backend.load_manifest() if manifest is None else manifest
         self.statuses = backend.installed_status(self.manifest) if statuses is None else statuses
-        ready = _all_installed(self.statuses)
+        ready = setup.statuses_ready(self.statuses)
         self.components = {item["id"]: item for item in self.manifest["components"]}
         self.messages = queue.Queue()
         self.busy, self.attempted, self.exit_code = False, False, 1
@@ -49,6 +45,10 @@ class SetupWindow:
         self.worker = None
         self.start_after = self.drain_after = self.close_after = None
         self.state_labels = {}
+        self.security_consent = tk.BooleanVar(root, value=False)
+        security = self.statuses["hwp_security"]
+        self.needs_security_consent = security["required"] and not security["installed"]
+        self.security_checkbox = None
         self.status = tk.StringVar(root, value="필수 항목의 설치 상태를 확인했습니다. 없는 항목을 자동으로 준비합니다.")
         root.title("HWPReview · 필수 도구 준비")
         width = min(940, max(640, root.winfo_screenwidth() - 80))
@@ -76,7 +76,7 @@ class SetupWindow:
         ttk.Label(body, text="앱 시작에 필요한 도구 준비", style="Title.TLabel").grid(row=0, column=0, sticky="w")
         self.intro = ttk.Label(
             body, wraplength=width - 60,
-            text=".NET Desktop·WebView2·Bun/OMP·PowerShell 7·Propo 글꼴은 필수 항목입니다. 호환 설치가 있으면 유지하고 없는 항목만 준비합니다. 원본 문서·로그인·사용자 PATH는 바꾸지 않습니다.",
+            text=".NET Desktop·WebView2·Bun/OMP·PowerShell 7·Propo 글꼴은 필수입니다. 호환되는 한글이 설치돼 있으면 자동화 보안모듈도 준비합니다. 한글이 없거나 모듈과 호환되지 않으면 HWPX 기능만 사용할 수 있습니다. 기존 설치·원본·로그인·사용자 PATH는 유지합니다.",
             style="Muted.TLabel",
         )
         self.intro.grid(row=1, column=0, sticky="ew", pady=(6, 12))
@@ -89,10 +89,11 @@ class SetupWindow:
             "dotnet10": "기존 호환 .NET 10 Desktop x64 유지 · Microsoft 설치기는 관리자 UAC 확인 필요 · 자동 재부팅 없음",
             "webview2": "Microsoft Runtime 약관 · 기본 SmartScreen의 Microsoft 정보 전송 및 Evergreen 자동 업데이트 안내 · 기존 공유 Runtime 유지",
             "omp_runtime": "검증한 Bun/OMP를 별도 앱 경로에 준비 · 기존 .bun·인증·전역 PATH 유지 · 패키지 설치 스크립트 미실행",
+            "hwp_security": "공식 한컴 x86 모듈 · 한글의 파일 접근 확인 생략 · 명시적 동의 후 현재 사용자에게만 등록 · 기존 정상 등록 유지",
         }
         for index, identifier in enumerate(setup.COMPONENT_IDS):
             item = self.components[identifier]
-            ttk.Label(card, text=f"필수 · {item['name']} · {item['version']}", style="Card.TLabel").grid(
+            ttk.Label(card, text=f"{'한글 연동' if identifier == 'hwp_security' else '필수'} · {item['name']} · {item['version']}", style="Card.TLabel").grid(
                 row=index * 3, column=0, sticky="w", pady=(6, 0)
             )
             ttk.Label(card, text=descriptions[identifier], style="CardMuted.TLabel", wraplength=width - 100).grid(
@@ -124,17 +125,30 @@ class SetupWindow:
             text.insert("1.0", "\n\n".join(originals))
             text.configure(state="disabled")
             tab_names = {"powershell7": "PowerShell", "d2coding_propo": "Propo 글꼴",
-                         "dotnet10": ".NET", "webview2": "WebView2", "omp_runtime": "Bun / OMP"}
+                         "dotnet10": ".NET", "webview2": "WebView2", "omp_runtime": "Bun / OMP",
+                         "hwp_security": "한글 자동화"}
             notices.add(panel, text=tab_names[identifier])
         ttk.Label(footer, textvariable=self.status, wraplength=width - 60).grid(row=0, column=0, sticky="ew", pady=(3, 7))
+        if self.needs_security_consent:
+            permission = ttk.Frame(footer)
+            permission.grid(row=1, column=0, sticky="ew", pady=(0, 7))
+            ttk.Label(
+                permission, text="한글 자동화의 상업적 연동은 별도 한컴 승인이 필요합니다.",
+                style="Muted.TLabel", wraplength=width - 60,
+            ).pack(anchor="w", fill="x")
+            self.security_checkbox = ttk.Checkbutton(
+                permission, text="파일 접근 확인 생략 및 현재 사용자 등록에 동의합니다.",
+                variable=self.security_consent, command=self.update_controls,
+            )
+            self.security_checkbox.pack(anchor="w", pady=(4, 0))
         self.progress = ttk.Progressbar(footer, mode="indeterminate")
-        self.progress.grid(row=1, column=0, sticky="ew", pady=(0, 7))
+        self.progress.grid(row=2, column=0, sticky="ew", pady=(0, 7))
         actions = ttk.Frame(footer)
-        actions.grid(row=2, column=0, sticky="ew")
+        actions.grid(row=3, column=0, sticky="ew")
         actions.columnconfigure(0, weight=1)
         needs_terms = not ready and any(
-            not self.statuses[identifier]["installed"]
-            for identifier in ("dotnet10", "webview2", "omp_runtime")
+            self.statuses[identifier]["required"] and not self.statuses[identifier]["installed"]
+            for identifier in ("dotnet10", "webview2", "omp_runtime", "hwp_security")
         )
         if needs_terms:
             self.prepare_button = ttk.Button(actions, text="약관 확인 후 필수 환경 준비", command=self.install)
@@ -203,7 +217,9 @@ class SetupWindow:
     def update_controls(self):
         for identifier, label in self.state_labels.items():
             current = self.statuses[identifier]
-            if current["installed"]:
+            if not current["required"]:
+                prefix = "대상 아님 · 자동화 사용 불가"
+            elif current["installed"]:
                 prefix = "설치됨 · 확인"
             elif self.busy:
                 prefix = "필수 · 준비 중"
@@ -213,12 +229,19 @@ class SetupWindow:
                 prefix = "필수 · 자동 준비 대기"
             label.configure(text=f"{prefix}: {current['detail']}")
         self.close_button.configure(state="disabled" if self.busy else "normal")
+        waiting_permission = self.needs_security_consent and not self.security_consent.get()
+        if self.security_checkbox is not None:
+            self.security_checkbox.configure(state="disabled" if self.busy or self.attempted else "normal")
         if self.prepare_button is not None:
-            self.prepare_button.configure(state="disabled" if self.busy or self.attempted else "normal")
+            self.prepare_button.configure(state="disabled" if self.busy or self.attempted or waiting_permission else "normal")
 
     def install(self):
         self.start_after = None
-        if self.closed or self.busy or self.attempted or _all_installed(self.statuses):
+        if self.closed or self.busy or self.attempted or setup.statuses_ready(self.statuses):
+            return
+        security_consent = self.security_consent.get()
+        if self.needs_security_consent and not security_consent:
+            self.status.set("한글 자동화의 이용 조건과 파일 접근 확인 생략을 확인하고 사용자 등록에 동의해야 준비할 수 있습니다.")
             return
         self.busy, self.attempted = True, True
         self.status.set("없는 필수 항목만 준비합니다. Microsoft 설치기/UAC가 열리면 직접 확인하세요. 진행 중 창을 닫아 강제 종료하지 않습니다.")
@@ -229,10 +252,11 @@ class SetupWindow:
             receipt = None
             try:
                 receipt = self.backend.install_missing(
-                    manifest=self.manifest, progress=lambda message: self.messages.put(("progress", message))
+                    manifest=self.manifest, progress=lambda message: self.messages.put(("progress", message)),
+                    security_consent=security_consent,
                 )
                 statuses = self.backend.installed_status(self.manifest)
-                ready = _all_installed(statuses)
+                ready = setup.statuses_ready(statuses)
             except Exception as error:
                 receipt = getattr(error, "receipt", None) or receipt
                 self.messages.put(("failed", (str(error) or type(error).__name__, receipt)))
@@ -338,7 +362,7 @@ def ensure_ready(*, backend=setup) -> bool:
     try:
         manifest = backend.load_manifest()
         statuses = backend.installed_status(manifest)
-        if _all_installed(statuses):
+        if setup.statuses_ready(statuses):
             return True
     except Exception as error:
         _show_preparation_error(error)

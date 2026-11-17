@@ -29,13 +29,14 @@ PyMuPDF/MuPDF의 AGPL 경로와 Artifex 상업 라이선스 경로를 구분합�
 
 ## 외부 필수 환경과 별도 권리
 
-.NET Desktop Runtime, WebView2 Runtime, Bun/OMP, PowerShell MSI, Propo 글꼴 바이너리는 동봉하지 않고 누락분만 준비합니다. 한글·보안 DLL·계정·개인 인증·대상 PC 글꼴도 동봉하지 않습니다. 개발 SDK는 사용자 앱 준비 대상이 아닙니다. 미동봉·자동 다운로드는 사용·연동 약관 준수의 인증이 아닙니다.
+.NET Desktop Runtime, WebView2 Runtime, Bun/OMP, PowerShell MSI, Propo 글꼴 바이너리는 동봉하지 않고 누락분만 준비합니다. 한글·보안 DLL·계정·개인 인증·대상 PC 글꼴도 동봉하지 않습니다. 호환 한글이 설치된 경우 보안모듈은 아래 조건과 명시적 동의에 따라 공식 경로에서 별도로 받습니다. 개발 SDK는 사용자 앱 준비 대상이 아닙니다. 미동봉·자동 다운로드는 사용·연동 약관 준수의 인증이 아닙니다.
 
 - .NET 10 Desktop Runtime은 고정 Microsoft 설치기를 사용합니다. .NET 소스 MIT를 전체 설치기의 단일 라이선스로 표시하지 않습니다.
 - WebView2 Runtime은 [Microsoft Runtime EULA](https://developer.microsoft.com/microsoft-edge/api/eula/webview2)와 SmartScreen 정보 전송·업데이트 안내를 따릅니다. SDK의 BSD 고지가 Runtime을 재라이선스하지 않습니다.
 - Bun 1.4.4는 MIT/LGPL/연결 구성요소 전체 LICENSE를, OMP 18.15.0은 CLI/native/Windows package의 LICENSE·THIRD-PARTY-NOTICES를 보존합니다. 모두 MIT라고 일반화하지 않습니다.
 - PowerShell 7.6.9 원문 MIT, Nerd Fonts 3.5.1과 D2Coding 계열의 OFL·개별 기호 고지를 유지합니다. 실제 Propo 이름의 Reserved Font Name 조건을 존중합니다.
 - Font Logos의 `unlicensed` 표기는 별도 1.3.0 Unlicense 원문으로 구분합니다. Font Awesome Extension 0.0.3 태그에 고지가 없고 후속 MIT와 동일 font blob 근거를 사용하는 한계, Hack 결합/수정 glyph의 추출 대응 미검증을 숨기지 않습니다.
+- 한글 자동화 보안모듈은 [한컴 공식 안내](https://developer.hancom.com/hwpautomation)의 ZIP과 동일한 고정 파일만 사용합니다. 공식 안내는 개인 비상업 이용과 상업적 자동화 연동을 구분하며, 후자는 한컴 승인과 별도 라이선스를 요구합니다. 앱의 AGPL은 그 사용권·재배포 권한을 대신하지 않습니다. `Hancom-Automation-Usage-Notice.txt`는 공식 인용·출처·파일 접근 확인 생략·현재 사용자 등록 조건을 알리는 고지이지 새 허가서가 아닙니다. 외부 ZIP/DLL을 동봉하지 않고, 호환 x86 한글과 명시적 동의를 확인한 뒤 필요한 모듈만 받습니다.
 
 UAC·원문 약관·로그인은 사람이 확인합니다. 외부 폰트의 남은 provenance 문제가 다른 MIT/BSD 자산의 권리를 일괄 부정하거나 보증하는 것은 아닙니다.
 

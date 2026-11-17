@@ -39,7 +39,8 @@ class SetupTests(unittest.TestCase):
         self.pin("_ASSETS", self.assets)
         self.pin("_windows_x64", return_value=True)
         self.local_lookup = self.pin("_local_app_data", return_value=self.local)
-        self.present = {"dotnet10", "webview2", "omp_runtime"}
+        self.present = {"dotnet10", "webview2", "omp_runtime", "hwp_security"}
+        self.security_required = True
         self.status = self.pin("_component_status", side_effect=self.component_status)
         self.pin("_check_font_registry_absent", return_value=None)
         self.pin("_set_font_registry", return_value=None)
@@ -47,6 +48,8 @@ class SetupTests(unittest.TestCase):
         self.pin("_font_change", return_value=None)
         self.process = self.pin("subprocess.Popen", side_effect=AssertionError("No real process execution"), module=setup)
         self.network = self.pin("urllib.request.build_opener", side_effect=AssertionError("No real network"), module=setup)
+        self.security_installer = self.pin(
+            "ensure_security_module", side_effect=AssertionError("No real module file/registry changes"))
         self.fonts = {
             "D2KodingLigatureNerdFontPropo-Regular.ttf": b"INERT regular font bytes; never a loadable font",
             "D2KodingLigatureNerdFontPropo-Bold.ttf": b"INERT bold font bytes; never a loadable font",
@@ -63,10 +66,12 @@ class SetupTests(unittest.TestCase):
              "font_family": "D2KodingLigature Nerd Font Propo", "font_files": font_rows,
              "notice_files": [self.member(name, data) for name, data in self.notices.items()]},
         ]}
-        for identifier in ("dotnet10", "webview2", "omp_runtime"):
+        for identifier in ("dotnet10", "webview2", "omp_runtime", "hwp_security"):
             self.manifest["components"].append({
                 "id": identifier, **self.assets[identifier],
-                "license_files": [f"packaging/licenses/{identifier}-INERT-LICENSE.txt"],
+                "license_files": ["packaging/licenses/Hancom-Automation-Usage-Notice.txt"
+                                  if identifier == "hwp_security" else
+                                  f"packaging/licenses/{identifier}-INERT-LICENSE.txt"],
             })
         self.manifest["license_files_sha256"] = {}
         for component in self.manifest["components"]:
@@ -113,7 +118,9 @@ class SetupTests(unittest.TestCase):
 
     def component_status(self, component):
         present = component["id"] in self.present
-        return {"installed": present, "detail": "synthetic existing metadata; preserve" if present else "synthetic absent metadata"}
+        required = component["id"] != "hwp_security" or self.security_required
+        return {"required": required, "installed": present if required else False,
+                "detail": "synthetic existing metadata; preserve" if present and required else "synthetic absent or inapplicable metadata"}
 
     def bind_payload(self, identifier, data):
         updates = {"size": len(data), "sha256": hashlib.sha256(data).hexdigest()}
@@ -126,12 +133,12 @@ class SetupTests(unittest.TestCase):
         self.network.side_effect = None
         self.network.return_value = self.opener
 
-    def install(self):
-        return setup.install_missing(manifest=self.manifest, download_root=self.runs)
+    def install(self, **kwargs):
+        return setup.install_missing(manifest=self.manifest, download_root=self.runs, **kwargs)
 
-    def failed(self, exception=setup.SetupError):
+    def failed(self, exception=setup.SetupError, **kwargs):
         with self.assertRaises(exception) as caught:
-            self.install()
+            self.install(**kwargs)
         error = caught.exception
         run = Path(error.run_directory)
         self.assertTrue((run / "failure.txt").is_file())
@@ -469,6 +476,8 @@ class SetupTests(unittest.TestCase):
         missing = self.root / "missing-status.json"
         self.assertEqual(setup.write_status_report(missing), 2)
         first = json.loads(missing.read_text(encoding="utf-8"))
+        self.assertEqual(first["contract"], "hwp-requirements-status-v2")
+        self.assertTrue(all(type(row["required"]) is bool for row in first["components"].values()))
         self.assertFalse(first["ready"])
         self.assertFalse(first["components"]["powershell7"]["installed"])
         self.present.update(setup.COMPONENT_IDS)
@@ -526,7 +535,7 @@ class SetupTests(unittest.TestCase):
 
     def test_two_missing_microsoft_runtimes_finish_without_overwriting_first_signature_logs(self):
         import hwp_setup_runtime as runtime
-        self.present = {"powershell7", "d2coding_propo", "omp_runtime"}
+        self.present = {"powershell7", "d2coding_propo", "omp_runtime", "hwp_security"}
         bodies = {}
         for identifier in ("dotnet10", "webview2"):
             body = ("INERT Microsoft installer: " + identifier).encode("ascii")
@@ -556,6 +565,221 @@ class SetupTests(unittest.TestCase):
         self.assertEqual(set(installed), {"dotnet10", "webview2"})
         self.assertTrue(all(row["metadata_confirmed"] for row in installed.values()))
         self.assertFalse(receipt["reboot_required"])
+
+
+    def test_missing_security_requires_explicit_boolean_consent_before_any_mutation(self):
+        self.present.remove("hwp_security")
+        before = {str(path.relative_to(self.root)): path.read_bytes()
+                  for path in self.root.rglob("*") if path.is_file()}
+        with patch.object(setup, "_directory", side_effect=AssertionError("No directory creation")), \
+                patch.object(setup, "_new_file", side_effect=AssertionError("No file creation")):
+            for options in ({}, {"security_consent": False}):
+                with self.subTest(options=options), self.assertRaises(setup.SetupError) as caught:
+                    self.install(**options)
+                self.assertIsNone(caught.exception.run_directory)
+            for consent in (None, 1, "true"):
+                with self.subTest(consent=consent), self.assertRaises(ValueError):
+                    self.install(security_consent=consent)
+        self.assertEqual(before, {str(path.relative_to(self.root)): path.read_bytes()
+                                  for path in self.root.rglob("*") if path.is_file()})
+        self.assertFalse(self.runs.exists())
+        self.network.assert_not_called()
+        self.process.assert_not_called()
+        self.security_installer.assert_not_called()
+        setup._set_font_registry.assert_not_called()
+        self.local_lookup.assert_not_called()
+
+    def test_not_applicable_security_is_ready_but_never_reported_as_installed(self):
+        self.present.update(setup.COMPONENT_IDS)
+        self.security_required = False
+        statuses = setup.installed_status(self.manifest)
+        self.assertFalse(statuses["hwp_security"]["installed"])
+        self.assertFalse(statuses["hwp_security"]["required"])
+        self.assertTrue(setup.statuses_ready(statuses))
+        report_path = self.root / "not-applicable-status.json"
+        self.assertEqual(setup.write_status_report(report_path), 0)
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        self.assertTrue(report["ready"])
+        self.assertFalse(report["components"]["hwp_security"]["installed"])
+        receipt = self.install()
+        self.assertEqual(receipt["components"][-1]["status"], "not_applicable")
+        self.assertIsNone(receipt["run_directory"])
+        self.assertFalse(self.runs.exists())
+        self.network.assert_not_called()
+        self.security_installer.assert_not_called()
+        self.local_lookup.assert_not_called()
+
+    def test_not_applicable_security_does_not_block_other_missing_preparation(self):
+        self.security_required = False
+        self.present.add("powershell7")
+        self.serve("d2coding_propo", self.archive)
+        setup._font_change.side_effect = lambda: self.present.add("d2coding_propo")
+        receipt = self.install()
+        self.assertEqual(receipt["components"][-1]["status"], "not_applicable")
+        request = json.loads((Path(receipt["run_directory"]) / "request.json").read_text(encoding="utf-8"))
+        self.assertNotIn("hwp_security", request["required"])
+        self.assertFalse((Path(receipt["run_directory"]) / "notices/hwp_security").exists())
+        self.assertEqual(self.opener.open.call_count, 1)
+        self.security_installer.assert_not_called()
+
+    def test_status_contract_rejects_missing_extra_nonboolean_and_untrusted_optional_rows(self):
+        self.present.update(setup.COMPONENT_IDS)
+        valid = setup.installed_status(self.manifest)
+        invalid = []
+        missing = deepcopy(valid)
+        del missing["hwp_security"]
+        invalid.append(missing)
+        invalid.append({**valid, "unexpected": deepcopy(valid["hwp_security"])})
+        for identifier, field, value in (
+                ("powershell7", "required", False), ("hwp_security", "required", 0),
+                ("hwp_security", "installed", 1), ("hwp_security", "detail", None)):
+            changed = deepcopy(valid)
+            changed[identifier][field] = value
+            invalid.append(changed)
+        for field in ("required", "installed", "detail"):
+            changed = deepcopy(valid)
+            del changed["hwp_security"][field]
+            invalid.append(changed)
+        changed = deepcopy(valid)
+        changed["hwp_security"]["required"] = False
+        invalid.append(changed)
+        for statuses in invalid:
+            with self.subTest(statuses=statuses), self.assertRaises(ValueError):
+                setup.statuses_ready(statuses)
+        self.status.side_effect = lambda component: {
+            "installed": True, "detail": "INERT legacy row without required"}
+        with self.assertRaises(ValueError):
+            self.install()
+        self.assertFalse(self.runs.exists())
+        self.network.assert_not_called()
+
+    def prepare_missing_security(self):
+        self.present.update(setup.COMPONENT_IDS)
+        self.present.remove("hwp_security")
+        data = self.zip_bytes({"FilePathCheckerModuleExample.dll": b"INERT module; never load"})
+        self.bind_payload("hwp_security", data)
+        self.serve("hwp_security", data)
+        return data
+
+
+    def test_security_installer_success_without_registered_metadata_is_failure(self):
+        self.prepare_missing_security()
+        self.security_installer.side_effect = None
+        self.security_installer.return_value = {
+            "alias": "FilePathCheckerModuleExample", "dll": "INERT unregistered target",
+            "dll_sha256": "0" * 64, "auto_installed": True, "registry_updated": True}
+        error, run = self.failed(security_consent=True)
+        record = error.receipt["components"][-1]
+        self.assertEqual(record["status"], "failed")
+        self.assertFalse(record["metadata_confirmed"])
+        self.assertTrue(Path(record["download"]).is_file())
+        self.assertTrue((run / "failure.txt").is_file())
+        self.assertEqual(self.security_installer.call_count, 1)
+        self.assertEqual(self.opener.open.call_count, 1)
+
+    def test_security_package_is_reverified_after_download_before_installation(self):
+        data = self.prepare_missing_security()
+
+        def tamper_before_install(message):
+            payloads = list(self.runs.rglob("*.zip"))
+            if payloads:
+                payloads[0].write_bytes(bytes([data[0] ^ 1]) + data[1:])
+
+        error, _ = self.failed(security_consent=True, progress=tamper_before_install)
+        self.assertEqual(error.receipt["components"][-1]["status"], "failed")
+        self.assertEqual(Path(error.receipt["components"][-1]["download"]).read_bytes(),
+                         bytes([data[0] ^ 1]) + data[1:])
+        self.security_installer.assert_not_called()
+
+    def test_intervening_valid_registration_or_inapplicability_is_preserved(self):
+        data = self.prepare_missing_security()
+        existing = self.root / "existing-security.dll"
+        existing.write_bytes(b"USER OWNED MODULE")
+        for outcome in ("installed", "not_applicable"):
+            with self.subTest(outcome=outcome):
+                self.present.discard("hwp_security")
+                self.security_required = True
+                self.serve("hwp_security", data)
+                prior_downloads = set(self.runs.rglob("*.zip"))
+                intervened = False
+
+                def change_after_download(message):
+                    nonlocal intervened
+                    if not intervened and set(self.runs.rglob("*.zip")) - prior_downloads:
+                        intervened = True
+                        if outcome == "installed":
+                            self.present.add("hwp_security")
+                        else:
+                            self.security_required = False
+
+                receipt = self.install(security_consent=True, progress=change_after_download)
+                record = receipt["components"][-1]
+                self.assertEqual(record["status"], "skipped" if outcome == "installed" else outcome)
+                self.assertTrue(Path(record["download"]).is_file())
+                self.assertEqual(existing.read_bytes(), b"USER OWNED MODULE")
+        self.security_installer.assert_not_called()
+
+    def test_corrupt_security_status_stops_without_repair_or_retry(self):
+        self.prepare_missing_security()
+        existing = self.root / "conflicting-security.dll"
+        existing.write_bytes(b"USER OWNED CONFLICT")
+        conflict = False
+
+        def conflict_after_download(message):
+            nonlocal conflict
+            if any(self.runs.rglob("*.zip")):
+                conflict = True
+
+        def inspect(component):
+            if component["id"] == "hwp_security" and conflict:
+                raise ValueError("INERT corrupt registered module; preserve")
+            return self.component_status(component)
+
+        self.status.side_effect = inspect
+        error, _ = self.failed(security_consent=True, progress=conflict_after_download)
+        self.assertEqual(error.receipt["components"][-1]["status"], "failed")
+        self.assertTrue(Path(error.receipt["components"][-1]["download"]).is_file())
+        self.assertEqual(existing.read_bytes(), b"USER OWNED CONFLICT")
+        self.assertEqual(self.opener.open.call_count, 1)
+        self.security_installer.assert_not_called()
+
+    def test_new_security_requirement_is_rechecked_before_its_first_file_or_download(self):
+        self.present.update(setup.COMPONENT_IDS)
+        self.present.remove("powershell7")
+        self.security_required = False
+        self.serve("powershell7", self.msi)
+
+        def finish_powershell(*_args):
+            self.present.add("powershell7")
+            self.present.remove("hwp_security")
+            self.security_required = True
+            return False
+
+        with patch.object(setup, "_verify_microsoft_signature"), \
+                patch.object(setup, "_install_msi", side_effect=finish_powershell):
+            error, run = self.failed()
+        self.assertEqual(error.receipt["components"][-1]["id"], "hwp_security")
+        self.assertEqual(error.receipt["components"][-1]["status"], "failed")
+        self.assertFalse((run / "notices/hwp_security").exists())
+        self.assertEqual(self.opener.open.call_count, 1)
+        self.security_installer.assert_not_called()
+
+    def test_unknown_security_preflight_preserves_conflict_before_any_setup_mutation(self):
+        existing = self.root / "registered-conflict.dll"
+        existing.write_bytes(b"USER OWNED; DO NOT REPAIR")
+
+        def unknown_security(component):
+            if component["id"] == "hwp_security":
+                raise ValueError("INERT malformed module registration")
+            return self.component_status(component)
+
+        self.status.side_effect = unknown_security
+        with self.assertRaises(ValueError):
+            self.install(security_consent=True)
+        self.assertEqual(existing.read_bytes(), b"USER OWNED; DO NOT REPAIR")
+        self.assertFalse(self.runs.exists())
+        self.network.assert_not_called()
+        self.security_installer.assert_not_called()
 
 if __name__ == "__main__":
     unittest.main()
