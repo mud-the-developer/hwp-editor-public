@@ -292,7 +292,8 @@ def _check_installed(host):
     if not os.path.lexists(sdk):
         return None  # A valid other-version/runtime-only installation is not repaired.
     _sdk_metadata(root)
-    work = Path(tempfile.mkdtemp(prefix="hwp-source-sdk-probe-")).absolute()
+    # Validate links before expanding Windows 8.3 TEMP names for locked reads.
+    work = _plain_directory(Path(tempfile.mkdtemp(prefix="hwp-source-sdk-probe-"))).resolve(strict=True)
     try:
         environment = _owned_environment(work)
         _write_new(work / "global.json", _json_bytes({"sdk": {
