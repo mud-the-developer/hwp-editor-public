@@ -42,19 +42,23 @@ WebView2 **SDK 1.0.4314.35**의 고정 Core/Wpf assembly·x64 Loader 3개와 LIC
 - 기존 `.venv`는 필요한 버전·실제 모듈을 읽어 확인한 뒤 그대로 재사용합니다. 부족한 패키지·다른 버전·불완전한 환경·연결 경로는 자동 업그레이드·삭제·재생성 없이 중단합니다. 실패한 새 환경도 진단을 위해 남깁니다.
 - Python 본체·전역 PATH·개인 설정·보고서 작업 폴더는 바꾸지 않습니다. EXE 배포본은 Python을 포함하므로 이 `.venv` 준비가 필요 없습니다.
 
-검사/제작용 `requirements-dev.txt`·`requirements-build.txt`, Node 개발 도구, **.NET 10 SDK**(고정 근거 10.0.401)와 네이티브 UI 빌드·등록은 별도로 준비합니다. 소스 환경 자동 준비를 SDK 설치나 네이티브 빌드로 해석하지 마세요.
+`start-desktop.cmd`는 가상환경 준비 뒤 소스 WPF 화면도 준비합니다. 등록된 UI가 없으면 새 `build/` 하위 작업 폴더를 만들고, 기존 SDK 10.0.401을 확인해 사용하거나 공식 SDK ZIP(300,608,304바이트)의 고정 SHA512를 검증해 `build/source-tools/`에만 풉니다. 기존 오프라인 빌더로 현재 소스의 UI를 빌드한 뒤 정확한 파일·소스 해시를 확인하고 최초 등록합니다. `build/`를 다른 PC에서 복사해 올 필요가 없으며 전역 SDK·PATH·앱의 Desktop Runtime 선택을 바꾸지 않습니다. SDK 원문 고지와 받은 ZIP은 보존합니다.
+
+정상 등록은 SDK 다운로드·재빌드 없이 재사용합니다. 이전 준비가 진행 중이거나 실패 기록이 남은 경우, 등록·파일·소스가 맞지 않는 경우에는 기록을 지우거나 재시도하지 않습니다. UI 준비가 성공해야 기존 앱 실행 단계로 넘어갑니다. 설치본 EXE는 내장 UI를 사용하므로 이 소스 빌드 절차가 필요 없습니다.
+
+검사/EXE 제작용 `requirements-dev.txt`·`requirements-build.txt`와 Node 개발 도구는 별도입니다. `setup-source.cmd` 자체는 가상환경만 준비합니다. 앱 없이 UI까지 준비하려면 그 다음 `.\.venv\Scripts\python.exe -I -B -X utf8 scripts\start_source.py --prepare-only`를 실행하세요.
 
 고정 SDK DLL과 `packaging/terminal-dependencies.json`, `packaging/hwpx-renderer-dependencies.json`, `packaging/icon-dependencies.json`에 선언된 로컬 자산·원문 고지를 준비합니다. 소스 ZIP만 풀면 모든 개발 도구·upstream 빌드 입력이 생긴다고 가정하지 마세요.
 
 `npm run check`는 기본적으로 lint·Node 회귀, Python 전체 회귀, 합성 UI 흐름을 실행합니다. Python은 각 모듈을 별도 프로세스와 300초 제한으로 실행하며 하나가 실패하면 이후 검사를 중단합니다. CI는 같은 정렬된 전체 모듈을 `--shard=0`·`--shard=1`의 두 작업에 중복 없이 나눕니다. lint·Node·UI는 0번에서 한 번 실행하고 두 작업 모두 통과해야 합니다. 각 작업은 Python 3.14.8과 10분 제한을 사용하며 최대 두 개만 동시에 실행합니다. 옵션 없는 로컬 명령은 전체 검사입니다. 분산은 항목 제외나 실제 모델·한글·설치 검증의 대체가 아닙니다.
 
-아직 없는 출력 경로를 골라 저장소 루트에서 명시적으로 빌드·등록합니다.
+소스를 수정해 등록 UI가 오래됐을 때만, 기존 출력을 보존하고 아래처럼 아직 없는 경로로 명시적으로 다시 빌드·등록합니다.
 
 ```powershell
 .\.venv\Scripts\python.exe scripts\build_native.py --output build\native-local\native-ui --register-source
 .\start-desktop.cmd
 ```
 
-빌더는 오프라인 NuGet 설정과 설치된 SDK를 사용하며 런타임을 번들하지 않습니다. 등록 UI와 현재 소스 해시가 다르면 실행을 막고 자동 재빌드·cache 수리하지 않습니다. 고정 로컬 입력이 없으면 다운로드·npm/NuGet hook으로 복구하지 않습니다. 재빌드는 새 출력 경로를 사용합니다.
+빌더 자체는 오프라인 NuGet 설정과 선택된 SDK만 사용하며 앱 런타임을 번들하지 않습니다. 자동 최초 준비는 누락된 소스 UI에만 적용합니다. 등록 UI와 현재 소스 해시가 다르면 실행을 막고 자동 재빌드·cache 수리하지 않습니다. 원본 SDK·렌더러·아이콘 입력의 해시가 다를 때도 npm/NuGet hook이나 다른 실행기로 복구하지 않습니다.
 
 EXE 제작은 별도 [제작 안내](exe-personal.md), 사용 화면은 [사용법](user-guide.md), 권리·외부 의존성은 [라이선스](licensing.md)를 따릅니다.

@@ -6,5 +6,9 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
-start "" ".venv\Scripts\pythonw.exe" -X utf8 "scripts\hwp_desktop.py"
+".venv\Scripts\python.exe" -I -B -X utf8 "scripts\start_source.py"
+if errorlevel 1 (
+    pause
+    exit /b 1
+)
 exit /b %ERRORLEVEL%

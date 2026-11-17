@@ -231,7 +231,9 @@ def build_native(source_root, destination) -> dict:
     return payload.verify_payload(destination, source_root=source_root)
 
 
-def _register_source(source_root: Path, destination: Path):
+def _register_source(source_root: Path, destination: Path, *, replace=True):
+    if not replace and os.name != "nt":
+        raise ValueError("Exclusive source registration requires Windows rename semantics")
     root = payload._plain_path(source_root, directory=True)
     build = payload._plain_path(root / "build", directory=True)
     destination = payload._plain_path(destination, directory=True)
@@ -249,7 +251,10 @@ def _register_source(source_root: Path, destination: Path):
                 "path": destination.relative_to(root).as_posix(),
             }, stream, sort_keys=True)
             stream.write("\n")
-        os.replace(temporary, pointer)
+        if replace:
+            os.replace(temporary, pointer)
+        else:
+            os.rename(temporary, pointer)
     finally:
         temporary.unlink(missing_ok=True)
 

@@ -115,6 +115,19 @@ class NativePayloadTests(unittest.TestCase):
                 file.write_bytes(previous)
         self.assertEqual(self.locate_source(), self.directory)
 
+    @unittest.skipUnless(os.name == "nt", "Exclusive Windows source registration")
+    def test_first_use_registration_cannot_replace_another_registered_payload(self):
+        builder._register_source(self.root, self.directory, replace=False)
+        pointer = self.root / "build/native-current.json"
+        before = pointer.read_bytes()
+        second = self.root / "build/another/native-ui"
+        second.parent.mkdir()
+        shutil.copytree(self.directory, second)
+        with self.assertRaises(FileExistsError):
+            builder._register_source(self.root, second, replace=False)
+        self.assertEqual(pointer.read_bytes(), before)
+        self.assertEqual(self.locate_source(), self.directory)
+
     def test_missing_registration_never_searches_or_builds(self):
         with patch.object(builder, "build_native") as build:
             with self.assertRaises(FileNotFoundError):

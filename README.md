@@ -20,7 +20,7 @@ OMP는 기본 도구와 셸을 사용자 계정 권한으로 실행합니다. �
 
 Windows x64 패키지는 Python을 포함합니다. 외부 **.NET 10 Desktop Runtime x64, WebView2 Runtime, Bun 1.4.4/OMP 18.15.0, PowerShell 7, Propo 글꼴**은 호환 설치를 유지하고 누락분만 필수 도구 준비 창에서 확인·설치합니다. 약관·UAC·로그인은 사람이 직접 처리합니다. 한글·보안 모듈·계정·개발 SDK는 설치하지 않습니다.
 
-개발 소스의 `start-desktop.cmd`는 `.venv`가 없으면 자동 생성하고 `requirements.txt`의 고정 실행 의존성을 설치합니다. 기존 환경은 버전·모듈을 확인한 뒤 변경 없이 재사용하며, 불완전하거나 버전이 다르면 덮어쓰지 않고 중단합니다. 설치된 Windows x64 Python 3.11 이상이 필요합니다(검증 기준 3.14.8). Node 개발 도구·.NET 10 SDK·네이티브 UI 빌드는 별도입니다. [개발 소스 준비](docs/desktop-app.md#개발-소스-준비)를 먼저 읽으세요.
+개발 소스의 `start-desktop.cmd`는 `.venv`가 없으면 자동 생성하고 고정 실행 의존성을 설치합니다. 이어서 Windows Presentation Foundation(WPF) 화면을 확인하고, 최초 실행에 `build/`와 UI 등록이 없으면 필요한 SDK를 프로젝트 전용 폴더에 준비해 같은 소스의 UI를 빌드·검증·등록합니다. 기존 정상 환경·UI는 재사용하며 불완전·변조·소스 불일치는 자동 덮어쓰기나 복구 없이 중단합니다. 설치된 Windows x64 Python 3.11 이상이 필요합니다(검증 기준 3.14.8). Node와 EXE 제작 도구는 별도입니다. [개발 소스 준비](docs/desktop-app.md#개발-소스-준비)
 
 ```powershell
 .\start-desktop.cmd
