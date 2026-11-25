@@ -1,10 +1,12 @@
 """Offline source staging tests using only tiny synthetic candidate and upstream bytes."""
 
+from io import BytesIO
 import json
 import os
 from pathlib import Path
 import stat
 import sys
+import tarfile
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -39,7 +41,16 @@ class ReleaseSourcesTests(unittest.TestCase):
         self.index = release._load_index()
         for item in self.index["artifacts"]:
             path = self.upstream / item["filename"]
-            path.write_bytes(("inert toy package: " + path.name).encode())
+            if item["component"] == "pywin32":
+                prefix = "pywin32-" + item["commit"] + "/"
+                with tarfile.open(path, "x:gz") as archive:
+                    for filename in ("win32/license.txt", "AutoDuck/bin/autoduck.exe", "SWIG/swig.exe"):
+                        data = filename.encode()
+                        entry = tarfile.TarInfo(prefix + filename)
+                        entry.size = len(data)
+                        archive.addfile(entry, BytesIO(data))
+            else:
+                path.write_bytes(("inert toy package: " + path.name).encode())
             item.update(bytes=path.stat().st_size, sha256=source.sha256(path))
         self.pins = release._pins(self.index)
         self.pin_docs = {name: json.loads((ROOT / f"packaging/{name}.json").read_bytes()) for name in PIN_DOCS}
@@ -124,12 +135,20 @@ class ReleaseSourcesTests(unittest.TestCase):
         for name in (WINDOWS, APP):
             self.assertEqual(source.sha256(self.output / name), before[name])
         with zipfile.ZipFile(self.output / KIT) as archive:
-            expected = {APP, release.INDEX.name, release.MATERIALS} | {f"upstream/{name}" for name in self.pins}
+            upstream = {name for name, pin in self.pins.items() if pin["component"] not in {"webview2", "pywin32"}}
+            pywin32 = "upstream/pywin32-311-source.zip"
+            expected = {APP, release.INDEX.name, release.MATERIALS, pywin32} | {f"upstream/{name}" for name in upstream}
             self.assertEqual(set(archive.namelist()), expected)
             self.assertEqual(archive.read(APP), (self.output / APP).read_bytes())
             self.assertEqual(json.loads(archive.read(release.INDEX.name)), self.index)
-            for name in self.pins:
+            for name in upstream:
                 self.assertEqual(archive.read(f"upstream/{name}"), (self.upstream / name).read_bytes())
+            with zipfile.ZipFile(BytesIO(archive.read(pywin32))) as derived:
+                self.assertEqual(set(derived.namelist()), {"win32/license.txt", "PUBLIC-SOURCE-ORIGIN.json"})
+                self.assertEqual(derived.read("win32/license.txt"), b"win32/license.txt")
+                origin = json.loads(derived.read("PUBLIC-SOURCE-ORIGIN.json"))
+                self.assertEqual(origin["excluded"], ["AutoDuck/bin/autoduck.exe", "SWIG/swig.exe"])
+                self.assertEqual(origin["original"], next(pin for pin in self.pins.values() if pin["component"] == "pywin32"))
         sums = (self.output / release.SUMS).read_text(encoding="utf-8")
         for name in set(manifest["assets"]) | {release.MANIFEST}:
             self.assertIn(f"{source.sha256(self.output / name)}  {name}\n", sums)
@@ -144,7 +163,8 @@ class ReleaseSourcesTests(unittest.TestCase):
 
     def test_changed_candidate_or_upstream_is_rejected_before_staging(self):
         self.candidate_build()
-        for path in (self.candidate / "HWPReview.exe", self.upstream / next(iter(self.pins))):
+        sdk = next(name for name, pin in self.pins.items() if pin["component"] == "webview2")
+        for path in (self.candidate / "HWPReview.exe", self.upstream / next(iter(self.pins)), self.upstream / sdk):
             original = path.read_bytes()
             with self.subTest(name=path.name):
                 path.write_bytes(bytes([original[0] ^ 1]) + original[1:])

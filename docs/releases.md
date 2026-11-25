@@ -1,6 +1,6 @@
 # 릴리스와 공개 배포 세트
 
-대상 공개 소스는 <https://github.com/mud-the-developer/hwp-editor-public>입니다. 현재 소스 제작 버전은 `1.0.0`이며 버전의 기준은 `scripts/hwp_resources.py`의 `APP_VERSION`입니다. 버전명·공개 저장소·초안 사전 릴리스는 정식 배포·서명·재배포 적합성·실행 검증의 증거가 아닙니다.
+대상 공개 소스는 <https://github.com/mud-the-developer/hwp-editor-public>입니다. 현재 소스 제작 버전은 `1.0.0-rc.3`이며 버전의 기준은 `scripts/hwp_resources.py`의 `APP_VERSION`입니다. 버전명·공개 저장소·초안 사전 릴리스는 정식 배포·서명·재배포 적합성·실행 검증의 증거가 아닙니다.
 
 ## 정확한 소스에서 새로 제작
 
@@ -22,7 +22,7 @@
 
 실패한 출력은 불완전한 미게시 자료로 보존합니다. 자동 롤백·덮어쓰기는 하지 않습니다. 필요한 upstream 소스는 원래 고지를 유지해 설치기의 닫힌 `installer/` 폴더 밖에 별도 제공합니다.
 
-`scripts/hwp_release_sources.py --candidate <checked-release> --upstream <고정 자료 폴더> --output <새 폴더> --commit <정확한 커밋 SHA>`는 검증할 앱 입력, 고정 상류 자료 21개와 대응 소스 체크섬을 로컬에 정리합니다. 이 도구는 위의 공개용 정제나 Git 바이트 대조, 게시 허가를 대신하지 않습니다. 원시 후보나 이 도구의 출력 폴더 전체를 그대로 업로드하지 않습니다.
+`scripts/hwp_release_sources.py --candidate <checked-release> --upstream <고정 자료 폴더> --output <새 폴더> --commit <정확한 커밋 SHA>`는 상류 입력 21개를 검증하고 앱 입력 ZIP·배포할 상류 자료 20개·체크섬을 준비합니다. 전체 WebView2 NuGet은 로컬 검증용이며 pywin32 소스는 AutoDuck·SWIG 도구 실행 파일을 빼고 출처를 표시합니다. 공개용 정제·Git 바이트 대조·게시 허가는 별도입니다. 원시 후보나 이 도구의 출력 폴더 전체를 그대로 업로드하지 않습니다.
 
 공개 root `BUILD.json`에는 설치 소비자에게 필요한 최소 binding만 남깁니다.
 
@@ -38,6 +38,8 @@
 ## 설치 키트 계약
 
 `Install-HWPReview.cmd`/`.ps1`, `Uninstall-HWPReview.ps1`, 동봉 안내와 정확한 EXE/source/notices는 한 세트입니다. 닫힌 manifest의 이름·크기·SHA256, BUILD의 root 입력·정확한 고지 해시, EXE/source identity가 모두 일치해야 합니다. 현재 사용자 소유권 계약은 `hwp-user-install-receipt-v2`입니다. 정제로 이 계약이나 경로·바이트·충돌 검사를 약화하지 않습니다.
+
+공개 EXE는 Visual C++ v14 x64 런타임 DLL을 동봉하지 않습니다. 설치기는 EXE 시작 전에 외부 런타임을 확인하며 누락되면 Microsoft 공식 파일을 직접 준비하도록 안내합니다.
 
 필수 도구는 기존 호환 설치를 유지하고 누락분만 공식 고정 입력으로 준비합니다. 호환 x86 한글의 보안모듈 준비는 명시적 동의가 있을 때만 요청합니다. 한글 본체·COM cache·개인 인증은 준비하지 않습니다. [설치 상세](desktop-app.md)
 

@@ -5,12 +5,16 @@
 ## 사용자 설치
 
 1. 신뢰할 수 있는 전달 경로에서 받은 ZIP의 SHA-256을 확인하고, 고정 로컬 드라이브의 새 폴더에 전부 풉니다. ZIP 내부에서 바로 실행하지 않습니다.
-2. `Install-HWPReview.cmd`를 더블클릭합니다. 먼저 Windows PowerShell 5.1로 앱·정확한 소스·고지 파일의 닫힌 목록과 해시를 확인합니다. PowerShell 7이나 개발용 Python·SDK를 먼저 설치할 필요는 없습니다.
+2. `Install-HWPReview.cmd`를 더블클릭합니다. Windows PowerShell 5.1로 앱·정확한 소스·고지 파일의 전체 목록과 해시를 확인한 뒤, EXE를 실행하기 전에 Visual C++ 런타임을 확인합니다. PowerShell 7이나 개발용 Python·SDK를 먼저 설치할 필요는 없습니다.
 3. 앱의 기존 준비 창에서 **누락된 필수 항목만** 준비합니다. 새 외부 런타임이 필요하면 원문 약관·개인정보 안내를 확인하고 준비를 시작합니다. User Account Control (UAC) 확인은 직접 진행합니다.
 4. 설치가 끝나면 시작 메뉴의 **HWP Editor**를 엽니다. 설치기는 앱을 자동 실행하거나 OMP에 문서·대화를 보내지 않습니다.
 5. oh-my-pi (OMP)의 로그인·모델 설정은 앱의 OMP 화면에서 직접 합니다. AI나 설치기에 암호·토큰·인증 파일을 주지 않습니다.
 
 기본 앱 위치는 `%LOCALAPPDATA%\Programs\HWPReview`, 설치 등록은 현재 사용자(HKCU), 시작 메뉴도 현재 사용자용입니다. `.hwpx` 기본 앱과 전역 PATH를 바꾸지 않습니다. 기존 설치와 다른 버전을 덮어쓰거나 자동 업그레이드하지 않으며, 기존 설치가 있다면 먼저 해당 상태를 확인합니다.
+
+## 직접 준비해야 하는 Visual C++ 런타임
+
+**Microsoft Visual C++ Redistributable v14 (x64) 14.51.36247.0 이상**이 필요합니다. 없거나 오래되었다면 [Microsoft 공식 안내](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)에서 [x64 설치기](https://aka.ms/vc14/vc_redist.x64.exe)를 받아 직접 설치 또는 복구한 뒤 다시 시도하세요. x86 런타임으로 대신할 수 없습니다. 설치 키트에 런타임 DLL이나 설치기를 동봉하지 않으며, 앱과 설치기는 이 런타임을 자동으로 다운로드하거나 설치하지 않습니다. 앱 EXE와 `Setup-Requirements.cmd`를 직접 실행할 때도 먼저 준비해야 합니다.
 
 ## 자동 준비 항목과 사람의 확인
 
@@ -52,9 +56,9 @@ AI의 규칙:
   -File .\Install-HWPReview.ps1 -Operation Check
 ```
 
-이 확인은 앱/소스/고지 파일 목록·크기·해시, 경로와 기존 설치 충돌을 읽고 JSON을 출력합니다. **EXE나 필수 항목 확인기를 실행하지 않고**, 설치 폴더·로그·바로가기·레지스트리를 만들지 않습니다. `prerequisites_checked=false`이므로 이 결과를 .NET·Bun·글꼴 준비 완료로 해석하면 안 됩니다.
+이 확인은 앱/소스/고지 파일 목록·크기·해시, 경로와 기존 설치 충돌을 읽고 JSON을 출력합니다. **EXE나 필수 항목 확인기를 실행하지 않고**, 설치 폴더·로그·바로가기·레지스트리를 만들지 않습니다. `prerequisites_checked=false`이므로 이 결과를 Visual C++나 다른 필수 항목의 준비 완료로 해석하면 안 됩니다.
 
-실제 설치 허용 후에는 같은 폴더의 `Install-HWPReview.cmd`를 실행합니다. 설치 래퍼가 검증한 **동일 EXE**의 `--check-requirements <새 JSON>`과 필요할 때의 `--setup-requirements`를 사용합니다. 확인 보고서를 덮어쓰거나 직접 성공 상태로 수정하지 않습니다.
+실제 설치 허용 후에는 같은 폴더의 `Install-HWPReview.cmd`를 실행합니다. 새로 설치할 때 래퍼가 먼저 64비트 레지스트리와 Windows 시스템 DLL 버전으로 Visual C++ 런타임을 확인합니다. 이후 검증한 **동일 EXE**의 `--check-requirements <새 JSON>`과 필요할 때의 `--setup-requirements`를 사용합니다. 확인 보고서를 덮어쓰거나 직접 성공 상태로 수정하지 않습니다.
 
 `--check-requirements`의 기존 파일·상대 경로·잘못된 확장자·없는 상위 폴더는 오류창 없이 종료 `1`로 거부합니다. 기존 보고서를 수정하지 않으며 이 실패를 설치/GUI 경로로 우회하지 않습니다.
 
@@ -78,7 +82,7 @@ AI의 규칙:
 
 Windows 설정의 설치된 앱에서 **HWP Editor**를 제거하거나 설치 폴더의 `Uninstall-HWPReview.ps1`을 실행합니다. 정확한 소유 영수증·해시와 일치하는 앱 파일·바로가기·제거 등록만 대상으로 합니다.
 
-문서, `.hwpreview/Projects`, 사용자 AppData, 로그인·인증, 공유 .NET/WebView2/PowerShell/글꼴/Bun/OMP는 제거하지 않습니다. 변경되었거나 추가된 파일은 보존하고 `retained`와 비정상/보존 종료 코드를 남깁니다. 설치 폴더 전체 재귀 삭제는 하지 않습니다.
+문서, `.hwpreview/Projects`, 사용자 AppData, 로그인·인증, 공유 Visual C++/.NET/WebView2/PowerShell/글꼴/Bun/OMP는 제거하지 않습니다. 변경되었거나 추가된 파일은 보존하고 `retained`와 비정상/보존 종료 코드를 남깁니다. 설치 폴더 전체 재귀 삭제는 하지 않습니다.
 
 소유권은 `hwp-user-install-receipt-v2`이며 검증한 `log_directory`와 경로 표기를 보관합니다. Windows의 제거 명령과 기본 wrapper는 해당 설정을 사용합니다. v1 또는 누락/충돌한 설정을 임의 수정해 통과시키지 않습니다.
 

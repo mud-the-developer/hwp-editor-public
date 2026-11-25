@@ -8,6 +8,7 @@ import re
 import shutil
 import stat
 import sys
+import tarfile
 from urllib.parse import unquote, urlsplit
 import zipfile
 
@@ -164,7 +165,17 @@ def _pins(index):
                 or name in pins or type(record["bytes"]) is not int or record["bytes"] <= 0
                 or not HEX.fullmatch(record["sha256"])):
             _fail("잘못된 상류 자료 고정 항목입니다.")
+        if (Path(name).suffix == ".nupkg") != (record["component"] == "webview2"):
+            _fail("NuGet 원본은 WebView2 SDK 검증용 항목이어야 합니다.")
+        if record["component"] == "pywin32" and (
+            not re.fullmatch(r"[0-9]+", str(record.get("version"))) or
+            not re.fullmatch(r"[0-9a-f]{40}", str(record.get("commit")))
+        ):
+            _fail("pywin32 소스의 고정 버전과 커밋이 필요합니다.")
         pins[name] = record
+    for component in ("webview2", "pywin32"):
+        if sum(record["component"] == component for record in pins.values()) != 1:
+            _fail("WebView2와 pywin32의 원본 검증 항목이 각각 하나 필요합니다.")
     _names(pins)
     return pins
 
@@ -228,7 +239,11 @@ def _materials(app, corresponding):
     return f"""HWPReview 대응 소스 자료
 
 {app}: 이 후보의 정확한 앱 빌드 입력과 SHA-256 목록입니다.
-{corresponding}: 같은 앱 ZIP, 상류 자료 21개 및 출처·고정값 인덱스를 담습니다.
+{corresponding}: 같은 앱 ZIP, 배포하는 상류 자료 20개 및 출처·고정값 인덱스를 담습니다.
+전체 WebView2 SDK NuGet은 출처 검증에만 사용합니다. 사용하지 않는 도구에는 별도 약관의
+Microsoft VC 런타임 DLL이 들어 있어 동봉하지 않습니다. 필요한 BSD SDK DLL 3개와 원문
+고지는 앱 ZIP에 있습니다. pywin32 소스 ZIP은 원본 바이트에서 AutoDuck·SWIG의 사전 빌드
+실행기만 제외한 파생 묶음입니다. 출처·해시·제외 파일은 ZIP의 공개 출처 기록을 확인하세요.
 먼저 SHA256SUMS.txt를 확인하십시오. 앱 ZIP 안의 BUILD-SOURCE.txt와 빌드 스크립트에 따라
 Windows x64에서 고정 Python 의존성과 .NET SDK/Windows Desktop 참조 팩 등 별도 도구를 준비하고
 python scripts/build_exe.py --candidate-only를 실행할 수 있습니다. 이 수집 도구는 빌드하거나 설치하지 않습니다.
@@ -239,18 +254,44 @@ python scripts/build_exe.py --candidate-only를 실행할 수 있습니다. 이 
 동등한 다운로드 접근을 유지해야 합니다. 권한 없는 비공개 링크만으로는 충분하지 않습니다.
 수령자의 AGPL상 수정·재배포 권리를 추가로 제한할 수 없습니다.
 
-이 자료는 로컬 바이트 일치 확인일 뿐, 수령자 접근·전달, 재배포 권리, 재현 빌드 또는 실제 동작을
-검증하지 않습니다. WebView2 SDK 패키지는 전체 구현 소스가 아니며 Runtime 사용권과 별개입니다.
+수집 자체는 수령자 접근·재배포 권리·재현 빌드 또는 실제 동작을 검증하지 않습니다.
+WebView2 SDK는 별도 WebView2 Runtime의 사용권과 구분합니다.
 PyInstaller 원본에는 사전 빌드된 부트로더가 있습니다. xterm lockfile과 배포 JS의 재현 및
 선별된 rhwp Rust 자료와 배포 WASM의 재현은 미검증이며, rhwp 목록은 실제 링크 구성 목록이 아닙니다.
-원본 아카이브 자체의 빌드 자료와 파일별 고지는 보존하지만 설치된 사용자 글꼴, 한글, 보안 DLL,
-사용자 문서·계정·영수증은 추가로 동봉하지 않습니다. 정확한 바이너리와의 대응, CRT/MFC 및
-파일별 조건, 필요한 소스·설치 정보, 수령자 접근과 게시 허가는 별도 확인이 필요합니다.
+동봉하는 원본 아카이브의 빌드 자료와 파일별 고지는 보존합니다. Visual C++ v14 x64 런타임은
+별도 Microsoft 제공본이 필요합니다. 설치된 사용자 글꼴, 한글, 보안 DLL, 사용자 문서·계정·영수증은
+추가 동봉하지 않습니다. 필요한 소스·설치 정보, 파일별 권리, 수령자 접근과 게시 허가는 별도입니다.
 """.encode("utf-8")
 
 
-def _source_kit(target, app, upstream, pins, index, materials):
-    files = {app.name: app, **{f"upstream/{name}": upstream / name for name in pins}}
+def _pywin32_sources(original, target, pin):
+    prefix = f"pywin32-{pin['commit']}/"
+    omitted = {"AutoDuck/bin/autoduck.exe", "SWIG/swig.exe"}
+    skipped, names = set(), []
+    with tarfile.open(regular(original), "r:gz") as source, zipfile.ZipFile(target, "x") as archive:
+        for member in source:
+            if member.isdir():
+                continue
+            if not member.isfile() or not member.name.startswith(prefix):
+                _fail("pywin32 원본에 예상하지 않은 경로나 파일 종류가 있습니다.")
+            name = _name(member.name[len(prefix):])
+            if name in omitted:
+                skipped.add(name)
+                continue
+            if name.casefold().endswith((".exe", ".dll", ".msi", ".pyd")):
+                _fail("pywin32 원본에 검토하지 않은 바이너리가 있습니다.")
+            names.append(name)
+            with source.extractfile(member) as reader, archive.open(zipfile.ZipInfo(name), "w") as writer:
+                shutil.copyfileobj(reader, writer, length=1024 * 1024)
+        if skipped != omitted:
+            _fail("pywin32에서 제외할 원본 도구 파일이 정확히 일치하지 않습니다.")
+        origin = "PUBLIC-SOURCE-ORIGIN.json"
+        _names([*names, origin])
+        archive.writestr(zipfile.ZipInfo(origin), _json_bytes({"original": pin, "excluded": sorted(omitted)}))
+
+
+def _source_kit(target, app, sources, index, materials):
+    files = {app.name: app, **{f"upstream/{name}": path for name, path in sources.items()}}
     metadata = {INDEX.name: index, MATERIALS: materials}
     _names([*files, *metadata])
     with zipfile.ZipFile(target, "x") as archive:
@@ -349,8 +390,16 @@ def stage_release(candidate, upstream, output, *, commit):
     _copy(candidate / windows, output / windows, transport)
     _copy(candidate / app, output / app, app_record)
     materials = _materials(app, corresponding)
-    files, metadata = _source_kit(output / corresponding, output / app, upstream, pins, _json_bytes(index), materials)
-    _verify_kit(output / corresponding, files, metadata, app_record, pins)
+    pywin = next(pin for pin in pins.values() if pin["component"] == "pywin32")
+    curated = output / f"pywin32-{pywin['version']}-source.zip"
+    _pywin32_sources(upstream / pywin["filename"], curated, pywin)
+    delivered = {name: pin for name, pin in pins.items() if pin["component"] not in {"webview2", "pywin32"}}
+    sources = {name: upstream / name for name in delivered}
+    delivered[curated.name] = _record(curated)
+    sources[curated.name] = curated
+    files, metadata = _source_kit(output / corresponding, output / app, sources, _json_bytes(index), materials)
+    _verify_kit(output / corresponding, files, metadata, app_record, delivered)
+    curated.unlink()  # The verified copy remains inside the corresponding-source ZIP.
     _write(output / MATERIALS, materials)
     manifest = {
         "contract": "hwp-local-release-materials-v1",

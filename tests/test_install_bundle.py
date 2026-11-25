@@ -324,6 +324,9 @@ try{
 
 @unittest.skipUnless(os.name == "nt", "Windows PowerShell requirements consumer")
 class RequirementsCheckTests(unittest.TestCase):
+    DLLS = ("msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll")
+    MINIMUM = "14.51.36247.0"
+
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
@@ -337,13 +340,15 @@ class RequirementsCheckTests(unittest.TestCase):
             },
         }
 
-    def consume(self, cases):
+    def consume(self, cases, runtime_cases=None):
+        if runtime_cases is None:
+            runtime_cases = [{"registry": self.MINIMUM, "dlls": dict.fromkeys(self.DLLS, self.MINIMUM)}] * len(cases)
         inputs = []
-        for index, (report, code) in enumerate(cases):
+        for index, ((report, code), runtime) in enumerate(zip(cases, runtime_cases, strict=True)):
             tag = f"probe-{index}"
             path = self.root / (f"fixture-{index}.json")
             path.write_text(json.dumps(report), encoding="utf-8")
-            inputs.append({"tag": tag, "code": code, "fixture": str(path)})
+            inputs.append({"tag": tag, "code": code, "fixture": str(path), "runtime": runtime})
         case_path = self.root / "cases.json"
         case_path.write_text(json.dumps(inputs), encoding="utf-8")
         probe = self.root / "consume-requirements.ps1"
@@ -353,7 +358,17 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 [Console]::OutputEncoding=New-Object Text.UTF8Encoding($false)
 $script:Run=$Run
+function Read-VCX64RegistryVersion {
+    if ($null -ne $script:Runtime.registry) { return [version]$script:Runtime.registry }
+}
+function Read-VCX64SystemDllVersion([string]$Name) {
+    $property = $script:Runtime.dlls.PSObject.Properties[$Name]
+    if ($null -eq $property -or $null -eq $property.Value) { return $null }
+    if ($property.Value -eq 'DENIED') { throw 'inert fixture read failure' }
+    return [version]$property.Value
+}
 function Run-Exe([string]$Arguments,[string]$Tag){
+    $script:Launched = $true
     [IO.File]::Copy($script:FixtureReport,(Join-Path $script:Run ($Tag + '.json')))
     return $script:RequestedCode
 }
@@ -362,19 +377,21 @@ $tokens=$null; $errors=$null
 $ast=[Management.Automation.Language.Parser]::ParseFile($Engine,[ref]$tokens,[ref]$errors)
 if($errors.Count -ne 0){throw 'The actual installer script could not be parsed.'}
 foreach($node in $ast.FindAll({param($n) $n -is [Management.Automation.Language.FunctionDefinitionAst]},$false)){
-    if($node.Name -in @('Stop-Install','Requirements-Check')){. ([scriptblock]::Create($node.Extent.Text))}
+    if($node.Name -in @('Stop-Install','Assert-ExternalVCRuntime','Requirements-Check')){. ([scriptblock]::Create($node.Extent.Text))}
 }
 $answers=New-Object 'Collections.Generic.List[object]'
 foreach($case in (Read-Json $Cases)){
+    $script:Runtime = $case.runtime
+    $script:Launched = $false
     $script:RequestedCode=[int]$case.code
     $script:FixtureReport=[string]$case.fixture
     $script:ExitCode=1
     $result=[ordered]@{prerequisites_checked=$false}
     try{
         $ready=Requirements-Check $case.tag
-        $answers.Add([ordered]@{accepted=$true;ready=$ready;prerequisites_checked=$result.prerequisites_checked;exit_code=0})
+        $answers.Add([ordered]@{accepted=$true;ready=$ready;prerequisites_checked=$result.prerequisites_checked;exit_code=0;launched=$script:Launched})
     }catch{
-        $answers.Add([ordered]@{accepted=$false;ready=$false;prerequisites_checked=$result.prerequisites_checked;exit_code=$script:ExitCode;detail=$_.Exception.Message})
+        $answers.Add([ordered]@{accepted=$false;ready=$false;prerequisites_checked=$result.prerequisites_checked;exit_code=$script:ExitCode;detail=$_.Exception.Message;launched=$script:Launched})
     }
 }
 ConvertTo-Json -InputObject @($answers.ToArray()) -Depth 8
@@ -390,9 +407,29 @@ ConvertTo-Json -InputObject @($answers.ToArray()) -Depth 8
         completed = subprocess.run(command, capture_output=True, timeout=90, check=False)
         self.assertEqual(completed.returncode, 0, completed.stderr.decode(errors="replace"))
         self.assertEqual(before, {name: (self.root / name).read_bytes() for name in before})
-        self.assertEqual({path.name for path in self.root.iterdir()},
-                         set(before) | {case["tag"] + ".json" for case in inputs})
-        return json.loads(completed.stdout.decode("utf-8-sig", errors="replace"))
+        results = json.loads(completed.stdout.decode("utf-8-sig", errors="replace"))
+        self.assertEqual({path.name for path in self.root.iterdir()}, set(before) | {
+            case["tag"] + ".json" for case, result in zip(inputs, results, strict=True) if result["launched"]
+        })
+        return results
+
+    def test_runtime_evidence_must_be_current_before_launching_any_exe(self):
+        ready = {"registry": self.MINIMUM, "dlls": dict.fromkeys(self.DLLS, self.MINIMUM)}
+        missing_registry = {**ready, "registry": None}
+        old_registry = {**ready, "registry": "14.51.36246.65535"}
+        missing_dll = {**ready, "dlls": {name: self.MINIMUM for name in self.DLLS[:-1]}}
+        old_dll = {**ready, "dlls": {**ready["dlls"], self.DLLS[0]: "14.50.65535.0"}}
+        denied_dll = {**ready, "dlls": {**ready["dlls"], self.DLLS[1]: "DENIED"}}
+        newer = {"registry": "14.52.0.0", "dlls": dict.fromkeys(self.DLLS, "14.52.0.0")}
+        runtime = [ready, newer, missing_registry, old_registry, missing_dll, old_dll, denied_dll]
+        results = self.consume([(self.report, 0)] * len(runtime), runtime)
+        self.assertTrue(all(result["accepted"] and result["ready"] and result["launched"]
+                            for result in results[:2]))
+        for result in results[2:]:
+            self.assertEqual(result["exit_code"], 5)
+            self.assertFalse(result["accepted"] or result["launched"] or result["prerequisites_checked"])
+            self.assertIn(self.MINIMUM, result["detail"])
+            self.assertIn("https://aka.ms/vc14/vc_redist.x64.exe", result["detail"])
 
     def test_actual_consumer_calculates_readiness_from_applicable_requirements(self):
         optional = deepcopy(self.report)

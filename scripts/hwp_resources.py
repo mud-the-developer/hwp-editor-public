@@ -3,7 +3,7 @@
 from pathlib import Path
 import sys
 
-APP_VERSION = "1.0.0"  # HWPX product version; exact qualification/publication separate.
+APP_VERSION = "1.0.0-rc.3"  # Public candidate; exact qualification/publication separate.
 APP_LICENSE = "AGPL-3.0-only"
 SOURCE_URL = "https://github.com/mud-the-developer/hwp-editor-public"
 

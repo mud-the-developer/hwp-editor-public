@@ -18,10 +18,10 @@ PyMuPDF/MuPDF의 AGPL 경로와 Artifex 상업 라이선스 경로를 구분합�
 |---|---|
 | olefile 0.47 | BSD 조건과 기초 PIL 허락문을 포함한 전체 LICENSE를 보존합니다. |
 | PyMuPDF 1.26.7 / MuPDF 1.26.12 | 정확한 소스·수정·빌드 자료와 MuPDF thirdparty/font의 파일별 조건을 확인합니다. sdist 하나로 전체 대응 소스를 가정하지 않습니다. |
-| pywin32 311 | `win32/license.txt`와 `win32com/License.txt` 모두 보존합니다. 전체를 단순 MIT로 표시하지 않습니다. |
-| Python 3.14.8 / Tcl·Tk 9.0.4 및 실제 내장 라이브러리 | Python/Tcl/Tk 원문 외 Expat·OpenSSL·LibTomMath·zlib·zlib-ng·XZ/liblzma의 해당 고지를 실제 frozen 구성과 결합합니다. Microsoft CRT/MFC의 정확한 DLL·배포자 권원·수령자 조건은 별도 확인 사항입니다. |
+| pywin32 311 | `win32/license.txt`와 `win32com/License.txt` 모두 보존합니다. 전달할 소스 ZIP에는 사전 빌드된 AutoDuck·SWIG 도구를 넣지 않고 원본 출처·해시·제외 목록을 표시합니다. |
+| Python 3.14.8 / Tcl·Tk 9.0.4 및 실제 내장 라이브러리 | Python/Tcl/Tk 원문 외 Expat·OpenSSL·LibTomMath·zlib·zlib-ng·XZ/liblzma의 해당 고지를 실제 frozen 구성과 결합합니다. 공개 키트에는 Visual C++ 런타임 DLL이나 설치기를 포함하지 않습니다. |
 | PyInstaller 6.22.3 / hooks-contrib 2026.8 | 빌드 도구와 번들 bootloader를 구분하고 해당 COPYING·예외·파일별 고지를 유지합니다. 예외가 앱의 AGPL을 없애지 않습니다. |
-| WebView2 SDK 1.0.4314.35 | 고정 Core/Wpf assembly와 x64 Loader 3개 및 공식 `LICENSE.txt`·`NOTICE.txt`를 포함합니다. BSD-3-Clause와 NOTICE의 Antlr/StringTemplate 조건을 보존합니다. |
+| WebView2 SDK 1.0.4314.35 | 고정 Core/Wpf assembly·x64 Loader 3개와 `LICENSE.txt`·`NOTICE.txt`를 정확한 앱 입력에 포함합니다. BSD-3-Clause와 Antlr/StringTemplate 조건을 보존합니다. 전체 SDK NuGet은 출처 검증에만 사용하며, 사용하지 않는 도구의 VC 런타임 DLL까지 동봉하지 않습니다. |
 | xterm 6.0.0 / fit 0.11.0 / graphemes 0.4.0 | 선택 JS/CSS·metadata·각 MIT 원문을 보존합니다. MIT의 고지 조건과 별도 소스 snapshot·정확한 JS 재구성의 확인을 구분합니다. |
 | @rhwp/core 0.8.7 | 원본 MIT, upstream 제3자 고지, 직접 포팅 알고리즘의 Volexity BSD-3-Clause, 정확한 Rust 의존성 원문을 보존합니다. 요약표가 전체 파일별 조건을 대신하지 않습니다. |
 | Lucide 1.66.0 | 선택 SVG와 전체 ISC/Feather MIT LICENSE를 유지합니다. |
@@ -31,6 +31,7 @@ PyMuPDF/MuPDF의 AGPL 경로와 Artifex 상업 라이선스 경로를 구분합�
 
 .NET Desktop Runtime, WebView2 Runtime, Bun/OMP, PowerShell MSI, Propo 글꼴 바이너리는 동봉하지 않고 누락분만 준비합니다. 한글·보안 DLL·계정·개인 인증·대상 PC 글꼴도 동봉하지 않습니다. 호환 한글이 설치된 경우 보안모듈은 아래 조건과 명시적 동의에 따라 공식 경로에서 별도로 받습니다. 개발 SDK는 사용자 앱 준비 대상이 아닙니다. 미동봉·자동 다운로드는 사용·연동 약관 준수의 인증이 아닙니다.
 
+- **Microsoft Visual C++ v14 x64(14.51.36247.0 이상)** 런타임은 [Microsoft 공식 다운로드](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)에서 직접 받습니다. 앱의 라이선스는 이 외부 런타임을 변경하거나 재라이선스하지 않습니다.
 - .NET 10 Desktop Runtime은 고정 Microsoft 설치기를 사용합니다. .NET 소스 MIT를 전체 설치기의 단일 라이선스로 표시하지 않습니다.
 - WebView2 Runtime은 [Microsoft Runtime EULA](https://developer.microsoft.com/microsoft-edge/api/eula/webview2)와 SmartScreen 정보 전송·업데이트 안내를 따릅니다. SDK의 BSD 고지가 Runtime을 재라이선스하지 않습니다.
 - Bun 1.4.4는 MIT/LGPL/연결 구성요소 전체 LICENSE를, OMP 18.15.0은 CLI/native/Windows package의 LICENSE·THIRD-PARTY-NOTICES를 보존합니다. 모두 MIT라고 일반화하지 않습니다.

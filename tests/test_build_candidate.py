@@ -2,16 +2,36 @@
 
 import json
 from pathlib import Path
+import struct
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from scripts import build_exe as b
+import build_exe as b
 import hwp_build_source as build_source
 import hwp_install_bundle as install_bundle
+
+
+def synthetic_carchive(*members):
+    """Inert PyInstaller-format inventory, not an executable or a build."""
+    payload = bytearray()
+    toc = bytearray()
+    for name, kind in (("python314.dll", b"b"), ("PYZ.pyz", b"z"), *members):
+        data = b"SYNTHETIC ENTRY ONLY"
+        encoded = name.encode("utf-8") + b"\0"
+        entry = (18 + len(encoded) + 15) & ~15
+        toc += struct.pack("!IIIIBc", entry, len(payload), len(data), len(data), 0, kind)
+        toc += encoded.ljust(entry - 18, b"\0")
+        payload += data
+    cookie = struct.pack(
+        "!8sIIII64s", b"MEI\x0c\x0b\x0a\x0b\x0e",
+        len(payload) + len(toc) + 88, len(payload), len(toc), 314, b"python314.dll",
+    )
+    return b"MZ SYNTHETIC NOT EXE" + payload + toc + cookie
 
 
 def synthetic_frozen_report():
@@ -116,6 +136,52 @@ def synthetic_frozen_report():
     return report
 
 
+class ExternalRuntimeTests(unittest.TestCase):
+    def test_generated_spec_filters_binaries_and_data_before_pyz(self):
+        binary = (r"native-ui\WebView2Loader.dll", r"C:\sdk\WebView2Loader.dll", "BINARY")
+        com = ("pythoncom314.dll", r"C:\pywin32\pythoncom314.dll", "BINARY")
+        data = ("licenses/msvcp140.dll-NOTICE.txt", "/sources/NOTICE.txt", "DATA")
+        analysis = SimpleNamespace(
+            pure=object(),
+            binaries=[
+                binary, com,
+                (r"Pythonwin\MfC140u.DlL", r"C:\build\library", "BINARY"),
+                ("renamed.bin", r"\\?\C:\Windows\System32\MSVCP140.dll", "BINARY"),
+                ("vendor/VCRUNTIME140_1D.DLL", "/vendor/library", "BINARY"),
+            ],
+            datas=[
+                data,
+                ("SDK/VcRuNtImE140_App.DlL", "/build/library", "DATA"),
+                ("staged/setup.exe", "C:/downloads/VC_REDIST.x64.EXE", "DATA"),
+                ("debug/UCRTBASED.dll", "/build/debug", "DATA"),
+            ],
+        )
+
+        def pyz(pure):
+            self.assertIs(pure, analysis.pure)
+            self.assertEqual(analysis.binaries, [binary, com])
+            self.assertEqual(analysis.datas, [data])
+
+        spec = "a = Analysis()\npyz = PYZ(a.pure)\n"
+        exec(b.spec_with_external_vc_runtime(spec), {"Analysis": lambda: analysis, "PYZ": pyz})
+
+    def test_changed_or_repeated_pinned_spec_marker_is_rejected(self):
+        for spec in ("pyz = PYZ(a.scripts)\n", "pyz = PYZ(a.pure)\n" * 2):
+            with self.subTest(spec=spec), self.assertRaisesRegex(RuntimeError, "spec changed"):
+                b.spec_with_external_vc_runtime(spec)
+
+    def test_inventory_requires_well_formed_unsigned_onefile_archive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            exe = Path(directory) / "fixture.exe"
+            clean = synthetic_carchive(("native-ui/WebView2Loader.dll", b"b"))
+            exe.write_bytes(clean)
+            b.assert_external_vc_archive(exe)
+            for broken in (clean[:-1], clean + b"trailing data", b"MZ not a CArchive"):
+                exe.write_bytes(broken)
+                with self.assertRaisesRegex(ValueError, "CArchive"):
+                    b.assert_external_vc_archive(exe)
+
+
 class CandidateTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -137,7 +203,7 @@ class CandidateTests(unittest.TestCase):
             file.parent.mkdir(parents=True, exist_ok=True)
             file.write_bytes(b"SYNTHETIC INPUT ONLY")
         self.exe = self.release / "HWPReview.exe"
-        self.exe.write_bytes(b"SYNTHETIC NOT EXE")
+        self.exe.write_bytes(synthetic_carchive())
         self.meta = {
             "version": b.APP_VERSION,
             "redistribution_ready": False,
@@ -239,6 +305,12 @@ class CandidateTests(unittest.TestCase):
             build_source.write_source_archive(
                 self.root, self.meta["input_sha256"], archive, version=b.APP_VERSION
             )
+
+    def test_resealed_runtime_dll_blocks_before_native_or_promotion(self):
+        self.exe.write_bytes(synthetic_carchive((r"Pythonwin\MFC140UD.DLL", b"b")))
+        self.meta["executable_sha256"] = build_source.sha256(self.exe)
+        self.bundle()
+        self.blocked(ValueError)
 
     def test_source_archive_tamper_blocks_before_native_or_promotion(self):
         archive = self.release / self.meta["source_archive"]["file"]
@@ -369,12 +441,12 @@ class CandidateTests(unittest.TestCase):
             self.assertEqual(digest, self.meta["executable_sha256"])
             self.assertFalse(artifact_set.exists())
             self.assertEqual((self.root / "dist/HWPReview.exe").read_bytes(), b"LAST WORKING SYNTHETIC")
-            self.assertEqual(self.exe.read_bytes(), b"SYNTHETIC NOT EXE")
+            self.assertEqual(self.exe.read_bytes(), synthetic_carchive())
             reply = b.promote_checked_candidate(self.release, *self.proofs)
         self.assertTrue(reply["local_promoted"])
         self.assertFalse(reply["published"])
         self.assertEqual(
-            (self.root / "dist/HWPReview.exe").read_bytes(), b"SYNTHETIC NOT EXE"
+            (self.root / "dist/HWPReview.exe").read_bytes(), synthetic_carchive()
         )
         self.assertEqual(
             (self.root / "dist/HWPReview.exe").read_bytes(),

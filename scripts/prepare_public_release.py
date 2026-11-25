@@ -50,12 +50,15 @@ def validate(candidate, commit, repository):
     build = json.loads(bundle.regular(candidate / "BUILD.json").read_text(encoding="utf-8"))
     version = build_exe.APP_VERSION
     bundle.verify_payload(candidate, version=version)
+    build_exe.assert_external_vc_archive(bundle.regular(candidate / "HWPReview.exe"))
     expected = set(build_exe.SOURCE_FILES) | set(build_exe.ASSETS) | {
         "packaging/licenses/" + name for name in build_exe.LEGAL_FILES}
     inputs = build.get("input_sha256")
     folded = set()
     for path in candidate.rglob("*"):
         relative = path.relative_to(candidate).as_posix()
+        if build_exe.is_external_vc_component(relative):
+            raise ValueError("External Visual C++ component in installer payload: " + relative)
         if relative.casefold() in folded:
             raise ValueError("Case-colliding candidate paths")
         folded.add(relative.casefold())
@@ -65,6 +68,8 @@ def validate(candidate, commit, repository):
             bundle.regular(path)
     if not isinstance(inputs, dict) or set(inputs) != expected:
         raise ValueError("Candidate exact source inventory differs")
+    if any(build_exe.is_external_vc_component(name) for name in inputs):
+        raise ValueError("External Visual C++ component in captured build inputs")
     if (build.get("source_sha256") != {name: inputs[name] for name in build_exe.SOURCE_FILES}
             or build.get("assets_sha256") != {name: inputs[name] for name in build_exe.ASSETS}
             or build.get("code_signed") is not False):
@@ -156,7 +161,8 @@ def prepare(candidate, output, commit, repository):
     validate(candidate, commit, repository)
     manifest = {"contract": "hwp-public-distribution-v1", "commit": commit, "repository": repository,
                 "version": version, "code_signed": False, "redistribution_ready": False,
-                "tested": ["closed payload hashes", "exact source archive", "Git commit build-input bytes"],
+                "tested": ["closed payload hashes", "exact source archive", "Git commit build-input bytes",
+                           "external Visual C++ component exclusion in the CArchive and payload"],
                 "unqualified": ["other-PC execution", "Native layout certification", "legal source-delivery clearance", "code signing"],
                 "other_pc_tested": False,
                 "artifacts": {name: {"sha256": source.sha256(payload / name), "bytes": (payload / name).stat().st_size}

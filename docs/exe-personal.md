@@ -1,10 +1,10 @@
 # Windows EXE 제작 안내
 
-현재 소스 제작 버전은 `1.0.0`입니다. 공개 저장소는 <https://github.com/mud-the-developer/hwp-editor-public>입니다. 이 파일명은 기존 문서 주소를 유지한 것이며 개인용·무상 배포가 라이선스 의무를 면제한다는 뜻은 아닙니다.
+현재 소스 제작 버전은 `1.0.0-rc.3`입니다. 공개 저장소는 <https://github.com/mud-the-developer/hwp-editor-public>입니다. 이 파일명은 기존 문서 주소를 유지한 것이며 개인용·무상 배포가 라이선스 의무를 면제한다는 뜻은 아닙니다.
 
 ## 실행 환경
 
-EXE에는 Python과 자체 WPF UI를 포함합니다. .NET 10 Desktop Runtime x64·WebView2 Runtime·Bun 1.4.4/OMP 18.15.0·PowerShell 7·Propo는 외부 필수 환경이며 누락분만 기존 준비 경로에서 확인·설치합니다. 개발 SDK·한글·보안 DLL·개인 인증은 동봉·자동 설치하지 않습니다. [설치·제거](desktop-app.md)
+EXE에는 Python과 자체 WPF UI를 포함합니다. Microsoft Visual C++ v14 x64 런타임(14.51.36247.0 이상)은 동봉하지 않으며 [공식 배포처](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)에서 별도로 준비해야 합니다. .NET 10 Desktop Runtime x64·WebView2 Runtime·Bun 1.4.4/OMP 18.15.0·PowerShell 7·Propo는 기존 준비 경로가 누락분만 확인·설치합니다. 한글 본체·개발 SDK·개인 인증은 동봉·자동 설치하지 않습니다. [설치·제거](desktop-app.md)
 
 ## 제작 입력
 

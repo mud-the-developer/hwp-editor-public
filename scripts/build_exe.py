@@ -14,6 +14,7 @@ import platform
 import re
 import shutil
 import subprocess
+from struct import Struct
 import sys
 import uuid
 import zipfile
@@ -121,6 +122,7 @@ HIDDEN = (
 EXCLUDED = (
     "native_hwp",
     "win32gui",
+    "win32ui",  # Unused Pythonwin GUI extension, not the pywin32 COM runtime.
 )  # generic edit/apply helper is NOT an EXE entry point
 EXPECTED = {
     "PyInstaller": "6.22.3",
@@ -129,6 +131,22 @@ EXPECTED = {
     "olefile": "0.47",
     "pywin32": "311",
 }
+# Standard Visual C++/MFC/UCRT filenames, debug and localized variants, and
+# installers/merge modules, as Windows path components (not substring matches).
+_EXTERNAL_VC_COMPONENT = re.compile(
+    r"(?:^|[\\/:])(?:"
+    r"(?:(?:msvc[mpr]|vcruntime|concrt|vccorlib|mfc[mno]?|vcomp|vcamp|atl)"
+    r"[0-9][a-z0-9_]*|msvcrtd?|msvcp_win|ucrtbased?|api-ms-win-crt-[a-z0-9-]+)\.dll"
+    r"|(?:vc_?redist(?:[._-][a-z0-9._-]+)?|vc_runtime(?:minimum|additional)(?:_[a-z0-9]+)?)\.(?:exe|msi)"
+    r"|microsoft_vc[0-9]+_[a-z0-9_]+\.msm"
+    r")[ .]*(?::[^\\/]*)?\Z",
+    re.IGNORECASE | re.ASCII,
+)
+# Unsigned Windows onefile CArchive format written by pinned PyInstaller.
+_CARCHIVE_MAGIC = b"MEI\x0c\x0b\x0a\x0b\x0e"
+_CARCHIVE_COOKIE = Struct("!8sIIII64s")
+_CARCHIVE_ENTRY = Struct("!IIIIBc")
+
 SOURCE_FILES = (
     "scripts/hwp_desktop.py",
     "scripts/hwp_resources.py",
@@ -213,6 +231,81 @@ LEGAL_FILES = (
     "Volexity-hwp-extract-e5f8b5e-LICENSE.txt",
     "rhwp-0.8.7-rust-dependency-NOTICES.txt",
 )
+
+
+def is_external_vc_component(name):
+    return bool(_EXTERNAL_VC_COMPONENT.search(name))
+
+
+def spec_with_external_vc_runtime(spec):
+    """Filter the pinned onefile recipe after all hooks and dependency analysis."""
+    marker = "pyz = PYZ(a.pure)\n"
+    if spec.splitlines(keepends=True).count(marker) != 1:
+        raise RuntimeError("Pinned PyInstaller onefile spec changed; review the runtime filter")
+    return spec.replace(
+        marker,
+        "import re\n"
+        f"_external_vc = re.compile({_EXTERNAL_VC_COMPONENT.pattern!r}, re.IGNORECASE | re.ASCII)\n"
+        "a.binaries = [row for row in a.binaries if not any(_external_vc.search(n) for n in row[:2])]\n"
+        "a.datas = [row for row in a.datas if not any(_external_vc.search(n) for n in row[:2])]\n"
+        + marker,
+        1,
+    )
+
+
+def assert_external_vc_archive(executable):
+    """Check the pinned unsigned onefile layout's inventory without extracting it."""
+    invalid = "Expected a valid unsigned PyInstaller onefile CArchive"
+    # Windows builds append the PKG to the PE and leave its cookie at EOF;
+    # accepting a cookie found by scanning backwards would allow trailing data.
+    with executable.open("rb") as stream:
+        length = stream.seek(0, os.SEEK_END)
+        stream.seek(0)
+        if length < 2 + _CARCHIVE_COOKIE.size or stream.read(2) != b"MZ":
+            raise ValueError(invalid)
+        stream.seek(-_CARCHIVE_COOKIE.size, os.SEEK_END)
+        magic, size, toc_offset, toc_size, _, library = _CARCHIVE_COOKIE.unpack(
+            stream.read(_CARCHIVE_COOKIE.size)
+        )
+        library = library.rstrip(b"\0")
+        if (
+            magic != _CARCHIVE_MAGIC
+            or size > length - 2
+            or size != toc_offset + toc_size + _CARCHIVE_COOKIE.size
+            or not 0 < toc_size <= 16 * 1024 * 1024
+            or not re.fullmatch(rb"python3[0-9]+t?\.dll", library, re.IGNORECASE)
+        ):
+            raise ValueError(invalid)
+        stream.seek(length - size + toc_offset)
+        toc = stream.read(toc_size)
+    if len(toc) != toc_size:
+        raise ValueError(invalid)
+    python_name = library.decode("ascii").lower()
+    position = 0
+    has_pyz = has_python = False
+    while position < toc_size:
+        if toc_size - position < _CARCHIVE_ENTRY.size:
+            raise ValueError(invalid)
+        entry, offset, stored, raw, compressed, kind = _CARCHIVE_ENTRY.unpack_from(toc, position)
+        end = position + entry
+        if (
+            entry <= _CARCHIVE_ENTRY.size or entry % 16 or end > toc_size
+            or offset + stored > toc_offset or compressed not in (0, 1)
+            or (not compressed and stored != raw)
+            or kind not in (b"b", b"m", b"M", b"n", b"o", b"s", b"x", b"z")
+        ):
+            raise ValueError(invalid)
+        name, separator, padding = toc[position + _CARCHIVE_ENTRY.size:end].partition(b"\0")
+        if not name or not separator or padding.strip(b"\0"):
+            raise ValueError(invalid)
+        name = name.decode("utf-8")
+        if is_external_vc_component(name):
+            raise ValueError("External Visual C++ component in frozen archive: " + name)
+        has_python |= kind == b"b" and name.casefold() == python_name
+        has_pyz |= kind == b"z" and name == "PYZ.pyz"
+        position = end
+    if not has_python or not has_pyz:
+        raise ValueError(invalid)
 
 
 def assets(root):
@@ -747,6 +840,7 @@ def validate_checked_candidate(release, evidence, layout_evidence, fill_evidence
         raise ValueError("Candidate source archive changed")
     build_source.verify_source_archive(source_archive, inputs, version=APP_VERSION)
     install_bundle.verify_payload(release, version=APP_VERSION)
+    assert_external_vc_archive(executable)
     if (
         any(path is None for path in (evidence, layout_evidence, fill_evidence))
         or QUALIFIED_SCHEMAS != (3, 4)
@@ -806,6 +900,8 @@ def build():
     for path in dist.iterdir():
         if path.is_symlink():
             raise ValueError("Generated distribution outputs must not be symlinks")
+    if any(is_external_vc_component(name) for name in (*SOURCE_FILES, *ASSETS, *LEGAL_FILES)):
+        raise RuntimeError("External Visual C++ components cannot be public build inputs")
     source = work / "source-snapshot"
     inputs = build_source.snapshot_inputs(
         ROOT,
@@ -826,21 +922,15 @@ def build():
         name: inputs[name] for name in native_payload.NATIVE_SOURCE_FILES
     }:
         raise ValueError("Native UI does not match the exact application input snapshot")
-    command = [
+    makespec = [
         sys.executable,
         "-m",
-        "PyInstaller",
-        "--noconfirm",
-        "--clean",
+        "PyInstaller.utils.cliutils.makespec",
         "--onefile",
         "--windowed",
         "--noupx",
         "--name",
         "HWPReview",
-        "--distpath",
-        str(work / "candidate"),
-        "--workpath",
-        str(work / "pyinstaller"),
         "--specpath",
         str(work),
         "--paths",
@@ -849,20 +939,41 @@ def build():
         str(versions),
     ]
     for asset, destination in assets(source):
-        command += ["--add-data", str(asset) + os.pathsep + destination]
-    command += ["--add-data", str(legal) + os.pathsep + "licenses"]
-    command += ["--add-data", str(native_ui) + os.pathsep + "native-ui"]
+        makespec += ["--add-data", str(asset) + os.pathsep + destination]
+    makespec += ["--add-data", str(legal) + os.pathsep + "licenses"]
+    makespec += ["--add-data", str(native_ui) + os.pathsep + "native-ui"]
     for name in HIDDEN:
-        command += ["--hidden-import", name]
+        makespec += ["--hidden-import", name]
     for name in EXCLUDED:
-        command += ["--exclude-module", name]
-    command += [str(source / "scripts/hwp_desktop.py")]
+        makespec += ["--exclude-module", name]
+    makespec += [str(source / "scripts/hwp_desktop.py")]
     log = work / "build.log"
     with log.open("w", encoding="utf-8") as stream:
+        environment = clean_environment()
         subprocess.run(
-            command,
+            makespec,
             cwd=source,
-            env=clean_environment(),
+            env=environment,
+            stdin=subprocess.DEVNULL,
+            stdout=stream,
+            stderr=subprocess.STDOUT,
+            timeout=60,
+            check=True,
+        )
+        spec = work / "HWPReview.spec"
+        spec.write_text(
+            spec_with_external_vc_runtime(spec.read_text(encoding="utf-8")),
+            encoding="utf-8",
+            newline="\n",
+        )
+        subprocess.run(
+            [
+                sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean",
+                "--distpath", str(work / "candidate"), "--workpath", str(work / "pyinstaller"),
+                str(spec),
+            ],
+            cwd=source,
+            env=environment,
             stdin=subprocess.DEVNULL,
             stdout=stream,
             stderr=subprocess.STDOUT,
@@ -883,6 +994,7 @@ def build():
         }
     if pe != {"machine": "0x8664", "subsystem": 2, "certificate_bytes": 0}:
         raise RuntimeError("Expected unsigned x64 Windows GUI executable")
+    assert_external_vc_archive(executable)
     # The archive tool provides a bounded module/data inventory. Never bundle
     # whole source/work/example folders. Only a narrow test module is embedded.
     inventory = subprocess.run(

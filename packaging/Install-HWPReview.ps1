@@ -418,6 +418,65 @@ function Assert-ExistingExact($Owned, $Source) {
     }
     if (-not (Registry-Matches $Owned.registry) -or -not (Is-ExactFile (Join-Path $ShortcutDirectory 'HWP Editor.lnk') @{bytes=$Owned.receipt.shortcut_bytes; sha256=$Owned.receipt.shortcut_sha256})) { Stop-Install 3 '기존 등록/바로가기가 다릅니다. 자동 수리하지 않습니다.' }
 }
+function Read-VCX64RegistryVersion {
+    if (-not [Environment]::Is64BitOperatingSystem) { return $null }
+    $hive = [Microsoft.Win32.RegistryKey]::OpenBaseKey('LocalMachine', 'Registry64')
+    try {
+        $key = $hive.OpenSubKey('SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64', $false)
+        if ($null -eq $key) { return $null }
+        try {
+            $installed = $key.GetValue('Installed')
+            $text = $key.GetValue('Version')
+            if ($installed -isnot [int] -or $installed -ne 1 -or $text -isnot [string] -or $text -notmatch '^v?(14\.[0-9]+\.[0-9]+\.[0-9]+)$') { return $null }
+            [version]$parsed = $null
+            if ([version]::TryParse($Matches[1], [ref]$parsed)) { return $parsed }
+            return $null
+        } finally { $key.Dispose() }
+    } finally { $hive.Dispose() }
+}
+function Read-VCX64SystemDllVersion([string]$Name) {
+    # Sysnative is the native System32 alias for a 32-bit PowerShell host, not SysWOW64.
+    $folder = if ([Environment]::Is64BitProcess) { 'System32' } else { 'Sysnative' }
+    $path = Join-Path (Join-Path ([Environment]::GetFolderPath('Windows')) $folder) $Name
+    if (-not [IO.File]::Exists($path)) { return $null }
+    $stream = [IO.File]::OpenRead($path)
+    try {
+        $reader = New-Object IO.BinaryReader($stream)
+        try {
+            if ($stream.Length -lt 64 -or $reader.ReadUInt16() -ne 0x5A4D) { return $null }
+            $stream.Position = 60
+            $pe = $reader.ReadUInt32()
+            if ($pe -lt 64 -or $pe -gt $stream.Length - 6) { return $null }
+            $stream.Position = $pe
+            if ($reader.ReadUInt32() -ne 0x00004550 -or $reader.ReadUInt16() -ne 0x8664) { return $null }
+            # Read the fixed file version metadata; do not load or call runtime code.
+            $info = [Diagnostics.FileVersionInfo]::GetVersionInfo($path)
+            return [version]::new($info.FileMajorPart, $info.FileMinorPart, $info.FileBuildPart, $info.FilePrivatePart)
+        } finally { $reader.Dispose() }
+    } finally { $stream.Dispose() }
+}
+function Assert-ExternalVCRuntime {
+    $minimum = [version]::new(14, 51, 36247, 0)
+    $supported = $false
+    try {
+        $version = Read-VCX64RegistryVersion
+        $supported = $null -ne $version -and $version.Major -eq 14 -and $version -ge $minimum
+        if ($supported) {
+            foreach ($name in @('msvcp140.dll', 'vcruntime140.dll', 'vcruntime140_1.dll')) {
+                $version = Read-VCX64SystemDllVersion $name
+                if ($null -eq $version -or $version.Major -ne 14 -or $version -lt $minimum) {
+                    $supported = $false
+                    break
+                }
+            }
+        }
+    } catch { $supported = $false }
+    if (-not $supported) {
+        Stop-Install 5 ('Microsoft Visual C++ Redistributable v14 (x64) 14.51.36247.0 이상이 없거나 확인할 수 없습니다. ' +
+            'Microsoft 공식 x64 설치기(https://aka.ms/vc14/vc_redist.x64.exe)를 직접 설치 또는 복구한 후 다시 실행하세요. ' +
+            '안내: https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist')
+    }
+}
 function Run-Exe([string]$Arguments, [string]$Tag) {
     $stdout = $null
     $stderr = $null
@@ -460,6 +519,7 @@ function Run-Exe([string]$Arguments, [string]$Tag) {
     }
 }
 function Requirements-Check([string]$Tag) {
+    Assert-ExternalVCRuntime
     $reportPath = Join-Path $script:Run ($Tag + '.json')
     if (Test-Path -LiteralPath $reportPath) { Stop-Install 3 '새 필수 항목 확인 기록 경로가 이미 있습니다.' }
     $code = Run-Exe ('--check-requirements "' + $reportPath + '"') $Tag

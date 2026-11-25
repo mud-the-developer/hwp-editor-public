@@ -1,4 +1,4 @@
-HWP Editor 1.0.0 — HWPX 보고서 작성·실시간 미리보기 Windows x64 설치 안내
+HWP Editor 1.0.0-rc.3 — HWPX 보고서 작성·실시간 미리보기 Windows x64 설치 안내
 Windows Presentation Foundation (WPF) 한 창의 왼쪽 HWPX 라이브 미리보기 / 오른쪽 순수 oh-my-pi (OMP) 터미널 2패널과 기본 접힘 서랍(Ctrl+B)으로 작성합니다.
 실제 후보의 버전·EXE·소스·검증 범위는 동봉 manifest와 체크섬으로 확인하세요.
 처음 사용한다면 동봉된 사용법.txt를 먼저 읽으세요.
@@ -13,7 +13,8 @@ Windows Presentation Foundation (WPF) 한 창의 왼쪽 HWPX 라이브 미리보
    동봉 해시/manifest는 바이트 일관성 검사이며 코드 서명이나 배포 허가가 아닙니다.
 3. Install-HWPReview.cmd를 실행합니다. Windows PowerShell 5.1을 사용하므로 PowerShell 7이 없어도 시작됩니다.
    앱·정확한 소스·고지·설치 스크립트의 전체 목록/크기/SHA-256과 빌드 입력 결합을 먼저 확인하고,
-   같은 HWPReview.exe --check-requirements로 필수 항목을 확인합니다. 누락분은 기존
+   EXE를 실행하기 전에 64비트 레지스트리와 Windows 시스템 DLL 버전으로 Visual C++ 런타임을 확인합니다.
+   그 뒤 같은 HWPReview.exe --check-requirements로 앱의 다른 필수 항목을 확인합니다. 누락분은 기존
    --setup-requirements 준비 창 한 경로로 설치하고 실제 상태를 다시 확인합니다.
    래퍼 자체를 관리자 실행할 필요는 없지만 Microsoft 설치기의 약관·개인정보 안내·UAC는 직접 확인합니다.
    실패·취소·불명확한 결과·재부팅 필요 시 중단합니다. 자동 재시도·복구·롤백·재부팅은 없습니다.
@@ -45,6 +46,14 @@ Windows Presentation Foundation (WPF) 한 창의 왼쪽 HWPX 라이브 미리보
 브라우저를 사용하지 않습니다. 기준 쪽과 수정안을 확인한 뒤 [이 수정안만 승인]과 [승인한 수정안 적용]을 별도로 실행합니다.
 설치·허가된 한글과 유효한 보안 모듈·COM 환경이 필요합니다. 보안 모듈의 준비는 위 필수 도구 경로만 사용합니다.
 
+먼저 직접 준비할 필수 항목 — Microsoft Visual C++ Redistributable v14 (x64)
+- 14.51.36247.0 이상이 필요합니다. 없거나 오래되었다면 Microsoft 공식 x64 설치기로 직접 설치 또는
+  복구한 뒤 다시 시도하세요. x86 런타임으로 대신할 수 없습니다.
+  공식 안내: https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist
+  공식 x64 설치기: https://aka.ms/vc14/vc_redist.x64.exe
+- 런타임 DLL과 설치기는 동봉하지 않습니다. 앱과 설치기는 이 런타임을 다운로드하거나 설치하지 않습니다.
+  HWPReview.exe 또는 Setup-Requirements.cmd를 직접 실행하기 전에도 준비해야 합니다.
+
 필수 환경 자동 준비 — 기존 앱 준비 창 하나를 재사용
 - .NET 10 Desktop Runtime x64, WebView2 Runtime, Bun1.4.4/OMP18.15.0, PowerShell7, Propo 글꼴이 필수입니다.
   호환 설치는 유지하며 누락분만 고정 공식 배포·크기·SHA-256·해당 Microsoft 서명 조건으로 준비합니다.
@@ -74,7 +83,7 @@ Windows Presentation Foundation (WPF) 한 창의 왼쪽 HWPX 라이브 미리보
   보존이 필요하면 종료 코드3과 retained 목록을 남깁니다. 핵심 파일 삭제의 사전검사 실패 시
   제거 엔진·wrapper·manifest·영수증4개를 함께 보존합니다. 삭제 도중 커널/저장장치 오류나 프로세스 중단은
   원자적 작업이 아니므로 부분 상태가 남을 수 있습니다. 로그를 보존하고 자동 재시도/복구하지 마세요.
-  문서·Projects·AppData·인증/프로필·공유 .NET/WebView2/PowerShell/글꼴/Bun/OMP는 제거하지 않습니다.
+  문서·Projects·AppData·인증/프로필·공유 Visual C++/.NET/WebView2/PowerShell/글꼴/Bun/OMP는 제거하지 않습니다.
 - 소유권은 hwp-user-install-receipt-v2입니다. 검증한 log_directory와 경로 표기를 보관하고 Windows 제거 명령과
   기본 제거 wrapper가 같은 설정을 사용합니다. 옛 영수증을 수정하거나 다른 후보 파일과 섞지 마세요.
 - 설치/제거는 hwp-install-operation-v1 JSON입니다. 0=완료/동일 설치/이미 없음,1=실패,
@@ -137,10 +146,10 @@ Windows Presentation Foundation (WPF) 한 창의 왼쪽 HWPX 라이브 미리보
 정확한 소스와 라이선스
 - HWP Editor는 AGPL-3.0-only입니다. LICENSE와 licenses/ 원문 고지를 확인하세요.
   비상업 전용이 아니며 조건을 지키는 상업 배포도 가능합니다. 수정·재배포 권리를 제한하지 않습니다.
-- 동봉 HWPReview-source-1.0.0.zip은 정확한 allowlist 입력 snapshot입니다.
+- 동봉 HWPReview-source-1.0.0-rc.3.zip은 정확한 allowlist 입력 snapshot입니다.
   SOURCE-MANIFEST.json과 동봉 체크섬의 hash를 검증하세요.
   Git 공개 태그/저장소 전체/Native proof로 간주하지 않습니다.
-- 별도로 준비하는 HWPReview-corresponding-source-<version>.zip에는 같은 앱 입력 ZIP, 고정 상류 소스·라이선스·빌드 자료 21개 및 출처 인덱스가 있습니다. PyMuPDF1.26.7/MuPDF1.26.12, runtime/xterm/SDK 원본, rhwp0.8.7 원본 npm·curated Rust/build·registry 자료를 포함합니다.
+- 공개 HWPReview-corresponding-source-<version>.zip에는 같은 앱 입력 ZIP, 상류 자료 20개와 출처 인덱스가 있습니다. 필요한 WebView2 SDK는 앱 ZIP에 포함되며 전체 NuGet은 출처 검증에만 사용합니다. pywin32의 AutoDuck·SWIG 사전 빌드 실행기는 전달하지 않습니다.
   curated 자료는 원본 전체 저장소/전체 시험 실행 보장이 아니며, 빌드 입력·원문·checksum과 제외 목록을 따로 표시합니다. 정확한 npm WASM/wheel 재현을 실행했다고 보지 않습니다.
   source/notices/검증 manifest의 파일 목록과 SHA256을 확인하고, 이 자료가 빠진 EXE 전용 복사본이나 과거 ZIP을 완전한 배포 세트로 전달하지 마세요.
   추가 대응 소스는 설치 ZIP을 푼 닫힌 폴더 밖에 별도 보관하세요. 임의 파일/폴더를 설치 원본에 추가하면

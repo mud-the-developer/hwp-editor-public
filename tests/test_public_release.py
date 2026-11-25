@@ -11,7 +11,9 @@ from unittest import mock
 import zipfile
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 import prepare_public_release as public
+from test_build_candidate import synthetic_carchive
 
 REPOSITORY = "https://github.com/mud-the-developer/hwp-editor-public"
 
@@ -84,7 +86,9 @@ class PublicReleaseTests(unittest.TestCase):
         inputs = {name: public.source.sha256(self.root / name) for name in names}
         self.candidate = self.base / "candidate"
         self.candidate.mkdir()
-        (self.candidate / "HWPReview.exe").write_bytes(b"fixture-executable-not-run")
+        (self.candidate / "HWPReview.exe").write_bytes(
+            synthetic_carchive(("native-ui/WebView2Loader.dll", b"b"))
+        )
         archive = public.source.write_source_archive(
             self.root, inputs, self.candidate / "HWPReview-source-1.2.3.zip", version="1.2.3",
         )
@@ -153,6 +157,42 @@ class PublicReleaseTests(unittest.TestCase):
     def test_rejects_changed_executable(self):
         (self.candidate / "HWPReview.exe").write_bytes(b"tampered")
         self.assert_rejected_before_creation()
+
+    def test_rejects_resealed_runtime_members_in_the_actual_carchive(self):
+        exe = self.candidate / "HWPReview.exe"
+        for name, kind in (
+                (r"nested\MsVcP140.dLl", b"b"),
+                ("pythonwin/MFc140U.dll", b"x"),
+                (r"SDK\VCrUnTiMe140_ApP.dLl", b"b"),
+                ("payload/VC_redist.x64.exe", b"x")):
+            with self.subTest(name=name):
+                exe.write_bytes(synthetic_carchive((name, kind)))
+                self.build["executable_sha256"] = public.source.sha256(exe)
+                seal(self.candidate, self.build, self.root)
+                public.bundle.verify_payload(self.candidate, version="1.2.3")
+                with self.assertRaisesRegex(ValueError, "External Visual C\\+\\+ component in frozen archive"):
+                    self.prepare()
+                self.assertFalse(self.output.exists())
+
+    def test_rejects_a_resealed_non_carchive(self):
+        exe = self.candidate / "HWPReview.exe"
+        exe.write_bytes(b"not a onefile archive")
+        self.build["executable_sha256"] = public.source.sha256(exe)
+        seal(self.candidate, self.build, self.root)
+        with self.assertRaisesRegex(ValueError, "CArchive"):
+            self.prepare()
+        self.assertFalse(self.output.exists())
+
+    def test_rejects_resealed_runtime_setup_masquerading_as_a_notice(self):
+        name = "Vc_RedIsT.x64.ExE"
+        path = self.candidate / "licenses" / name
+        path.write_bytes(b"not an actual installer")
+        self.build["licenses_sha256"][name] = public.source.sha256(path)
+        seal(self.candidate, self.build, self.root)
+        public.bundle.verify_payload(self.candidate, version="1.2.3")
+        with self.assertRaisesRegex(ValueError, "External Visual C\\+\\+ component in installer payload"):
+            self.prepare()
+        self.assertFalse(self.output.exists())
 
     def test_rejects_different_committed_source(self):
         (self.root / "recipe.py").write_bytes(b"different commit")

@@ -2,13 +2,15 @@
 
 ## 현재 범위와 준비
 
-`1.0.0` 공개 소스는 Windows x64 WPF 앱입니다. 기본 화면은 왼쪽 HWPX 라이브 미리보기와 오른쪽 ConPTY·xterm·WebView2 기반 OMP 터미널입니다. `Ctrl+B`로 작업 문서와 체크포인트 서랍을 엽니다. 기존 `.hwp` 검토는 별도 데스크톱 창에서 진행합니다. [현재 상태](status.md)는 실제 검증과 소스 기능을 구분합니다.
+`1.0.0-rc.3` 공개 소스는 Windows x64 WPF 앱입니다. 기본 화면은 왼쪽 HWPX 라이브 미리보기와 오른쪽 ConPTY·xterm·WebView2 기반 OMP 터미널입니다. `Ctrl+B`로 작업 문서와 체크포인트 서랍을 엽니다. 기존 `.hwp` 검토는 별도 데스크톱 창에서 진행합니다. [현재 상태](status.md)는 실제 검증과 소스 기능을 구분합니다.
 
 필수 환경은 **.NET 10 Desktop Runtime x64, WebView2 Runtime, Bun 1.4.4/OMP 18.15.0, PowerShell 7.6.9, Nerd Fonts 3.5.1의 D2KodingLigature Nerd Font Propo**입니다. Python은 EXE에 포함됩니다. 일반 .NET Runtime은 Desktop Runtime을 대신하지 않습니다.
 
 WebView2 **SDK 1.0.4314.35**의 고정 Core/Wpf assembly·x64 Loader 3개와 LICENSE/NOTICE는 소스의 개발 입력입니다. SDK 포함은 외부 WebView2 **Runtime** 포함이나 사용권 대체가 아닙니다. 터미널 자산은 xterm 6.0.0, fit 0.11.0, graphemes 0.4.0이며 graphemes는 upstream experimental입니다. HWPX 렌더러는 `@rhwp/core 0.8.7`입니다.
 
 ## Windows 설치·제거
+
+먼저 **Microsoft Visual C++ v14 x64 런타임(14.51.36247.0 이상)**을 확인합니다. 없거나 오래되면 [Microsoft 공식 x64 런타임](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)을 직접 설치하세요. 공개 키트에는 이 런타임이 없고 설치 스크립트가 다운로드하거나 설치하지도 않습니다.
 
 정확한 공개 소스에서 새로 만든 키트만 사용하세요. ZIP 전체를 새 고정 로컬 폴더에 풀고 신뢰할 수 있는 별도 경로로 출처·체크섬을 확인한 뒤 `Install-HWPReview.cmd`를 실행합니다. 독립 Setup.exe가 아니라 Windows PowerShell 5.1 스크립트입니다. 코드 서명이나 해시 자체가 게시자 신원을 인증하지 않습니다.
 
