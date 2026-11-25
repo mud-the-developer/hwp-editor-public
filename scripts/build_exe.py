@@ -601,7 +601,7 @@ def promote_release(release, dist, artifact_set):
 
 def validate_native_evidence(evidence, executable, *, schema=1):
     """READ ONLY exact toy/worker evidence; not a signature or submission approval."""
-    from hwp_contract_apply import PROPOSALS, contract_gate
+    from hwp_contract_apply import PROPOSALS, SAVED_EXPORT_COPY, contract_gate
     from hwp_text_apply import real_path
 
     import hwp_review as r
@@ -713,10 +713,11 @@ def validate_native_evidence(evidence, executable, *, schema=1):
         or layout.get("passed") is not True
     ):
         raise ValueError("Incomplete actual Native gates")
-    # Recheck both owned Native phases without reopening COM or resealing results.
+    # Schema 3's worker owns the edit and the independent reopen; the other
+    # contracts record those owned exits in two workers.
     kind = "text" if schema == 1 else "contract"
     scope_sha = r.plan_hash(r.native_approval_scope(plan)) if schema != 1 else None
-    for phase in (0, 1):
+    for phase in ((0,) if schema == 3 else (0, 1)):
         reply = r.result_json(run, f"{kind}-export-reply-{phase}.json") or {}
         native = reply.get("native")
         owner = native.get("owned_session") if isinstance(native, dict) else None
@@ -741,15 +742,6 @@ def validate_native_evidence(evidence, executable, *, schema=1):
             )
         ):
             raise ValueError("Missing exact owned Native worker completion")
-        edit_owner = native.get("edit_owned_session")
-        if schema == 3 and phase == 0 and (
-            native.get("native_verification_origin") != "saved_hwp_copy"
-            or not isinstance(edit_owner, dict)
-            or edit_owner.get("exit_confirmed") is not True
-            or edit_owner.get("status") != "owned_exit_confirmed"
-            or native.get("saved_export_copy_sha256") != r.file_hash(run / "candidate.hwp")
-        ):
-            raise ValueError("Missing original row-minima saved-HWP evidence")
 
     baseline, pdf = workspace / "baseline.pdf", run / "candidate.pdf"
     masks = {}
@@ -757,6 +749,30 @@ def validate_native_evidence(evidence, executable, *, schema=1):
         r.structural_gate(
             workspace / "baseline.hwpx", run / "candidate.hwpx", plan["edits"]
         )
+    elif schema == 3:
+        edit_owner = native.get("edit_owned_session")
+        reopened = real_path(run / "candidate.hwpx")
+        saved_copy = real_path(run / SAVED_EXPORT_COPY)
+        if (
+            verification.get("native_edit_export") != native
+            or native.get("native_verification_origin") != "saved_hwp_copy"
+            or not isinstance(edit_owner, dict)
+            or edit_owner.get("exit_confirmed") is not True
+            or edit_owner.get("status") != "owned_exit_confirmed"
+            or edit_owner == owner
+            or native.get("saved_export_copy_sha256") != r.file_hash(run / "candidate.hwp")
+            or not saved_copy.is_file()
+            or r.file_hash(saved_copy) != native["saved_export_copy_sha256"]
+            or r.file_hash(reopened) != native.get("reopened_hwpx_sha256")
+            or r.file_hash(pdf) != native.get("reopened_pdf_sha256")
+        ):
+            raise ValueError("Missing original row-minima saved-HWP evidence")
+        replayed = contract_gate(workspace, reopened, plan, selected)
+        if (
+            replayed != native.get("saved_hwp_contract")
+            or replayed != verification.get("native_contract")
+        ):
+            raise ValueError("Saved-HWP Native structure proof no longer matches")
     else:
         reopened = real_path(run / "candidate-reopened.hwpx")
         saved = verification.get("saved_hwp_reopen_export")

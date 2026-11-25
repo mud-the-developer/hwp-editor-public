@@ -93,6 +93,8 @@ def step_paths(workspace, run_id, phase):
         raise ValueError("Current Native contract changed during apply")
     selected = r.approved_plan(workspace, plan, manifest)
     if plan["schema"] == 3:
+        if phase != 0:
+            raise ValueError("Schema 3 verifies its saved HWP in one worker")
         r.hwp_fixed_layout.require_native_profile(workspace / "baseline.hwpx")
         import hwp_native_cells as cells
 
@@ -145,7 +147,11 @@ def step_paths(workspace, run_id, phase):
     if phase == 1:
         contract_gate(workspace, run / "candidate.hwpx", plan, selected)
     outputs = (
-        (run / "candidate-buffer.pdf", run / "candidate.hwpx", run / "candidate.hwp")
+        (
+            run / ("candidate.pdf" if plan["schema"] == 3 else "candidate-buffer.pdf"),
+            run / "candidate.hwpx",
+            run / "candidate.hwp",
+        )
         if phase == 0
         else (run / "candidate.pdf", run / "candidate-reopened.hwpx", None)
     )
@@ -158,10 +164,16 @@ def step_paths(workspace, run_id, phase):
         if phase == 0 and plan["schema"] in (3, 4)
         else None
     )
-    saved_export = (
-        run / SAVED_EXPORT_COPY if phase == 0 and plan["schema"] == 3 else None
+    prior_outputs = (
+        (
+            run / SAVED_EXPORT_COPY,
+            run / "candidate-buffer.pdf",
+            run / "candidate-reopened.hwpx",
+        )
+        if plan["schema"] == 3
+        else ()
     )
-    for path in (*outputs, copied, prepared, legacy_input, saved_export, reply):
+    for path in (*outputs, copied, prepared, legacy_input, *prior_outputs, reply):
         if path is not None:
             real_path(path)
             if path.exists():
@@ -217,6 +229,9 @@ class NativeContractExporter:
             raise ValueError("Native output run must be owned")
         plan = read_plan(run / "plan.json")
         self._require_qualified(plan)
+        saved_table = plan["schema"] == 3
+        if saved_table and self.phase != 0:
+            raise ValueError("Schema 3 verifies its saved HWP in one worker")
         manifest = r.verify_baseline(self.workspace)
         if r.plan_hash(plan) != self.expected_hash:
             raise ValueError("Native exporter plan changed")
@@ -232,7 +247,7 @@ class NativeContractExporter:
         )
         expected_outputs = (
             (
-                run / "candidate-buffer.pdf",
+                run / ("candidate.pdf" if saved_table else "candidate-buffer.pdf"),
                 run / "candidate.hwpx",
                 run / "candidate.hwp",
             )
@@ -309,6 +324,18 @@ class NativeContractExporter:
             read_plan(run / "plan.json"),
             r.verify_baseline(self.workspace),
         )
+        if saved_table:
+            native = data["native"]
+            for name, digest in (
+                ("candidate.hwp", "saved_export_copy_sha256"),
+                ("candidate.hwpx", "reopened_hwpx_sha256"),
+                ("candidate.pdf", "reopened_pdf_sha256"),
+            ):
+                path = real_path(run / name)
+                if not path.is_file() or r.file_hash(path) != native.get(digest):
+                    raise ValueError(
+                        "Saved-HWP table artifact missing or changed: " + name
+                    )
         if self.phase == 1:
             reopened = real_path(run / "candidate-reopened.hwpx")
             expected_sha = data["native"].get("reopened_hwpx_sha256")
@@ -331,7 +358,7 @@ class NativeContractExporter:
                 r.verify_baseline(self.workspace),
             )
         r.assert_apply_lock_owned(self.workspace, lease)
-        self.phase += 1
+        self.phase = 2 if saved_table else self.phase + 1
         return data["native"]
 
 
@@ -639,7 +666,8 @@ def _export_phase(
     if not saved_table:
         return native
 
-    # Verify the persisted HWP origin, not HWPX->HWPX serialization metadata.
+    # Reopen the persisted HWP once. Export the structure evidence and delivery
+    # PDF from that same independently owned session, never from the edit buffer.
     saved = outputs[2]
     if saved is None:
         raise ValueError("Fixed table export requires its saved HWP")
@@ -674,12 +702,16 @@ def _export_phase(
         if int(app.PageCount) != pages:
             raise ValueError("Saved Native HWP page count changed during export")
         authorized()
+        proof = contract_gate(workspace, outputs[1], plan, selected)
         native.update(
             native_pages=pages,
             edit_owned_session=edit_ownership,
             owned_session=app.ownership,
             native_verification_origin="saved_hwp_copy",
             saved_export_copy_sha256=protected[saved_copy],
+            saved_hwp_contract=proof,
+            reopened_hwpx_sha256=protected[outputs[1]],
+            reopened_pdf_sha256=protected[outputs[0]],
         )
     authorized()
     return native

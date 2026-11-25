@@ -58,7 +58,12 @@ def package(path, cells=None, extra="", declaration="", *, plain_native=False):
         if plain_native:
             z.writestr(
                 "Contents/content.hpf",
-                b'<opf:package xmlns:opf="http://www.idpf.org/2007/opf/"><opf:manifest><opf:item id="header" href="Contents/header.xml"/><opf:item id="section0" href="Contents/section0.xml"/></opf:manifest><opf:spine><opf:itemref idref="header" linear="yes"/><opf:itemref idref="section0" linear="yes"/></opf:spine></opf:package>',
+                b'<opf:package xmlns:opf="http://www.idpf.org/2007/opf/">'
+                b'<opf:metadata><opf:meta name="ModifiedDate">2000-01-01T00:00:00Z</opf:meta></opf:metadata>'
+                b'<opf:manifest><opf:item id="header" href="Contents/header.xml"/>'
+                b'<opf:item id="section0" href="Contents/section0.xml"/></opf:manifest>'
+                b'<opf:spine><opf:itemref idref="header" linear="yes"/>'
+                b'<opf:itemref idref="section0" linear="yes"/></opf:spine></opf:package>',
             )
         z.writestr("Contents/section0.xml", raw.encode())
         z.writestr("Contents/header.xml", b"LOCKED-STYLES")

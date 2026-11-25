@@ -119,7 +119,11 @@ class SavedTableExportTests(unittest.TestCase):
             Version="SYNTHETIC" if index == 0 else self.second_version,
             GetTextFile=Mock(return_value=TEXT if index == 0 else self.second_text),
             XHwpDocuments=SimpleNamespace(Count=1, Item=lambda _: doc),
-            ownership={"synthetic_only": True, "exit_confirmed": False},
+            ownership={
+                "pid": index + 1,
+                "status": "owned_blank_verified",
+                "exit_confirmed": False,
+            },
         )
 
         def open_copy(name, fmt, options):
@@ -157,7 +161,7 @@ class SavedTableExportTests(unittest.TestCase):
             else:
                 self.assertIn(
                     (target.name, fmt),
-                    (("candidate.hwpx", "HWPX"), ("candidate-buffer.pdf", "PDF")),
+                    (("candidate.hwpx", "HWPX"), ("candidate.pdf", "PDF")),
                 )
                 if not self.second_save_ok:
                     return False
@@ -175,7 +179,7 @@ class SavedTableExportTests(unittest.TestCase):
         finally:
             if index == 0 and not self.first_exit_ok:
                 raise RuntimeError("SYNTHETIC edit exit unconfirmed")
-            app.ownership["exit_confirmed"] = True
+            app.ownership.update(status="owned_exit_confirmed", exit_confirmed=True)
             self.events.append(("exit", index))
             if index == 0:
                 self.after_first_exit()
@@ -194,7 +198,7 @@ class SavedTableExportTests(unittest.TestCase):
 
     def assert_no_verification_exports(self):
         self.assertFalse((self.run_dir / "candidate.hwpx").exists())
-        self.assertFalse((self.run_dir / "candidate-buffer.pdf").exists())
+        self.assertFalse((self.run_dir / "candidate.pdf").exists())
         self.assertTrue((self.w / r.APPLY_LOCK).exists())
 
     def test_saved_hwp_origin_preserves_public_outputs_and_all_structural_gates(self):
@@ -230,13 +234,75 @@ class SavedTableExportTests(unittest.TestCase):
             result["saved_export_copy_sha256"],
             r.file_hash(self.run_dir / "candidate.hwp"),
         )
+        self.assertEqual(result["saved_hwp_contract"]["policy"], r.hwp_fixed_layout.POLICY)
         self.assertEqual(
-            n.contract_gate(
-                self.w, self.run_dir / "candidate.hwpx", self.plan, self.selected
-            )["policy"],
-            r.hwp_fixed_layout.POLICY,
+            result["reopened_pdf_sha256"], r.file_hash(self.run_dir / "candidate.pdf")
         )
         self.assert_inputs_unchanged()
+
+    def test_exact_apply_binds_the_reopened_pdf_and_never_exports_again(self):
+        # Drop the scratch fixture's test lease; apply must take a new one.
+        (self.w / r.APPLY_LOCK).unlink()
+        sha = r.plan_hash(self.plan)
+        exporter = n.NativeContractExporter(self.w, sha)
+
+        def child(command, **_kwargs):
+            run_id = command[command.index("--contract-run") + 1]
+            phase = int(command[command.index("--contract-phase") + 1])
+            self.run_dir = self.w / "runs" / run_id
+            return SimpleNamespace(
+                wait=lambda timeout: n.run_worker(self.w, run_id, phase)
+            )
+
+        with (
+            patch.object(n, "_native_session", side_effect=self.session),
+            patch.object(n.subprocess, "Popen", side_effect=child),
+            patch.object(r, "compare_pdfs", return_value={"passed": True}),
+            patch.object(r, "rendered_text_gate", return_value=True),
+            patch.object(r, "hwp_audit", return_value={"embedded_binary_hashes": []}),
+        ):
+            report = r.apply(
+                self.w,
+                self.w / n.PROPOSALS[3],
+                contract_exporter=exporter,
+                expected_plan_sha256=sha,
+            )
+        manifest = r.verify_baseline(self.w)
+        state = r.inspect_result(self.run_dir, manifest, self.plan, report)
+        self.assertEqual(state["state"], "verified")
+        pdf = self.run_dir / "candidate.pdf"
+        self.assertEqual(
+            state["artifact_sha256"][pdf.name],
+            report["native_edit_export"]["reopened_pdf_sha256"],
+        )
+        pdf.write_bytes(b"DIFFERENT FROM THE SINGLE REOPEN")
+        self.assertEqual(
+            r.inspect_result(self.run_dir, manifest, self.plan, report)["state"], "mismatch"
+        )
+
+    def test_sole_saved_export_rejects_body_reading_order_drift(self):
+        expected = self.w / "expected-fixture/candidate.hwpx"
+        parts = r.archive(expected)
+        member = "Contents/content.hpf"
+        before = b'idref="section0" linear="yes"'
+        self.assertIn(before, parts[member])
+        parts[member] = parts[member].replace(before, b'idref="section0" linear="no"')
+        invalid = self.w / "body-reading-order-drift.hwpx"
+        with zipfile.ZipFile(invalid, "x") as package:
+            for name, raw in parts.items():
+                package.writestr(name, raw)
+        self.hwpx = invalid.read_bytes()
+        with self.assertRaisesRegex(ValueError, "package metadata"):
+            self.invoke()
+        self.assertEqual((self.run_dir / "candidate.hwpx").read_bytes(), self.hwpx)
+        self.assertTrue((self.w / r.APPLY_LOCK).is_file())
+        self.assert_inputs_unchanged()
+
+    def test_second_reopen_worker_is_rejected_before_hancom(self):
+        with self.assertRaisesRegex(ValueError, "one worker"):
+            n.export_phase(self.w, self.run_dir.name, 1)
+        self.security.assert_not_called()
+        self.assert_no_verification_exports()
 
     def test_generic_source_schema3_is_not_a_fixed_worker_alternative(self):
         legacy = importlib.import_module("native_hwp")
@@ -394,11 +460,8 @@ class SavedTableExportTests(unittest.TestCase):
             for name, data in parts.items():
                 package.writestr(name, data)
         self.hwpx = changed.read_bytes()
-        self.invoke()
         with self.assertRaisesRegex(ValueError, "Contents/header.xml"):
-            n.contract_gate(
-                self.w, self.run_dir / "candidate.hwpx", self.plan, self.selected
-            )
+            self.invoke()
         self.assert_inputs_unchanged()
 
     def test_saved_origin_still_rejects_unselected_structure_change(self):
@@ -411,11 +474,8 @@ class SavedTableExportTests(unittest.TestCase):
             for name, raw in parts.items():
                 package.writestr(name, raw)
         self.hwpx = invalid.read_bytes()
-        self.invoke()
         with self.assertRaises(ValueError):
-            n.contract_gate(
-                self.w, self.run_dir / "candidate.hwpx", self.plan, self.selected
-            )
+            self.invoke()
         self.assert_inputs_unchanged()
 
     def test_second_exit_mutation_cannot_get_a_success_reply(self):

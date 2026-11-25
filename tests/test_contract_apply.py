@@ -88,10 +88,11 @@ class ContractWorkerTests(unittest.TestCase):
                 paths = n.step_paths(w, run.name, 0)
                 self.assertEqual(paths[2], source)
                 self.assertEqual(paths[7], request)
+                expected_pdf = "candidate.pdf" if schema == 3 else "candidate-buffer.pdf"
                 self.assertEqual(
                     paths[3],
                     (
-                        run / "candidate-buffer.pdf",
+                        run / expected_pdf,
                         run / "candidate.hwpx",
                         run / "candidate.hwp",
                     ),
@@ -171,7 +172,7 @@ class ContractWorkerTests(unittest.TestCase):
         self.assertTrue((w / r.APPLY_LOCK).exists())
 
     def test_fixed_parent_command_uses_no_stdin_and_reply_binds_scope(self):
-        w, run, source, plan, request = self.stage(3)
+        w, run, source, plan, request = self.stage(4)
         (run / "contract-export-request-0.json").unlink()
 
         def child(command, **kwargs):
@@ -192,7 +193,7 @@ class ContractWorkerTests(unittest.TestCase):
                 run / "contract-export-reply-0.json",
                 {
                     "ok": True,
-                    "schema": 3,
+                    "schema": 4,
                     "phase": 0,
                     "plan_sha256": r.plan_hash(plan),
                     "approval_scope_sha256": request["approval_scope_sha256"],
@@ -242,7 +243,7 @@ class ContractWorkerTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 exporter(
                     source,
-                    run / "candidate-buffer.pdf",
+                    run / "candidate.pdf",
                     hwpx=run / "candidate.hwpx",
                     hwp=run / "candidate.hwp",
                     native_workspace=w,

@@ -1062,6 +1062,7 @@ def apply(
         # Recheck after exclusive acquisition; consent can never be inferred from a lock.
         selected = approved_plan(workspace, plan, verify_baseline(workspace))
         candidate = run / "candidate.hwpx"
+        saved_table = plan["schema"] == 3 and contract_exporter is not None
         if plan["schema"] in (2, 3, 4):
             # The child rechecks the exact UI approval, edits only a source COPY,
             # and lets Hancom generate caches. Never feed it invalid patched XML.
@@ -1072,12 +1073,21 @@ def apply(
             )
             report["native_edit_export"] = edit_exporter(
                 Path(manifest["source"]),
-                run / "candidate-buffer.pdf",
+                run / ("candidate.pdf" if saved_table else "candidate-buffer.pdf"),
                 hwpx=candidate,
                 hwp=run / "candidate.hwp",
                 native_workspace=workspace,
                 native_plan=run / "plan.json",
             )
+            if saved_table:
+                native = report["native_edit_export"]
+                immutable.update(
+                    {
+                        "candidate.hwp": native["saved_export_copy_sha256"],
+                        "candidate.hwpx": native["reopened_hwpx_sha256"],
+                        "candidate.pdf": native["reopened_pdf_sha256"],
+                    }
+                )
             for name, sha in result_artifact_hashes(run).items():
                 if name != "verification.json":
                     immutable.setdefault(name, sha)
@@ -1099,6 +1109,12 @@ def apply(
                 report["native_contract"] = gate(
                     workspace / "baseline.hwpx", candidate, plan
                 )
+            if saved_table and report["native_contract"] != native.get(
+                "saved_hwp_contract"
+            ):
+                raise ValueError(
+                    "Saved-HWP table structure proof differs from parent verification"
+                )
         else:
             patch_hwpx(workspace / "baseline.hwpx", candidate, plan["edits"])
             immutable["candidate.hwpx"] = file_hash(candidate)
@@ -1112,17 +1128,18 @@ def apply(
                 if name != "verification.json":
                     immutable.setdefault(name, sha)
         report["structural_gate"] = True
-        report["stage"] = "saved_hwp_reopen"
-        write_json(run / "verification.json", report)
-        reopened_native = export(run / "candidate.hwp", run / "candidate.pdf")
-        if contract_exporter is not None:
-            report["saved_hwp_reopen_export"] = reopened_native
-            immutable["candidate-reopened.hwpx"] = reopened_native[
-                "reopened_hwpx_sha256"
-            ]
-        for name, sha in result_artifact_hashes(run).items():
-            if name != "verification.json":
-                immutable.setdefault(name, sha)
+        if not saved_table:
+            report["stage"] = "saved_hwp_reopen"
+            write_json(run / "verification.json", report)
+            reopened_native = export(run / "candidate.hwp", run / "candidate.pdf")
+            if contract_exporter is not None:
+                report["saved_hwp_reopen_export"] = reopened_native
+                immutable["candidate-reopened.hwpx"] = reopened_native[
+                    "reopened_hwpx_sha256"
+                ]
+            for name, sha in result_artifact_hashes(run).items():
+                if name != "verification.json":
+                    immutable.setdefault(name, sha)
         report["stage"] = "rendered_verification"
         write_json(run / "verification.json", report)
         masks = {}
@@ -1284,6 +1301,42 @@ def result_artifact_hashes(directory: Path) -> dict:
     return hashes
 
 
+def _bound_result_artifacts(plan: dict, report: dict, hashes: dict) -> bool:
+    complete = report.get("status") == "checks_passed_needs_human_visual_review"
+    required = set(RESULT_ARTIFACTS) if complete else {"plan.json", "verification.json"}
+    native = report.get("native_edit_export")
+    if (
+        plan.get("schema") == 3
+        and isinstance(native, dict)
+        and "reopened_pdf_sha256" in native
+    ):
+        # Older schema-3 records retain their two-export bindings. Only new
+        # records bound to one actual saved-HWP reopen omit the buffer PDF.
+        required.discard("candidate-buffer.pdf")
+        if (
+            native.get("native_verification_origin") != "saved_hwp_copy"
+            or "saved_hwp_reopen_export" in report
+            or {"candidate-buffer.pdf", "candidate-reopened.hwpx"} & hashes.keys()
+            or any(
+                name not in hashes or hashes[name] != native.get(key)
+                for name, key in (
+                    ("candidate.hwpx", "reopened_hwpx_sha256"),
+                    ("candidate.pdf", "reopened_pdf_sha256"),
+                    ("candidate.hwp", "saved_export_copy_sha256"),
+                )
+            )
+        ):
+            return False
+    if "saved_hwp_reopen_export" in report:
+        required.add("candidate-reopened.hwpx")
+        reopened = report["saved_hwp_reopen_export"]
+        if not isinstance(reopened, dict) or reopened.get(
+            "reopened_hwpx_sha256"
+        ) != hashes.get("candidate-reopened.hwpx"):
+            return False
+    return required.issubset(hashes)
+
+
 def seal_result(
     directory: Path, manifest: dict, plan: dict, expected: dict | None = None
 ) -> None:
@@ -1294,20 +1347,10 @@ def seal_result(
     ) not in {"blocked", "checks_passed_needs_human_visual_review"}:
         raise ValueError("Cannot bind an unfinished or legacy result")
     hashes = result_artifact_hashes(directory)
-    required: set[str] = (
-        set(RESULT_ARTIFACTS)
-        if report["status"] == "checks_passed_needs_human_visual_review"
-        else {"plan.json", "verification.json"}
-    )
-    if "saved_hwp_reopen_export" in report:
-        required.add("candidate-reopened.hwpx")
-        native = report["saved_hwp_reopen_export"]
-        if not isinstance(native, dict) or native.get(
-            "reopened_hwpx_sha256"
-        ) != hashes.get("candidate-reopened.hwpx"):
-            raise ValueError("Saved-HWP structure proof differs from bound result")
-    if not required.issubset(hashes):
-        raise ValueError("Incomplete result artifacts")
+    if not _bound_result_artifacts(plan, report, hashes):
+        raise ValueError(
+            "Incomplete result artifacts or mismatched saved-HWP structure proof"
+        )
     if expected is not None and any(
         hashes.get(name) != sha for name, sha in expected.items()
     ):
@@ -1414,16 +1457,7 @@ def inspect_result(
             or plan_hash(plan) != data["plan_sha256"]
             or not isinstance(report, dict)
             or report.get("result_binding_policy") != RESULT_POLICY
-            or report.get("status") == "checks_passed_needs_human_visual_review"
-            and not set(RESULT_ARTIFACTS).issubset(hashes)
-            or isinstance(report, dict)
-            and "saved_hwp_reopen_export" in report
-            and (
-                not isinstance(report["saved_hwp_reopen_export"], dict)
-                or "candidate-reopened.hwpx" not in hashes
-                or report["saved_hwp_reopen_export"].get("reopened_hwpx_sha256")
-                != hashes["candidate-reopened.hwpx"]
-            )
+            or not _bound_result_artifacts(plan, report, hashes)
         ):
             state["issues"].append(
                 {"code": "binding_contract_mismatch", "artifact": None}

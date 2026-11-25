@@ -22,17 +22,32 @@ class ReopenedContractTests(unittest.TestCase):
         self.addCleanup(self.harness.doCleanups)
 
     def stage(self):
-        w, run, _, plan, request = self.harness.stage(3)
-        fixture = old.layout_fixture.FixedLayoutTests()
-        fixture.base = w / "baseline.hwpx"
-        fixture.plan = plan
-        fixture.path = run
-        fixture.candidate()
+        w, run, _, plan, request = self.harness.stage(4)
+        baseline = w / "baseline.hwpx"
+        selected = r.approved_plan(w, plan, r.verify_baseline(w))
+        r.hwp_fill_plan.write_input(baseline, run / "candidate.hwpx", selected)
         source = run / "candidate.hwp"
         source.write_bytes(b"SYNTHETIC SAVED HWP")
         request = {**request, "phase": 1, "input_sha256": r.file_hash(source)}
         r.write_json(run / "contract-export-request-1.json", request)
         return w, run, source, plan, request
+
+    def change_export(self, path, *, wrong_text):
+        parts = r.archive(path)
+        part, before, after = (
+            ("Contents/section0.xml", b"Value B", b"Wrong B")
+            if wrong_text
+            else (
+                "Contents/content.hpf",
+                b'idref="section0" linear="yes"',
+                b'idref="section0" linear="no"',
+            )
+        )
+        self.assertIn(before, parts[part])
+        parts[part] = parts[part].replace(before, after)
+        with zipfile.ZipFile(path, "w") as archive:
+            for name, raw in parts.items():
+                archive.writestr(name, raw)
 
     def parent(self, *, mode="valid", gate=None):
         w, run, source, plan, request = self.stage()
@@ -53,23 +68,8 @@ class ReopenedContractTests(unittest.TestCase):
             reopened = run / "candidate-reopened.hwpx"
             if mode != "missing":
                 reopened.write_bytes(candidate_bytes)
-                if mode in ("drift", "missing_cache"):
-                    parts = r.archive(reopened)
-                    if mode == "missing_cache":
-                        parts["Contents/section0.xml"] = (
-                            old.layout_fixture.without_selected_cache(
-                                parts["Contents/section0.xml"]
-                            )
-                        )
-                    else:
-                        parts["Contents/section0.xml"] = parts[
-                            "Contents/section0.xml"
-                        ].replace(
-                            b"Protected synthetic label", b"CHANGED synthetic label"
-                        )
-                    with zipfile.ZipFile(reopened, "w") as archive:
-                        for name, raw in parts.items():
-                            archive.writestr(name, raw)
+                if mode in ("drift", "reading_order"):
+                    self.change_export(reopened, wrong_text=(mode == "drift"))
             (run / "candidate.pdf").write_bytes(b"SYNTHETIC REOPEN PDF")
             native = {
                 "reopened_hwpx_sha256": r.file_hash(reopened)
@@ -95,7 +95,7 @@ class ReopenedContractTests(unittest.TestCase):
                 run / "contract-export-reply-1.json",
                 {
                     "ok": True,
-                    "schema": 3,
+                    "schema": 4,
                     "phase": 1,
                     "plan_sha256": r.plan_hash(plan),
                     "approval_scope_sha256": request["approval_scope_sha256"],
@@ -118,7 +118,7 @@ class ReopenedContractTests(unittest.TestCase):
                 self.assertEqual(exporter.phase, 1)
                 self.assertTrue((w / r.APPLY_LOCK).exists())
                 self.assertEqual((run / "candidate.hwpx").read_bytes(), candidate_bytes)
-                if mode == "missing_cache":
+                if mode == "reading_order":
                     self.assertEqual(
                         {path: r.file_hash(path) for path in protected}, protected
                     )
@@ -142,7 +142,7 @@ class ReopenedContractTests(unittest.TestCase):
         result, exporter, w, run, checked = self.parent()
         self.assertEqual(exporter.phase, 2)
         self.assertEqual(
-            result["parent_saved_hwp_contract"]["policy"], r.hwp_fixed_layout.POLICY
+            result["parent_saved_hwp_contract"]["exact_empty_cells_filled"], 2
         )
         self.assertEqual(
             result["reopened_hwpx_sha256"], r.file_hash(run / "candidate-reopened.hwpx")
@@ -167,11 +167,9 @@ class ReopenedContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.parent(mode="drift")
 
-    def test_bound_positive_reply_cannot_hide_missing_selected_cache(self):
-        with self.assertRaisesRegex(
-            ValueError, "one nonempty selected paragraph line cache"
-        ):
-            self.parent(mode="missing_cache")
+    def test_bound_positive_reply_cannot_hide_changed_reading_order(self):
+        with self.assertRaises(ValueError):
+            self.parent(mode="reading_order")
 
     def test_current_approval_and_owned_lease_are_still_rechecked(self):
         for mode in ("approval", "lease", "plan"):
@@ -192,7 +190,7 @@ class ReopenedContractTests(unittest.TestCase):
 
     @patch.object(n, "owned_session", new=fake_owned_session)
     def fake_worker(
-        self, *, drift=False, missing_cache=False, page_count: int | None = 1
+        self, *, drift=False, reading_order=False, page_count: int | None = 1
     ):
         w, run, _, _, _ = self.stage()
         valid = (run / "candidate.hwpx").read_bytes()
@@ -214,23 +212,8 @@ class ReopenedContractTests(unittest.TestCase):
             target = Path(path)
             if fmt == "HWPX":
                 target.write_bytes(valid)
-                if drift or missing_cache:
-                    parts = r.archive(target)
-                    if missing_cache:
-                        parts["Contents/section0.xml"] = (
-                            old.layout_fixture.without_selected_cache(
-                                parts["Contents/section0.xml"]
-                            )
-                        )
-                    else:
-                        parts["Contents/section0.xml"] = parts[
-                            "Contents/section0.xml"
-                        ].replace(
-                            b"Protected synthetic label", b"CHANGED synthetic label"
-                        )
-                    with zipfile.ZipFile(target, "w") as archive:
-                        for name, raw in parts.items():
-                            archive.writestr(name, raw)
+                if drift or reading_order:
+                    self.change_export(target, wrong_text=drift)
             elif fmt == "PDF":
                 target.write_bytes(b"SYNTHETIC PDF")
             else:
@@ -281,9 +264,7 @@ class ReopenedContractTests(unittest.TestCase):
 
     def test_worker_exports_and_checks_reopened_hwpx_before_returning(self):
         result = self.fake_worker()
-        self.assertEqual(
-            result["saved_hwp_contract"]["policy"], r.hwp_fixed_layout.POLICY
-        )
+        self.assertEqual(result["saved_hwp_contract"]["exact_empty_cells_filled"], 2)
 
     def test_nonpositive_pages_stop_before_any_export(self):
         for count in (0, -1):
@@ -301,11 +282,9 @@ class ReopenedContractTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.fake_worker(drift=True)
 
-    def test_worker_does_not_attest_when_selected_cache_is_absent(self):
-        with self.assertRaisesRegex(
-            ValueError, "one nonempty selected paragraph line cache"
-        ):
-            self.fake_worker(missing_cache=True)
+    def test_worker_does_not_attest_when_saved_reading_order_changes(self):
+        with self.assertRaises(ValueError):
+            self.fake_worker(reading_order=True)
 
 
 if __name__ == "__main__":
