@@ -28,6 +28,8 @@ Windows x64 패키지는 Python을 포함합니다. 외부 **.NET 10 Desktop Run
 .\start-desktop.cmd
 ```
 
+공개 소스를 실행해 보세요. 설치나 실행 중 문제를 발견하면 사용한 앱·Windows 버전과 재현 방법을 간단히 적어 수정안을 [Pull Request(PR)](https://github.com/mud-the-developer/hwp-editor-public/pulls)로 올려 주세요. 실제 문서나 인증 정보는 첨부하지 마세요.
+
 개발 검사 명령은 `npm run check`입니다. 이 안내는 공개 복사본에서 검사를 실행했다는 기록이 아닙니다. 합성 검사와 실제 모델·한글·frozen GUI·다른 PC·실제 Windows 설치/제거 수명주기 검증은 별개입니다.
 
 ## 범위와 문서
