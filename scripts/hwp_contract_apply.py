@@ -192,14 +192,11 @@ class NativeContractExporter:
         require_qualified(plan)
 
     def _launch_worker(self, command, run, request):
-        return subprocess.run(
-            command,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            timeout=240,
-            check=False,
+        worker = subprocess.Popen(
+            command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL, shell=False, close_fds=True,
         )
+        return subprocess.CompletedProcess(command, worker.wait(timeout=240))
 
     def __call__(
         self,

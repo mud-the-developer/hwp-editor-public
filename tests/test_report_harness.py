@@ -2,7 +2,6 @@
 
 import json
 from pathlib import Path
-import re
 import subprocess
 import sys
 import tempfile
@@ -148,12 +147,7 @@ class ReportHarnessTests(unittest.TestCase):
             )
             self.thread.start()
             self.url = "http://127.0.0.1:" + str(self.server.server_port)
-            with urllib.request.urlopen(self.url) as response:
-                match = re.search(
-                    rb'name="review-token" content="([a-f0-9]+)"', response.read()
-                )
-            assert match is not None
-            self.token = match[1].decode()
+            self.token = self.server.template_review_token
         sent = {"X-Review-Token": self.token}
         if payload is not None:
             sent.update({"Origin": self.url, "Content-Type": "application/json"})

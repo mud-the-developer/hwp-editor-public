@@ -1,8 +1,6 @@
 import net from "node:net";
 
 const LINE_LIMIT = 1024 * 1024;
-const TEXT_LIMIT = 256 * 1024;
-const PROMPT_LIMIT = 32768;
 const OBSERVATION_MS = 15000;
 const utf8 = new TextDecoder("utf-8", { fatal: true });
 const identifier = value => typeof value === "string" && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(value);
@@ -48,6 +46,9 @@ function keys(value, names) {
   if (actual.length !== names.length || actual.some(key => !names.includes(key))) throw new Error("frame");
 }
 
+// Lightweight lifecycle bridge for the owned native OMP TUI:
+// observes provider/model metadata, known-idle state, abort, and clean shutdown.
+// Never sends prompts, parses proposals, or projects chat text.
 export default function ompBridge(pi) {
   const launchId = process.env.HWP_OMP_LAUNCH_ID;
   const token = process.env.HWP_OMP_TOKEN;
@@ -63,8 +64,8 @@ export default function ompBridge(pi) {
   let incoming = 0, outgoing = 0, used = 0;
   const bytes = Buffer.allocUnsafe(LINE_LIMIT + 1);
   let lastState = "", initialObservations = 0, uncertain = false;
-  let gui = null, inputPending = false, admitted = false, pendingSince = 0;
-  let run = null, nextRun = 0, nextMessage = 0;
+  let inputPending = false, admitted = false, pendingSince = 0;
+  let run = null, nextRun = 0;
 
   function stopTransport(graceful = false) {
     if (closed) return;
@@ -86,15 +87,12 @@ export default function ompBridge(pi) {
     socket.write(frame);
     return true;
   }
-  function binding() {
-    return !uncertain && run?.binding ? run.binding : { request_id: "", context_sha256: "" };
-  }
-  function event(kind, text = "", stopReason = "", messageId = "") {
+  function event(kind) {
     if (!welcomed) return;
-    send("event", { session_id: sessionId, kind, ...binding(), run_id: run?.id ?? "", message_id: messageId, text, stop_reason: stopReason });
+    send("event", { session_id: sessionId, kind, run_id: run?.id ?? "" });
   }
   function fault() {
-    if (!uncertain) { uncertain = true; if (run) run.binding = null; event("fault"); }
+    if (!uncertain) { uncertain = true; event("fault"); }
     state();
   }
   function eligible(context) { return context?.mode === "tui" && context.agent?.kind === "main"; }
@@ -119,16 +117,17 @@ export default function ompBridge(pi) {
     if (uncertain) phase = "uncertain";
     else if (shuttingDown) phase = "settling";
     else if (run) phase = run.ended ? "settling" : "running";
-    else if (gui || inputPending || admitted) phase = "submitting";
+    else if (inputPending || admitted) phase = "submitting";
     else if (initialObservations >= 2 && idle && !pending) phase = "idle";
     else if (!idle || pending) phase = "settling";
-    const can_send = welcomed && phase === "idle" && model.configured;
-    const detail = uncertain ? "전송·실행 연결이 불확실합니다. 자동 재시도하지 말고 실제 터미널을 확인하세요."
+    const is_idle = welcomed && phase === "idle" && idle && !pending && !uncertain && !shuttingDown;
+    const detail = uncertain ? "OMP 세션 상태가 불확실합니다. 실제 터미널을 직접 확인하세요."
       : shuttingDown ? "OMP에 정상 종료를 요청했습니다. 실제 프로세스 종료를 기다립니다."
-      : !model.model ? "실제 터미널에서 계정과 모델을 직접 설정하세요."
-      : !model.configured ? "선택 모델의 인증 설정이 필요합니다. 실제 터미널에서 직접 확인하세요."
-      : "모델·인증 설정 메타데이터만 확인했습니다. 실제 인증 성공이나 비용 없는 실행을 보장하지 않습니다.";
-    return { session_id: sessionId, phase, can_send, provider: model.provider, model: model.model, detail };
+      : !model.model ? "터미널에서 계정과 모델을 직접 설정하세요."
+      : !model.configured ? "선택 모델의 인증 설정이 필요합니다. 터미널에서 직접 확인하세요."
+      : phase === "running" ? "OMP가 응답을 실행하고 있습니다."
+      : "OMP 대기 중";
+    return { session_id: sessionId, phase, is_idle, provider: model.provider, model: model.model, detail };
   }
   function state(force = false) {
     if (!welcomed || closed || !ctx) return;
@@ -139,24 +138,25 @@ export default function ompBridge(pi) {
     if (closed || !ctx || !identity(ctx)) return;
     initialObservations++;
     const idle = ctx.isIdle() === true, pending = ctx.hasPendingMessages() !== false;
-    if ((gui || inputPending || admitted) && !run && Date.now() - pendingSince > OBSERVATION_MS) fault();
+    if ((inputPending || admitted) && !run && Date.now() - pendingSince > OBSERVATION_MS) {
+      // Interactive slash commands or cancelled drafts never start an agent run.
+      if (idle && !pending) { inputPending = false; admitted = false; }
+    }
     if (run?.ended && !run.continuation && !run.async && idle && !pending && !inputPending && !admitted) {
-      if (run.message) fault();
       event("run_end");
-      run = null; gui = null;
+      run = null;
     }
     state(initialObservations % 4 === 0);
   }
   function safe(action) {
     try { action(); } catch {
       uncertain = true;
-      if (run) run.binding = null;
       event("fault");
       stopTransport();
     }
   }
   function ack(command, status) {
-    send("ack", { session_id: sessionId, command_seq: command.seq, request_id: command.type === "send" ? command.request_id : "", context_sha256: command.type === "send" ? command.context_sha256 : "", status });
+    send("ack", { session_id: sessionId, command_seq: command.seq, status });
   }
   function command(value) {
     if (value.v !== 1 || !Number.isSafeInteger(value.seq) || value.seq !== incoming + 1 || value.session_id !== sessionId) throw new Error("sequence");
@@ -167,28 +167,16 @@ export default function ompBridge(pi) {
       state(true);
       return;
     }
-    if (value.type === "send") keys(value, ["v", "seq", "type", "session_id", "request_id", "context_sha256", "text"]);
-    else if (["state", "abort", "shutdown"].includes(value.type)) keys(value, ["v", "seq", "type", "session_id"]);
+    if (["state", "abort", "shutdown"].includes(value.type)) keys(value, ["v", "seq", "type", "session_id"]);
     else throw new Error("command");
     incoming = value.seq;
     if (!identity(ctx)) return;
     if (value.type === "state") { state(true); ack(value, "observed"); return; }
-    if (value.type === "send") {
-      if (!identifier(value.request_id) || !hex(value.context_sha256, 64) || !publicText(value.text, PROMPT_LIMIT, false)) throw new Error("prompt");
-      if (!snapshot().can_send || gui || run || inputPending || admitted) { ack(value, "rejected"); state(true); return; }
-      gui = { request_id: value.request_id, context_sha256: value.context_sha256, text: value.text };
-      pendingSince = Date.now();
-      state();
-      // Public API returns void: this cannot acknowledge admission or persistence.
-      try { pi.sendUserMessage(value.text, { attribution: "user" }); }
-      catch { fault(); ack(value, "rejected"); return; }
-      ack(value, "dispatched"); return;
-    }
     if (value.type === "abort") {
-      if (!run && !gui && !inputPending && ctx.isIdle() && !ctx.hasPendingMessages()) { ack(value, "rejected"); return; }
+      if (!run && !inputPending && !admitted && ctx.isIdle() && !ctx.hasPendingMessages()) { ack(value, "rejected"); return; }
       ctx.abort(); ack(value, "requested"); state(true); return;
     }
-    if (uncertain || snapshot().phase !== "idle" || gui || run || inputPending || admitted || !ctx.isIdle() || ctx.hasPendingMessages()) { ack(value, "rejected"); state(true); return; }
+    if (uncertain || !snapshot().is_idle || run || inputPending || admitted || !ctx.isIdle() || ctx.hasPendingMessages()) { ack(value, "rejected"); state(true); return; }
     shuttingDown = true; state();
     ctx.shutdown(); ack(value, "requested");
   }
@@ -203,14 +191,6 @@ export default function ompBridge(pi) {
         if (closed) return;
       } else bytes[used++] = byte;
     }
-  }
-  function charge(text, final = false) {
-    const size = typeof text === "string" ? Buffer.byteLength(text, "utf8") : 0;
-    if (!publicText(text, TEXT_LIMIT) || !run?.message || run.publicBytes + (final ? size : run.message.streamBytes + size) > TEXT_LIMIT) { fault(); return false; }
-    // Final text replaces this message's deltas, rather than charging it twice.
-    if (final) run.publicBytes += size;
-    else run.message.streamBytes += size;
-    return true;
   }
   function hook(name, action) {
     pi.on(name, (value, context) => {
@@ -243,76 +223,25 @@ export default function ompBridge(pi) {
     });
   });
   hook("input", () => {
-    if (gui || run?.binding) fault();
     inputPending = true; pendingSince = Date.now(); state();
   });
-  hook("before_agent_start", value => {
-    if (value.reason !== "prompt") { fault(); return; }
-    if (run) {
-      // Another prepared prompt while a GUI run exists cannot retain its binding.
-      fault();
-    }
-    if (gui && (inputPending || value.prompt !== gui.text || (value.images?.length ?? 0) !== 0 || admitted)) fault();
-    admitted = true; pendingSince = Date.now();
-    state();
+  hook("before_agent_start", () => {
+    admitted = true; pendingSince = Date.now(); state();
   });
   hook("agent_start", () => {
     if (run) {
       if (!run.ended || (!run.continuation && !run.async)) fault();
       run.ended = false; run.continuation = false; run.async = false;
     } else {
-      if (gui && !admitted) fault();
-      run = { id: `run-${++nextRun}`, binding: gui && admitted && !uncertain && !inputPending ? { request_id: gui.request_id, context_sha256: gui.context_sha256 } : null, ended: false, continuation: false, async: false, message: null, publicBytes: 0, messages: 0 };
+      run = { id: `run-${++nextRun}`, ended: false, continuation: false, async: false };
       event("run_start");
     }
-    if (gui) gui.text = "";
     inputPending = false; admitted = false; state();
-  });
-  hook("message_start", value => {
-    if (value.message?.role !== "assistant") return;
-    if (!run || run.ended || run.message || ++run.messages > 128) { fault(); return; }
-    run.message = { id: `message-${++nextMessage}`, streamBytes: 0 };
-    event("assistant_start", "", "", run.message.id);
-  });
-  hook("message_update", value => {
-    if (value.message?.role !== "assistant" || value.assistantMessageEvent?.type !== "text_delta") return;
-    if (!run?.message || run.ended) { fault(); return; }
-    const text = value.assistantMessageEvent.delta;
-    if (!charge(text)) return;
-    // Bound every projected delta independently; split only at Unicode boundaries.
-    let chunk = "";
-    for (const character of text) {
-      if (chunk.length + character.length > 4096) { event("assistant_delta", chunk, "", run.message.id); chunk = ""; }
-      chunk += character;
-    }
-    if (chunk) event("assistant_delta", chunk, "", run.message.id);
-  });
-  hook("message_end", value => {
-    if (value.message?.role !== "assistant") return;
-    if (!run?.message || run.ended || !Array.isArray(value.message.content)) { fault(); return; }
-    const reason = value.message.stopReason;
-    if (!["stop", "length", "toolUse", "error", "aborted"].includes(reason)) { fault(); return; }
-    if (value.message.content.length > 4096) { fault(); return; }
-    const parts = [];
-    let size = 0;
-    for (const block of value.message.content) {
-      if (block?.type !== "text") continue;
-      if (!publicText(block.text, TEXT_LIMIT)) { fault(); return; }
-      size += Buffer.byteLength(block.text, "utf8");
-      if (size > TEXT_LIMIT) { fault(); return; }
-      parts.push(block.text);
-    }
-    const text = parts.join("");
-    if (!charge(text, true)) return;
-    // No errorMessage/provider payload: even diagnostic strings may contain secrets.
-    event("assistant_end", text, reason, run.message.id);
-    run.message = null;
   });
   hook("agent_end", value => {
     if (!run || run.ended) { fault(); return; }
     if (value.willContinue !== undefined && typeof value.willContinue !== "boolean" || value.awaitingAsyncWork !== undefined && typeof value.awaitingAsyncWork !== "boolean") { fault(); return; }
     run.ended = true; run.continuation = value.willContinue === true; run.async = value.awaitingAsyncWork === true;
-    if (run.message) fault();
     // The next observation checks live idle/queue state after prompt unwinding.
     state();
   });

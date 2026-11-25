@@ -2,7 +2,7 @@
 
 ## 현재 범위와 준비
 
-`1.0.0` 제작 소스는 Windows x64 WPF 앱입니다. 왼쪽 문서·수정본 트리, 가운데 HWPX 쪽, 오른쪽 OMP 대화·수정 메모를 사용합니다. ConPTY·로컬 xterm·WebView2의 실제 터미널은 같은 세션의 로그인·모델 설정에 사용합니다. [현재 상태](status.md)는 실제 검증과 소스 기능을 구분합니다.
+`1.0.0` 공개 소스는 Windows x64 WPF 앱입니다. 기본 화면은 왼쪽 HWPX 라이브 미리보기와 오른쪽 ConPTY·xterm·WebView2 기반 OMP 터미널입니다. `Ctrl+B`로 작업 문서와 체크포인트 서랍을 엽니다. 기존 `.hwp` 검토는 별도 데스크톱 창에서 진행합니다. [현재 상태](status.md)는 실제 검증과 소스 기능을 구분합니다.
 
 필수 환경은 **.NET 10 Desktop Runtime x64, WebView2 Runtime, Bun 1.4.4/OMP 18.15.0, PowerShell 7.6.9, Nerd Fonts 3.5.1의 D2KodingLigature Nerd Font Propo**입니다. Python은 EXE에 포함됩니다. 일반 .NET Runtime은 Desktop Runtime을 대신하지 않습니다.
 
@@ -53,7 +53,7 @@ Windows 앱의 64비트 여부와 한글의 비트수는 별개입니다. 현재
 
 고정 SDK DLL과 `packaging/terminal-dependencies.json`, `packaging/hwpx-renderer-dependencies.json`, `packaging/icon-dependencies.json`에 선언된 로컬 자산·원문 고지를 준비합니다. 소스 ZIP만 풀면 모든 개발 도구·upstream 빌드 입력이 생긴다고 가정하지 마세요.
 
-`npm run check`는 기본적으로 lint·Node 회귀, Python 전체 회귀, 합성 UI 흐름을 실행합니다. Python은 각 모듈을 별도 프로세스와 300초 제한으로 실행하며 하나가 실패하면 이후 검사를 중단합니다. CI는 같은 정렬된 전체 모듈을 `--shard=0`·`--shard=1`의 두 작업에 중복 없이 나눕니다. lint·Node·UI는 0번에서 한 번 실행하고 두 작업 모두 통과해야 합니다. 각 작업은 Python 3.14.8과 10분 제한을 사용하며 최대 두 개만 동시에 실행합니다. 옵션 없는 로컬 명령은 전체 검사입니다. 분산은 항목 제외나 실제 모델·한글·설치 검증의 대체가 아닙니다.
+`npm run check`는 lint·WebView/OMP 브릿지 Node 회귀와 Python 전체 회귀(합성 Tk 검토 포함)를 실행합니다. Python은 각 모듈을 별도 프로세스와 300초 제한으로 실행하며 하나가 실패하면 이후 검사를 중단합니다. CI는 같은 정렬된 전체 모듈을 `--shard=0`·`--shard=1`의 두 작업에 중복 없이 분산합니다. lint와 Node는 0번에서 한 번 실행합니다. 옵션 없는 로컬 명령은 전체 검사입니다. 실제 모델·한글·설치 검증의 대체가 아닙니다.
 
 소스를 수정해 등록 UI가 오래됐을 때만, 기존 출력을 보존하고 아래처럼 아직 없는 경로로 명시적으로 다시 빌드·등록합니다.
 

@@ -3,10 +3,8 @@ from copy import deepcopy
 import http.client
 import json
 from pathlib import Path
-import re
 import shutil
-import subprocess
-import sys
+import threading
 import unittest
 
 import test_hwp_fill_plan as fixtures
@@ -22,18 +20,16 @@ class FillHttpTests(unittest.TestCase):
         cls.r.write_json(cls.w/'fill-input.json',{'bindings':cls.fixture.bindings,'record':cls.fixture.record})
         (cls.w/'pages').mkdir()
         with cls.r.fitz.open(cls.w/'baseline.pdf') as pdf:pdf[0].get_pixmap(dpi=100).save(cls.w/'pages/page-001.png')
-        cls.process=subprocess.Popen([sys.executable,'-X','utf8',str(ROOT/'scripts/hwp_review.py'),'serve',str(cls.w),'--port','0'],
-            stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,encoding='utf-8')  # request logs must not fill an undrained pipe
-        line=cls.process.stdout.readline()
-        if not line.startswith('Local review: http://127.0.0.1:'):
-            cls.process.terminate();raise RuntimeError('Synthetic fill server failed: '+line)
-        cls.port=int(line.strip().rsplit(':',1)[-1]);cls.origin=f'http://127.0.0.1:{cls.port}'
-        code,body=cls.request('GET','/fill');assert code==200
-        cls.token=re.search(r"const token='([a-f0-9]+)'",body.decode()).group(1)
+        cls.server=cls.r.create_review_server(cls.w)
+        cls.thread=threading.Thread(target=cls.server.serve_forever,daemon=True)
+        cls.thread.start()
+        cls.port=cls.server.server_port;cls.origin=f'http://127.0.0.1:{cls.port}'
+        cls.token=cls.server.review_token
+        code,_=cls.request('GET','/fill');assert code==404
 
     @classmethod
     def tearDownClass(cls):
-        cls.process.terminate();cls.process.communicate(timeout=10);cls.fixture.temp.cleanup()
+        cls.server.shutdown();cls.thread.join(timeout=10);cls.server.server_close();cls.fixture.temp.cleanup()
 
     @classmethod
     def request(cls,method,path,payload=None,headers=None):

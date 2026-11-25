@@ -1919,14 +1919,6 @@ def create_review_server(
                     self.reply(403, {"error": "Invalid Host"})
                     return
                 try:
-                    if self.path == "/":
-                        blob = (
-                            (ROOT / ("web/report-workspace.html" if document_project else "web/template-review.html"))
-                            .read_bytes()
-                            .replace(b"__REVIEW_TOKEN__", token.encode("ascii"))
-                        )
-                        self.reply(200, blob, "text/html; charset=utf-8")
-                        return
                     if urllib.parse.urlsplit(self.path).path == "/legal":
                         self.reply(
                             200,
@@ -2174,7 +2166,6 @@ def create_review_server(
         agents, context_provider=review_context
     )
     token = secrets.token_hex(32)
-    template_path = ROOT / "web/review.html"
     search_index = None
     preview_cache = OrderedDict()
 
@@ -2279,15 +2270,6 @@ def create_review_server(
                         legal_notice(ROOT),
                         "text/plain; charset=utf-8",
                     )
-                elif route == "/fill":
-                    template = (ROOT / "web/fill-review.html").read_text(
-                        encoding="utf-8"
-                    )
-                    self.reply(
-                        200,
-                        template.replace("__TOKEN__", token),
-                        "text/html; charset=utf-8",
-                    )
                 elif route == "/api/fill-state":
                     current = verify_baseline(workspace)
                     data = read_json(workspace / "fill-input.json")
@@ -2358,14 +2340,6 @@ def create_review_server(
                                 None,
                             ),
                         },
-                    )
-                elif route == "/":
-                    # UI-only changes take effect on refresh without restarting the server.
-                    template = template_path.read_text(encoding="utf-8")
-                    self.reply(
-                        200,
-                        template.replace("__TOKEN__", token),
-                        "text/html; charset=utf-8",
                     )
                 elif route == "/api/state":
                     kind = params.get("proposal", ["text"])[0]
@@ -2706,6 +2680,7 @@ def create_review_server(
                 current = verify_baseline(workspace)
                 if self.path in {
                     "/api/text-proposal",
+                    "/api/layout-proposal",
                     "/api/fill-proposal",
                     "/api/approve",
                     "/api/apply-text",
@@ -2860,14 +2835,16 @@ def create_review_server(
                         )
                         return
                     self.reply(202, native_controller.start(payload, revision))
-                elif self.path == "/api/text-proposal":
+                elif self.path in ("/api/text-proposal", "/api/layout-proposal"):
                     from hwp_text_proposal import (
-                        compile_text,
                         archive_previous,
+                        compile_layout,
+                        compile_text,
                         write_proposal,
                     )
 
-                    path = workspace / "proposal.json"
+                    fixed_rows = self.path == "/api/layout-proposal"
+                    path = workspace / ("proposal-layout.json" if fixed_rows else "proposal.json")
                     if path.is_symlink() or (
                         hasattr(path, "is_junction") and path.is_junction()
                     ):
@@ -2900,7 +2877,8 @@ def create_review_server(
                             },
                         )
                         return
-                    plan = compile_text(payload, current, workspace / "baseline.hwpx")
+                    compile_plan = compile_layout if fixed_rows else compile_text
+                    plan = compile_plan(payload, current, workspace / "baseline.hwpx")
                     if previous is not None:
                         try:
                             unchanged = plan_hash(parse_json(previous)) == plan_hash(
@@ -3076,12 +3054,14 @@ def create_review_server(
 
         def server_close(self):
             controller.require_idle()
+            native_controller.require_idle()
             pi_chat.close()
             pi_probe.close()
             agents.close()
             super().server_close()
 
     server = ReviewServer(("127.0.0.1", port), Handler)
+    server.review_token = token
     return server
 
 

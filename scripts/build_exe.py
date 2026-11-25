@@ -27,10 +27,6 @@ from hwp_resources import APP_LICENSE, APP_VERSION, SOURCE_URL
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = (
-    "web/review.html",
-    "web/fill-review.html",
-    "web/template-review.html",
-    "web/report-workspace.html",
     "docs/template-review-draft.md",
     "docs/report-harness.md",
     "docs/user-guide.md",
@@ -106,7 +102,8 @@ HIDDEN = (
     "hwp_report_project",
     "hwp_blank_document",
     "hwp_report_ui",
-    "hwp_desktop_reports",
+    "hwp_legacy_client",
+    "hwp_legacy_ui",
     "hwp_synthetic_report",
     "hwp_report_smoke",
     "hwp_report_control",
@@ -189,12 +186,14 @@ SOURCE_FILES = (
     "scripts/hwp_report_project.py",
     "scripts/hwp_blank_document.py",
     "scripts/hwp_report_ui.py",
-    "scripts/hwp_desktop_reports.py",
+    "scripts/hwp_legacy_client.py",
+    "scripts/hwp_legacy_ui.py",
+    "scripts/hwp_release_sources.py",
+    "packaging/upstream-source-index.json",
     "scripts/hwp_synthetic_report.py",
     "scripts/hwp_report_smoke.py",
     "scripts/hwp_report_control.py",
     "scripts/hwp_report_writer.py",
-    "scripts/prepare_public_release.py",
     "README.md",
     "CHANGELOG.md",
     "THIRD_PARTY_REFERENCES.md",
@@ -351,7 +350,7 @@ def validate_frozen_report(report):
     expected_debug = {
         "callback_visible_without_console",
         "wheel_preserves_contract",
-        "failed_window_retains_exact_url",
+        "native_review_page_renders",
         "source_failure_revokes_ready",
         "shutdown_bounded_without_forced_close",
     }
@@ -509,11 +508,13 @@ def promote_release(release, dist, artifact_set):
 
 def validate_native_evidence(evidence, executable, *, schema=1):
     """READ ONLY exact toy/worker evidence; not a signature or submission approval."""
-    import hwp_review as r
+    from hwp_contract_apply import PROPOSALS, contract_gate
     from hwp_text_apply import real_path
 
-    if type(schema) is not int or schema not in (1, 3):
-        raise ValueError("Only qualified schema1/3 Native evidence is accepted")
+    import hwp_review as r
+
+    if type(schema) is not int or schema not in (1, 3, 4):
+        raise ValueError("Only schema1/3/4 Native evidence is accepted")
     evidence = real_path(evidence).resolve(strict=True)
     lab = evidence.parent
     prefix, filename = (
@@ -522,7 +523,7 @@ def validate_native_evidence(evidence, executable, *, schema=1):
         else ("toy-contract-", "TOY-ONLY-contract-verification.json")
     )
     if (
-        ROOT / "work" not in lab.parents
+        lab.parent != ROOT / "work"
         or not lab.name.startswith(prefix)
         or evidence.name != filename
         or evidence.stat().st_size > 1024 * 1024
@@ -542,29 +543,50 @@ def validate_native_evidence(evidence, executable, *, schema=1):
         "download_bytes_verified",
     )
     if (
-        any(data.get(name) is not True for name in true_fields)
+        not isinstance(data, dict)
+        or any(data.get(name) is not True for name in true_fields)
         or data.get("real_report_modified") is not False
         or data.get("status") != "checks_passed_needs_human_visual_review"
         or data.get("actual_worker") != "frozen"
         or data.get("executable_sha256") != build_source.sha256(executable)
-        or schema == 3
-        and (type(data.get("schema")) is not int or data["schema"] != 3)
+        or (
+            schema != 1
+            and (type(data.get("schema")) is not int or data["schema"] != schema)
+        )
         or data.get("error")
     ):
         raise ValueError(
             "Native toy evidence is failed, unbound, source-only or for another EXE"
         )
-    workspace = real_path(data["workspace"]).resolve(strict=True)
-    if workspace != lab / ("작업 폴더" if schema == 1 else "owned-project") / "_review":
+    workspace = lab / ("작업 폴더" if schema == 1 else "owned-project") / "_review"
+    if not isinstance(data.get("workspace"), str) or Path(data["workspace"]) != workspace:
         raise ValueError("Toy workspace escapes the owned lab")
-    manifest = r.verify_baseline(workspace)
-    plan = r.read_json(
-        workspace / ("proposal.json" if schema == 1 else "proposal-layout.json")
+    real_path(workspace)
+    declared = r.result_json(workspace, "manifest.json") or {}
+    source_name = declared.get("source")
+    allowed_sources = (
+        {"TOY-ONLY-unsigned-text.hwp"} if schema == 1
+        else {"TOY-ONLY-unsigned-contract.hwp", "TOY-ONLY-reference-source.hwp"}
     )
+    source = Path(source_name) if isinstance(source_name, str) else Path()
+    if source.parent != workspace.parent or source.name not in allowed_sources:
+        raise ValueError("Native evidence must use the owned unsigned TOY source copy")
+    for path in (source, workspace / "baseline.hwpx", workspace / "baseline.pdf"):
+        real_path(path)
+    manifest = r.verify_baseline(workspace)
     if (
-        type(plan.get("schema")) is not int
+        manifest["source_audit"]["sha256"] != data.get("source_sha256_before")
+        or manifest["protected_pages"]
+        or manifest["objects"].get("pic", 0)
+        or len(manifest["pages"]) != 1
+    ):
+        raise ValueError("Native TOY source or allowed page count changed")
+    plan = r.result_json(workspace, "proposal.json" if schema == 1 else PROPOSALS[schema])
+    if (
+        not isinstance(plan, dict)
+        or type(plan.get("schema")) is not int
         or plan["schema"] != schema
-        or r.plan_hash(plan) != data["plan_sha256"]
+        or r.plan_hash(plan) != data.get("plan_sha256")
     ):
         raise ValueError("Toy current exact plan changed")
     selected = r.approved_plan(
@@ -572,56 +594,107 @@ def validate_native_evidence(evidence, executable, *, schema=1):
     )  # synthetic TOY UI consent ONLY
     if r.apply_state(workspace, manifest)["locked"]:
         raise ValueError("Native toy still has unresolved ownership")
-    run = real_path(data["run"]).resolve(strict=True)
-    if run.parent != workspace / "runs":
+    run = Path(data["run"]) if isinstance(data.get("run"), str) else Path()
+    if run.parent != workspace / "runs" or not r.RUN_ID.fullmatch(run.name):
         raise ValueError("Toy run escapes workspace")
+    real_path(run)
     directory, version = r.review_version(workspace, manifest, run.name)
     if (
         directory != run
         or version["status"] != "checks_passed_needs_human_visual_review"
         or version.get("artifact_integrity") != "verified"
+        or r.plan_hash(r.result_json(run, "plan.json")) != data["plan_sha256"]
     ):
         raise ValueError(
             "Native toy artifacts are not a current integrity-confirmed pass"
         )
-    verification = r.read_json(run / "verification.json")
+    verification = r.result_json(run, "verification.json") or {}
+    layout = verification.get("layout_gate")
     if (
-        verification["status"] != "checks_passed_needs_human_visual_review"
+        verification.get("status") != "checks_passed_needs_human_visual_review"
         or verification.get("structural_gate") is not True
         or verification.get("rendered_page_text_exact") is not True
         or verification.get("embedded_binaries_equal") is not True
         or verification.get("source_unchanged") is not True
-        or verification.get("layout_gate", {}).get("passed") is not True
+        or not isinstance(layout, dict)
+        or layout.get("passed") is not True
     ):
         raise ValueError("Incomplete actual Native gates")
-    # Fresh READ ONLY replay of protected checks, never reopen in COM/rewrite proof.
+    # Recheck both owned Native phases without reopening COM or resealing results.
+    kind = "text" if schema == 1 else "contract"
+    scope_sha = r.plan_hash(r.native_approval_scope(plan)) if schema != 1 else None
+    for phase in (0, 1):
+        reply = r.result_json(run, f"{kind}-export-reply-{phase}.json") or {}
+        native = reply.get("native")
+        owner = native.get("owned_session") if isinstance(native, dict) else None
+        if (
+            reply.get("ok") is not True
+            or type(reply.get("phase")) is not int
+            or reply["phase"] != phase
+            or reply.get("plan_sha256") != data["plan_sha256"]
+            or not isinstance(native, dict)
+            or type(native.get("native_pages")) is not int
+            or native["native_pages"] != len(manifest["pages"])
+            or not isinstance(owner, dict)
+            or owner.get("exit_confirmed") is not True
+            or owner.get("status") != "owned_exit_confirmed"
+            or (
+                schema != 1
+                and (
+                    type(reply.get("schema")) is not int
+                    or reply["schema"] != schema
+                    or reply.get("approval_scope_sha256") != scope_sha
+                )
+            )
+        ):
+            raise ValueError("Missing exact owned Native worker completion")
+        edit_owner = native.get("edit_owned_session")
+        if schema == 3 and phase == 0 and (
+            native.get("native_verification_origin") != "saved_hwp_copy"
+            or not isinstance(edit_owner, dict)
+            or edit_owner.get("exit_confirmed") is not True
+            or edit_owner.get("status") != "owned_exit_confirmed"
+            or native.get("saved_export_copy_sha256") != r.file_hash(run / "candidate.hwp")
+        ):
+            raise ValueError("Missing original row-minima saved-HWP evidence")
+
+    baseline, pdf = workspace / "baseline.pdf", run / "candidate.pdf"
+    masks = {}
     if schema == 1:
         r.structural_gate(
             workspace / "baseline.hwpx", run / "candidate.hwpx", plan["edits"]
         )
     else:
-        r.hwp_fixed_layout.structural_gate(
-            workspace / "baseline.hwpx", run / "candidate.hwpx", plan
-        )
+        reopened = real_path(run / "candidate-reopened.hwpx")
+        saved = verification.get("saved_hwp_reopen_export")
         if (
-            verification.get("native_contract", {}).get(
-                "original_table_geometry_font_controls_assets_locked"
-            )
-            is not True
+            not isinstance(saved, dict)
+            or not reopened.is_file()
+            or native.get("reopened_hwpx_sha256") != r.file_hash(reopened)
+            or saved.get("reopened_hwpx_sha256") != native["reopened_hwpx_sha256"]
         ):
-            raise ValueError("Missing original row-minima preservation evidence")
-    masks = {}
-    for edit, anchor in zip(plan["edits"], selected):
-        masks.setdefault(anchor["page_hint"], []).extend(
-            [edit["region"]] if schema == 3 else anchor["boxes"]
-        )
+            raise ValueError("Missing exact saved-HWP reopened HWPX")
+        initial = contract_gate(workspace, run / "candidate.hwpx", plan, selected)
+        replayed = contract_gate(workspace, reopened, plan, selected)
+        if (
+            initial != verification.get("native_contract")
+            or replayed != native.get("saved_hwp_contract")
+            or replayed != saved.get("parent_saved_hwp_contract")
+        ):
+            raise ValueError("Saved-HWP Native structure proof no longer matches")
+    if schema == 4:
+        for field in selected:
+            masks.setdefault(field["page_hint"], []).extend(field["boxes"])
+        text_exact = r.hwp_fill_plan.rendered_text_gate(baseline, pdf, selected)
+    else:
+        for edit, anchor in zip(plan["edits"], selected):
+            masks.setdefault(anchor["page_hint"], []).extend(
+                [edit["region"]] if schema == 3 else anchor["boxes"]
+            )
+        text_exact = r.rendered_text_gate(baseline, pdf, plan["edits"], selected)
     if (
-        not r.compare_pdfs(workspace / "baseline.pdf", run / "candidate.pdf", masks)[
-            "passed"
-        ]
-        or not r.rendered_text_gate(
-            workspace / "baseline.pdf", run / "candidate.pdf", plan["edits"], selected
-        )
+        not text_exact
+        or not r.compare_pdfs(baseline, pdf, masks)["passed"]
         or r.hwp_audit(run / "candidate.hwp")["embedded_binary_hashes"]
         != manifest["source_audit"]["embedded_binary_hashes"]
     ):
@@ -629,8 +702,9 @@ def validate_native_evidence(evidence, executable, *, schema=1):
     return data
 
 
-def promote_checked_candidate(release, evidence, layout_evidence=None):
-    """Explicit local promotion AFTER exact candidate tests, never automatic build."""
+def validate_checked_candidate(release, evidence, layout_evidence, fill_evidence):
+    """Verify all enabled Native scopes for one exact candidate without promotion."""
+    from hwp_contract_apply import QUALIFIED_SCHEMAS
     from hwp_text_apply import real_path
 
     release = real_path(release).resolve(strict=True)
@@ -673,23 +747,37 @@ def promote_checked_candidate(release, evidence, layout_evidence=None):
         raise ValueError("Candidate source archive changed")
     build_source.verify_source_archive(source_archive, inputs, version=APP_VERSION)
     install_bundle.verify_payload(release, version=APP_VERSION)
-    if layout_evidence is None or metadata.get("qualified_native_schemas") != [3]:
-        raise ValueError("Both schema1 and schema3 exact frozen evidence are required")
-    validate_native_evidence(evidence, executable)
+    if (
+        any(path is None for path in (evidence, layout_evidence, fill_evidence))
+        or QUALIFIED_SCHEMAS != (3, 4)
+        or metadata.get("qualified_native_schemas") != list(QUALIFIED_SCHEMAS)
+    ):
+        raise ValueError("Exact frozen evidence for schemas 1, 3 and 4 is required")
+    validate_native_evidence(evidence, executable, schema=1)
     validate_native_evidence(layout_evidence, executable, schema=3)
+    validate_native_evidence(fill_evidence, executable, schema=4)
     build_source.verify_inputs(ROOT, inputs)
     expected_set = ROOT / "dist" / "releases" / APP_VERSION / release.parent.name
     if metadata.get("artifact_set") != str(
         expected_set.relative_to(ROOT / "dist")
     ).replace("\\", "/"):
         raise ValueError("Candidate artifact-set identity changed")
+    return release, expected_set, metadata["executable_sha256"]
+
+
+def promote_checked_candidate(release, evidence, layout_evidence=None, fill_evidence=None):
+    """Explicit local promotion AFTER exact candidate tests, never automatic build."""
+    release, expected_set, digest = validate_checked_candidate(
+        release, evidence, layout_evidence, fill_evidence
+    )
     promote_release(release, ROOT / "dist", expected_set)
     return {
         "exe": "dist/HWPReview.exe",
         "version": APP_VERSION,
-        "sha256": metadata["executable_sha256"],
+        "sha256": digest,
         "native_evidence": str(Path(evidence)),
         "layout_evidence": str(Path(layout_evidence)),
+        "fill_evidence": str(Path(fill_evidence)),
         "published": False,
         "local_promoted": True,
     }
@@ -853,7 +941,7 @@ def build():
         "bounded_text_apply_enabled": True,
         "generic_native_export_enabled": False,
         "registered_security_module_required": True,
-        "security_install_enabled": False,
+        "security_install_enabled": True,  # Conditional, consent-based prerequisite setup only.
         "report_harness_enabled": True,
         "report_runtime_contract": "hwp-report-runtime-v2",
         "native_ui": {
@@ -936,6 +1024,11 @@ if __name__ == "__main__":
         type=Path,
         help="Explicit checked-release folder; exact frozen TOY evidence required",
     )
+    modes.add_argument(
+        "--verify-release",
+        type=Path,
+        help="Verify an exact candidate and its Native evidence without writing or promoting",
+    )
     parser.add_argument(
         "--native-evidence",
         type=Path,
@@ -946,21 +1039,31 @@ if __name__ == "__main__":
         type=Path,
         help="Exact frozen schema3 NEW-TOY report; never a real report",
     )
+    parser.add_argument(
+        "--fill-evidence",
+        type=Path,
+        help="Exact frozen schema4 NEW-TOY report; never a real report",
+    )
     args = parser.parse_args()
-    if args.promote is not None:
-        if args.native_evidence is None or args.layout_evidence is None:
-            parser.error(
-                "Promotion requires exact frozen schema1 and schema3 TOY evidence"
-            )
-        print(
-            json.dumps(
-                promote_checked_candidate(
-                    args.promote, args.native_evidence, args.layout_evidence
-                ),
-                ensure_ascii=False,
-            )
-        )
-    else:
-        if args.native_evidence is not None or args.layout_evidence is not None:
-            parser.error("Native evidence is only for explicit promotion")
+    evidence = (args.native_evidence, args.layout_evidence, args.fill_evidence)
+    candidate = args.promote if args.promote is not None else args.verify_release
+    if candidate is None:
+        if any(path is not None for path in evidence):
+            parser.error("Native evidence requires --verify-release or --promote")
         build()
+    else:
+        if any(path is None for path in evidence):
+            parser.error("Exact frozen evidence for schemas 1, 3 and 4 is required")
+        if args.promote is not None:
+            result = promote_checked_candidate(candidate, *evidence)
+        else:
+            release, _, digest = validate_checked_candidate(candidate, *evidence)
+            result = {
+                "version": APP_VERSION,
+                "candidate_dir": str(release.relative_to(ROOT)),
+                "sha256": digest,
+                "native_schemas_verified": [1, 3, 4],
+                "published": False,
+                "local_promoted": False,
+            }
+        print(json.dumps(result, ensure_ascii=False))

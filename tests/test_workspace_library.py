@@ -151,7 +151,8 @@ class WorkspaceTests(unittest.TestCase):
             self.skipTest("Hardlink unavailable: " + str(error))
         self.assertEqual(w.scan_workspace(folder)["documents"],
                          [{"path": str(linked / "hidden.hwpx"), "name": "hidden.hwpx",
-                           "relative_path": "linked/hidden.hwpx", "project_root": ""}])
+                           "relative_path": "linked/hidden.hwpx", "project_root": "",
+                           "protected": False}])
         with self.assertRaises(ValueError):
             w.workspace_document(folder, alias)
 

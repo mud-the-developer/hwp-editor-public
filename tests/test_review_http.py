@@ -4,11 +4,9 @@ import http.client
 import importlib.util
 import json
 from pathlib import Path
-import re
 import shutil
-import subprocess
-import sys
 import tempfile
+import threading
 import unittest
 import zipfile
 
@@ -20,50 +18,11 @@ r = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(r)
 
 
-def ui_token(body):
-    match = re.search(r"const token='([a-f0-9]+)'", body.decode())
-    if match is None:
-        raise AssertionError("Synthetic review token missing")
-    return match.group(1)
-
-
 class HttpTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.temp = tempfile.TemporaryDirectory()
         cls.path = Path(cls.temp.name)
-        # Copy the server/UI into the fixture so hot-reload tests never alter project files.
-        runtime = cls.path / "runtime"
-        (runtime / "scripts").mkdir(parents=True)
-        (runtime / "web").mkdir()
-        (runtime / "LICENSE").write_bytes((ROOT / "LICENSE").read_bytes())
-        cls.server_script = runtime / "scripts/hwp_review.py"
-        cls.server_script.write_bytes((ROOT / "scripts/hwp_review.py").read_bytes())
-        for module in (
-            "hwp_resources.py",
-            "hwp_native_plan.py",
-            "hwp_fixed_layout.py",
-            "hwp_fill_plan.py",
-            "hwp_form_draft.py",
-            "hwp_text_proposal.py",
-            "hwp_text_apply.py",
-            "hwp_security.py",
-            "hwp_process_identity.py",
-            "hwp_native_owner.py",
-            "hwp_contract_control.py",
-            "hwp_contract_apply.py",
-            "hwp_native_buffer.py",
-            "hwp_native_cells.py",
-            "hwp_agents.py",
-            "hwp_pi_probe.py",
-            "hwp_pi_chat.py",
-            "hwp_pi_context.py",
-        ):
-            (runtime / "scripts" / module).write_bytes(
-                (ROOT / "scripts" / module).read_bytes()
-            )
-        cls.template_path = runtime / "web/review.html"
-        cls.template_path.write_bytes((ROOT / "web/review.html").read_bytes())
         for name in ["fixture.hwp", "baseline.pdf"]:
             (cls.path / name).write_bytes(b"artificial-server-fixture-only")
         # A real synthetic HWPX container is needed for the read-only cache preflight.
@@ -106,37 +65,18 @@ class HttpTests(unittest.TestCase):
             cls.path / "comments.json",
             {"workspace_id": "http-test-only", "comments": []},
         )
-        cls.process = subprocess.Popen(
-            [
-                sys.executable,
-                str(cls.server_script),
-                "serve",
-                str(cls.path),
-                "--port",
-                "0",
-            ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            encoding="utf-8",
-        )
-        if cls.process.stdout is None:
-            raise RuntimeError("Synthetic server output pipe missing")
-        line = cls.process.stdout.readline()
-        if not line.startswith("Local review: http://127.0.0.1:"):
-            cls.process.terminate()
-            raise RuntimeError("Test server failed: " + line)
-        cls.port = int(line.strip().rsplit(":", 1)[-1])
+        cls.server = r.create_review_server(cls.path, 0)
+        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
+        cls.thread.start()
+        cls.port = cls.server.server_port
         cls.origin = f"http://127.0.0.1:{cls.port}"
-        code, body = cls.request("GET", "/")
-        if code != 200:
-            raise RuntimeError("Test UI failed")
-        cls.token = ui_token(body)
+        cls.token = cls.server.review_token
 
     @classmethod
     def tearDownClass(cls):
-        cls.process.terminate()
-        cls.process.communicate(timeout=10)
+        cls.server.shutdown()
+        cls.thread.join(5)
+        cls.server.server_close()
         cls.temp.cleanup()
 
     @classmethod
@@ -232,19 +172,9 @@ class HttpTests(unittest.TestCase):
         self.assertEqual(json.loads(body)["manifest"]["workspace_id"], "http-test-only")
         self.assertEqual(self.request("GET", "/../manifest.json")[0], 404)
 
-    def test_template_changes_are_visible_without_restart(self):
-        original = self.template_path.read_text(encoding="utf-8")
-        marker = "HTTP hot-reload fixture"
-        try:
-            self.template_path.write_text(
-                original.replace("<title>", "<title>" + marker), encoding="utf-8"
-            )
-            code, body = self.request("GET", "/")
-            self.assertEqual(code, 200)
-            self.assertIn(marker, body.decode())
-            self.assertEqual(ui_token(body), self.token)
-        finally:
-            self.template_path.write_text(original, encoding="utf-8")
+    def test_legacy_html_routes_return_404(self):
+        self.assertEqual(self.request("GET", "/")[0], 404)
+        self.assertEqual(self.request("GET", "/fill")[0], 404)
 
     def test_wrong_host_and_cross_origin_are_rejected(self):
         self.assertEqual(

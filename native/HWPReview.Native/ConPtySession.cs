@@ -405,7 +405,7 @@ internal sealed record LaunchDescriptor(string LaunchId, string Executable, stri
             if (text.Length == 0 || text.Length > max || text.Any(character => char.IsControl(character))) throw new InvalidDataException("OMP 실행 설명의 문자열 범위가 잘못되었습니다: " + name);
             return text;
         }
-        if (Read("contract") != "hwp-native-omp-launch-v6") throw new InvalidDataException("지원하지 않는 OMP 실행 계약입니다.");
+        if (Read("contract") != "hwp-native-omp-launch-v7") throw new InvalidDataException("지원하지 않는 OMP 실행 계약입니다.");
         string id = Read("launch_id", 32), hash = Read("executable_sha256", 64), runtime = Read("runtime_sha256", 64);
         if (!LowerHex(id, 32) || !LowerHex(hash, 64) || !LowerHex(runtime, 64)) throw new InvalidDataException("OMP 실행 식별자 형식이 잘못되었습니다.");
         string executable = Read("executable"), launchRoot = Read("launch_directory"), working = Read("working_directory"), profile = Read("profile_directory"), session = Read("session_directory"), webview = Read("webview_user_data_directory");
@@ -482,12 +482,13 @@ internal sealed record LaunchDescriptor(string LaunchId, string Executable, stri
         var required = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["HOME"] = home, ["USERPROFILE"] = home, ["APPDATA"] = Path.Combine(home, "AppData", "Roaming"), ["LOCALAPPDATA"] = Path.Combine(home, "AppData", "Local"),
+            ["GEMINI_HOME"] = Path.Combine(home, ".gemini"),
             ["XDG_CONFIG_HOME"] = Path.Combine(home, ".config"), ["PI_CONFIG_DIR"] = ".omp", ["TEMP"] = Path.Combine(launchRoot, "tmp"), ["TMP"] = Path.Combine(launchRoot, "tmp"),
             ["TERM"] = "xterm-256color", ["COLORTERM"] = "truecolor",
             ["HWP_OMP_PIPE"] = @"\\.\pipe\" + bridge.PipeName, ["HWP_OMP_TOKEN"] = bridge.Token, ["HWP_OMP_LAUNCH_ID"] = launchId
         };
         foreach (var pair in required)
             if (!environment.TryGetValue(pair.Key, out string? text) || !string.Equals(text, pair.Value, StringComparison.Ordinal)) throw new InvalidDataException("OMP 앱 환경 값이 일치하지 않습니다: " + pair.Key);
-        foreach (string path in new[] { home, required["APPDATA"], required["LOCALAPPDATA"], required["XDG_CONFIG_HOME"], required["TEMP"] }) RequirePath(path, true);
+        foreach (string path in new[] { home, required["APPDATA"], required["LOCALAPPDATA"], required["GEMINI_HOME"], required["XDG_CONFIG_HOME"], required["TEMP"] }) RequirePath(path, true);
     }
 }

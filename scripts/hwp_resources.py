@@ -27,13 +27,14 @@ def resource_root() -> Path:
 
 
 def legal_notice(root: Path) -> str:
-    """Read public application terms, never a document/workspace or release URL."""
+    """Read public application terms, never from a document or workspace."""
     return (
         f"HWP Editor {APP_VERSION}\n{APP_LICENSE}\n"
         "보증 없이 제공됩니다. 라이선스 원문은 아래에 있습니다.\n"
         f"프로젝트 저장소: {SOURCE_URL}\n"
-        "저장소 링크만으로 수령자의 소스 접근이 보장되지는 않습니다.\n"
-        f"예정된 동봉 앱 입력: HWPReview-source-{APP_VERSION}.zip\n"
+        f"릴리스 목록: {SOURCE_URL}/releases\n"
+        f"배포 시 대응 소스 묶음: HWPReview-corresponding-source-{APP_VERSION}.zip\n"
+        f"정확한 앱 입력: HWPReview-source-{APP_VERSION}.zip\n"
         "앱 입력 ZIP은 제3자 전체 대응 소스를 포함한다는 보증이 아닙니다.\n"
         "배포자는 모든 수령자에게 정확한 대응 소스와 필요한 자료를 제공해야 합니다.\n"
         "제3자 원문 고지는 배포물의 licenses/에, 범위와 남은 의무는 "

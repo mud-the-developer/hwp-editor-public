@@ -3,7 +3,6 @@ from copy import deepcopy
 import http.client
 import json
 from pathlib import Path
-import re
 import sys
 import tempfile
 import threading
@@ -32,9 +31,9 @@ class ReportOmpTests(unittest.TestCase):
         self.thread.start()
         self.addCleanup(self.close_server)
         self.origin = "http://127.0.0.1:" + str(self.server.server_port)
-        code, body = self.request("GET", "/", token=False)
-        self.assertEqual(code, 200)
-        self.token = re.search(rb'name="review-token" content="([a-f0-9]{64})"', body)[1].decode()
+        self.token = self.server.template_review_token
+        code, _ = self.request("GET", "/")
+        self.assertEqual(code, 404)
         self.section = next(item for item in projects.sections(self.info.root) if "REPORT BODY BEFORE" in item["text"])
         self.input = {"instruction": "선택한 본문을 간결하게 수정해 주세요.", "selection_ids": [self.section["id"]], "materials": [], "previous_version": None}
         for target in ("subprocess.Popen", "hwp_report_writer.generate", "hwp_report_project.begin_request", "hwp_pi_chat.call_chat"):

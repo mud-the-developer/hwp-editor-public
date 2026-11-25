@@ -282,7 +282,7 @@ class UsabilityWidgetTests(DesktopWidgetTests):
 
     def test_stale_progress_after_failure_does_not_restore_busy_or_ready(self):
         self.app.events.put(
-            ("error", ("ValueError: SYNTHETIC roundtrip failure", None))
+            ("error", "ValueError: SYNTHETIC roundtrip failure")
         )
         self.app.poll()
         self.app.events.put(("progress", (6, "SYNTHETIC STALE DONE")))

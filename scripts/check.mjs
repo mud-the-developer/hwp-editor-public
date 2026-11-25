@@ -1,5 +1,5 @@
 // Repeatable developer gate. Real reports/Native COM are NEVER run here.
-// Continuous GUI uses owned synthetic files and test consent only; Native mocked.
+// GUI and packaging tests use owned synthetic fixtures, not Native qualification.
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { lint, python, root, run } from './lint.mjs';
@@ -23,15 +23,10 @@ try {
   const selected = modules.filter((_, index) => shard === null || index % 2 === shard);
   console.log(`Python modules: ${selected.length}/${modules.length}; ${shard === null ? 'full gate' : `CI shard ${shard}/2; both shards required`}`);
   const checks = [
-    ...(primary ? [[process.execPath, ['--test', 'tests/test_lint.mjs', 'tests/test_review_ready.mjs', 'tests/test_omp_bridge.mjs']]] : []),
+    ...(primary ? [[process.execPath, ['--test', 'tests/test_lint.mjs', 'tests/test_omp_bridge.mjs']]] : []),
     ...selected.map(name => [
       python, ['-X', 'utf8', '-m', 'unittest', 'discover', '-s', 'tests', '-p', name, '-q'], 300000,
     ]),
-    ...(primary ? [
-      [process.execPath, ['tests/test_review_ui.mjs']],
-      [process.execPath, ['tests/test_fill_ui.mjs']],
-      [process.execPath, ['tests/test_gui_workflow.mjs']],
-    ] : []),
   ];
   let status = primary ? await lint() : 0;
   for (const [command, args, timeout] of checks) {

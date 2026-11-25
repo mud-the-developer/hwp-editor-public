@@ -3,7 +3,6 @@
 import http.client
 import io
 from pathlib import Path
-import re
 import sys
 import tempfile
 import threading
@@ -208,10 +207,10 @@ class ResultDownloadTests(unittest.TestCase):
                 conn.close()
 
         try:
-            match = re.search(r"const token='([a-f0-9]+)'", get("/")[2].decode())
-            if match is None:
+            self.assertEqual(get("/")[0], 404)
+            token = server.review_token
+            if not token:
                 self.fail("Synthetic token missing")
-            token = match.group(1)
             route = f"/result/{self.run_id}/pdf"
             for headers in (
                 {},

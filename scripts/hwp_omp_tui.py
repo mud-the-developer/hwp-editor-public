@@ -45,10 +45,10 @@ PROJECT_GUIDANCE = """# HWPReview 작업 안내
 
 일반 shell/read/write 도구와 기본 OMP 기능을 사용할 수 있습니다.
 평소 대화는 자연스러운 한국어로 답하세요.
-원본 문서와 서식, 양식, 연결된 리소스를 보존하세요.
-승인 절차나 실행 권한을 우회하거나 조작하지 마세요.
-GUI 보고서 제안은 사용자가 명시적으로 hwp-report-request-v1 요청을 제공한 경우에만
-그 요청의 형식으로 작성하세요. 일반 대화에는 보고서 JSON 형식을 강요하지 마세요.
+작업 폴더의 활성 .hwpx 파일을 직접 수정·저장하면 왼쪽 라이브 미리보기가 자동으로 갱신되고 `.hwpreview/history/`에 체크포인트가 누적됩니다.
+최초 열기 시 `.hwpreview/originals/`에 불변 원본 백업이 자동 생성됩니다.
+`example/`·`.hwpreview/`·기준 원본(`baseline.hwpx` 등)은 보호 경로이므로 직접 덮어쓰지 마세요.
+원본 문서의 서식·표 구조·양식·연결된 리소스를 최대한 보존하세요.
 이 파일은 사용자가 편집할 수 있는 작업 안내이며 OS 보안 경계가 아닙니다.
 """
 FOREIGN_KEYS = frozenset(("parentSession", "parentSessionId", "parentSessionPath",
@@ -449,6 +449,7 @@ class OmpTui:
             raise ValueError("OMP 실행 파일·소스가 바뀌었습니다. 기존 작업을 보존하고 새 앱에서 시작하세요.")
         self.runtime_sha256 = identity
         home = _directory(self.root / "home")
+        gemini_home = _directory(home / ".gemini")
         profile = _directory(home / ".omp/profiles" / PROFILE / "agent")
         webview = _directory(self.root / "webview")
         identifier = secrets.token_hex(16)
@@ -475,6 +476,8 @@ class OmpTui:
             "HOME": str(home), "USERPROFILE": str(home),
             "APPDATA": str(_directory(home / "AppData/Roaming")),
             "LOCALAPPDATA": str(_directory(home / "AppData/Local")),
+            # ACP resolves its token files from GEMINI_HOME before the child HOME.
+            "GEMINI_HOME": str(gemini_home),
             "XDG_CONFIG_HOME": str(_directory(home / ".config")), "PI_CONFIG_DIR": ".omp",
             "TEMP": str(temporary), "TMP": str(temporary), "TERM": "xterm-256color",
             "COLORTERM": "truecolor",
@@ -489,7 +492,7 @@ class OmpTui:
                      "--extension", str(extension),
                      "--append-system-prompt", str(guidance)]
         self.launch = {
-            "contract": "hwp-native-omp-launch-v6", "launch_id": identifier,
+            "contract": "hwp-native-omp-launch-v7", "launch_id": identifier,
             "launch_directory": str(launch_root),
             "executable": str(self.executable), "executable_sha256": LAUNCHER_SHA256,
             "arguments": arguments, "environment": environment, "working_directory": str(workspace),

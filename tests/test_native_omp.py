@@ -104,6 +104,27 @@ class NativeOmpTests(unittest.TestCase):
         self.assertFalse(list(private.rglob("auth*")))
         self.assertEqual(helper.release(launch["launch_id"]), {"released": True})
 
+    def test_gemini_home_override_cannot_redirect_app_credentials(self):
+        global_store = self.root / "global-gemini"
+        global_store.mkdir()
+        sentinel = global_store / "unrelated.txt"
+        sentinel.write_bytes(b"SYNTHETIC GLOBAL STATE")
+        with patch.dict(os.environ, {"GEMINI_HOME": str(global_store)}):
+            first = self.prepare()
+            private_store = self.helper.root / "home" / ".gemini"
+            self.assertEqual(Path(first["environment"]["GEMINI_HOME"]), private_store)
+            self.assertEqual(os.environ["GEMINI_HOME"], str(global_store))
+            self.assertEqual(list(private_store.iterdir()), [])
+            self.helper.release(first["launch_id"])
+            local_sentinel = private_store / "app-state.txt"
+            local_sentinel.write_bytes(b"SYNTHETIC APP STATE")
+            workspace = self.root / "selected"
+            workspace.mkdir()
+            second = self.helper.prepare(workspace=workspace)
+            self.assertEqual(Path(second["environment"]["GEMINI_HOME"]), private_store)
+            self.assertEqual(local_sentinel.read_bytes(), b"SYNTHETIC APP STATE")
+        self.assertEqual(sentinel.read_bytes(), b"SYNTHETIC GLOBAL STATE")
+
     def test_corrupt_managed_runtime_is_preserved_without_global_fallback(self):
         damaged = self.bun / "bin/bun.exe"
         damaged.write_bytes(b"CORRUPT MANAGED RUNTIME")

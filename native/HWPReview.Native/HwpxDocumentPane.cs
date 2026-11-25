@@ -11,8 +11,8 @@ namespace HWPReview.Native;
 
 internal sealed record DocumentPassageTarget(string Identity, string Sha256, int Page, int SectionIndex, int ParagraphIndex, string Text, bool Truncated);
 
-// This surface only consumes immutable authenticated bytes. It has no document,
-// process, OMP, approval, shell, or file-action message handlers.
+// Resident local HWPX preview surface consuming immutable authenticated bytes only.
+// No document, process, OMP, approval, shell, or file-action message handlers exist here.
 internal sealed class HwpxDocumentPane : UserControl, IDisposable
 {
     private const string Origin = "https://hwp-document.invalid";
@@ -23,35 +23,54 @@ internal sealed class HwpxDocumentPane : UserControl, IDisposable
         "/index.html", "/viewer.js", "/viewer.css", "/svg-safety.js",
         "/vendor/rhwp/rhwp.js", "/vendor/rhwp/rhwp_bg.wasm"
     };
+
     private readonly Grid layout = new();
-    private readonly TextBlock status = new() { Text = "문서를 선택하면 여기에 표시됩니다.", FontSize = 11, TextWrapping = TextWrapping.NoWrap,
-        TextTrimming = TextTrimming.CharacterEllipsis, Margin = new Thickness(8, 3, 8, 3) };
+    private readonly Border placeholder = new() { Padding = new Thickness(24) };
+    private readonly TextBlock placeholderText = new()
+    {
+        Text = "작업 폴더를 열고 .hwpx 문서를 선택하면 여기에 라이브 미리보기가 표시됩니다.",
+        FontSize = 13,
+        TextWrapping = TextWrapping.Wrap,
+        TextAlignment = TextAlignment.Center,
+        HorizontalAlignment = HorizontalAlignment.Center,
+        VerticalAlignment = VerticalAlignment.Center,
+        MaxWidth = 420
+    };
     private readonly string profile = Path.Combine(Path.GetTempPath(), "HWPReview-document-" + Guid.NewGuid().ToString("N"));
     private WebView2? view;
+    private CoreWebView2Environment? environment;
+    private Task? initializeTask;
+    private TaskCompletionSource? readySource;
     private TaskCompletionSource? pending;
+    private byte[]? currentBytes;
+    private string currentSha256 = "";
+    private string currentIdentity = "";
+    private string currentLabel = "";
+    private bool currentPreserveView;
+    private bool currentFailed;
+    private string viewerAssetsPath = "";
     private int generation;
     private bool disposed;
+
     public int RenderedPageCount { get; private set; }
+    public int CurrentPage { get; private set; }
     public string DocumentIdentity { get; private set; } = "";
+    public string CurrentSha256 => currentSha256;
+    public string StatusText { get; private set; } = "문서를 선택하세요.";
+    public event EventHandler<string>? StatusChanged;
     public event EventHandler<string>? ErrorRaised;
     public event EventHandler<DocumentPassageTarget>? PassageDoubleClicked;
 
     public HwpxDocumentPane()
     {
-        layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        var footer = new Border { Child = new ScrollViewer { Content = status, MaxHeight = 96,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Auto },
-            BorderThickness = new Thickness(0, 1, 0, 0), BorderBrush = SystemColors.ControlLightBrush };
-        Grid.SetRow(footer, 1);
-        layout.Children.Add(footer);
-        status.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+        placeholder.SetResourceReference(Border.BackgroundProperty, "CanvasBrush");
+        placeholderText.SetResourceReference(TextBlock.ForegroundProperty, "MutedTextBrush");
+        placeholder.Child = placeholderText;
+        layout.Children.Add(placeholder);
         Content = layout;
         MinHeight = 200;
-        AutomationProperties.SetName(this, "현재 HWPX 로컬 쪽 미리보기");
-        AutomationProperties.SetName(status, "문서 미리보기 상태");
-        AutomationProperties.SetAutomationId(status, "DocumentRenderStatus");
-        AutomationProperties.SetLiveSetting(status, AutomationLiveSetting.Polite);
+        AutomationProperties.SetName(this, "HWPX 라이브 미리보기");
+        AutomationProperties.SetAutomationId(this, "HwpxDocumentPane");
     }
 
     public void Clear(string message)
@@ -60,185 +79,294 @@ internal sealed class HwpxDocumentPane : UserControl, IDisposable
         generation++;
         pending?.TrySetCanceled();
         pending = null;
+        currentBytes = null;
+        currentSha256 = "";
+        currentIdentity = "";
+        currentLabel = "";
+        currentFailed = false;
         RenderedPageCount = 0;
+        CurrentPage = 0;
         DocumentIdentity = "";
-        if (view is not null) { layout.Children.Remove(view); view.Dispose(); view = null; }
-        status.Text = message;
-        status.TextWrapping = TextWrapping.NoWrap;
-        status.TextTrimming = TextTrimming.None;
-        AutomationProperties.SetHelpText(status, "");
-        status.ToolTip = message;
-        AutomationProperties.SetName(status, message);
+        SetStatus(message);
+        placeholderText.Text = message;
+        placeholder.Visibility = Visibility.Visible;
+        if (view?.CoreWebView2 is CoreWebView2 core && readySource?.Task.IsCompletedSuccessfully == true)
+        {
+            try
+            {
+                core.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "clear", generation }));
+            }
+            catch { }
+        }
+        if (view is not null) view.Visibility = Visibility.Collapsed;
     }
 
-    public async Task ShowAsync(ReadOnlyMemory<byte> bytes, string expectedSha256, string identity, string label)
+    public async Task ShowAsync(ReadOnlyMemory<byte> bytes, string expectedSha256, string identity, string label, bool preserveView = false)
     {
         Dispatcher.VerifyAccess();
         ObjectDisposedException.ThrowIf(disposed, this);
-        Clear("HWPX를 표시하는 중…");
-        int current = generation;
+        if (bytes.Length == 0 || bytes.Length > MaximumBytes || identity.Length is 0 or > 1024 || label.Length > 1024 ||
+            expectedSha256.Length != 64 || expectedSha256.Any(c => !(c is >= '0' and <= '9' or >= 'a' and <= 'f')))
+            throw new InvalidDataException("문서 크기·식별자·SHA256 형식이 올바르지 않습니다.");
+
+        // Snapshot before any await so callers cannot mutate queued bytes.
+        byte[] snapshot = bytes.ToArray();
+        if (Convert.ToHexStringLower(SHA256.HashData(snapshot)) != expectedSha256)
+            throw new InvalidDataException("현재 HWPX 바이트와 SHA256이 다릅니다.");
+
+        int current = ++generation;
+        pending?.TrySetCanceled();
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         pending = completion;
-        WebView2? browser = null;
-        bool failed = false;
+        currentBytes = snapshot;
+        currentSha256 = expectedSha256;
+        currentIdentity = identity;
+        currentLabel = label;
+        currentPreserveView = preserveView;
+        currentFailed = false;
+        if (!preserveView) SetStatus("HWPX를 표시하는 중…");
+
         try
         {
-            if (bytes.Length == 0 || bytes.Length > MaximumBytes || identity.Length is 0 or > 1024 || label.Length > 1024 || expectedSha256.Length != 64 || expectedSha256.Any(c => !(c is >= '0' and <= '9' or >= 'a' and <= 'f')))
-                throw new InvalidDataException("문서 크기·식별자·SHA256 형식이 올바르지 않습니다.");
-            // Snapshot before the first await: callers cannot mutate a queued render.
-            byte[] snapshot = bytes.ToArray();
-            if (Convert.ToHexStringLower(SHA256.HashData(snapshot)) != expectedSha256)
-                throw new InvalidDataException("현재 HWPX 바이트와 SHA256이 다릅니다.");
-            string assets = Path.Combine(AppContext.BaseDirectory, "viewer");
-            LaunchDescriptor.RequirePath(assets, true);
-            foreach (string path in AssetPaths) LaunchDescriptor.RequirePath(Path.Combine(assets, path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)), false);
-            browser = new WebView2();
-            view = browser;
-            layout.Children.Add(browser);
-            var environment = await CoreWebView2Environment.CreateAsync(null, profile, new CoreWebView2EnvironmentOptions { AllowSingleSignOnUsingOSPrimaryAccount = false, AreBrowserExtensionsEnabled = false }).WaitAsync(TimeSpan.FromSeconds(30));
+            await EnsureInitializedAsync();
             if (current != generation || disposed) return;
-            await browser.EnsureCoreWebView2Async(environment).WaitAsync(TimeSpan.FromSeconds(30));
-            if (current != generation || disposed) return;
-            CoreWebView2 core = browser.CoreWebView2;
-            var settings = core.Settings;
-            settings.AreDevToolsEnabled = false;
-            settings.AreDefaultContextMenusEnabled = false;
-            settings.AreHostObjectsAllowed = false;
-            settings.AreDefaultScriptDialogsEnabled = false;
-            settings.AreBrowserAcceleratorKeysEnabled = false;
-            settings.IsStatusBarEnabled = false;
-            settings.IsBuiltInErrorPageEnabled = false;
-            settings.IsScriptEnabled = true;
-            settings.IsZoomControlEnabled = false;
-            settings.IsPinchZoomEnabled = false;
-            settings.IsSwipeNavigationEnabled = false;
-            settings.IsWebMessageEnabled = true;
-            settings.IsPasswordAutosaveEnabled = false;
-            settings.IsGeneralAutofillEnabled = false;
-            core.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
-            core.WebResourceRequested += (_, args) =>
+            if (view?.CoreWebView2 is null) throw new IOException("미리보기 WebView2를 초기화하지 못했습니다.");
+            view.Visibility = Visibility.Visible;
+            placeholder.Visibility = Visibility.Collapsed;
+            view.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new
             {
-                if (current != generation || disposed || failed ||
-                    !Uri.TryCreate(args.Request.Uri, UriKind.Absolute, out Uri? uri) ||
-                    uri.Scheme != "https" || uri.Host != "hwp-document.invalid" || !uri.IsDefaultPort ||
-                    uri.UserInfo.Length != 0 || uri.Query.Length != 0 || uri.Fragment.Length != 0 || args.Request.Method != "GET")
-                {
-                    args.Response = environment.CreateWebResourceResponse(Stream.Null, 403, "Forbidden", "Content-Type: text/plain\r\nCache-Control: no-store");
-                    return;
-                }
-                if (args.Request.Uri == Origin + "/document.hwpx")
-                {
-                    args.Response = environment.CreateWebResourceResponse(new MemoryStream(snapshot, false), 200, "OK", "Content-Type: application/octet-stream\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff");
-                    return;
-                }
-                if (!AssetPaths.Contains(uri.AbsolutePath))
-                {
-                    args.Response = environment.CreateWebResourceResponse(Stream.Null, 403, "Forbidden", "Content-Type: text/plain\r\nCache-Control: no-store");
-                    return;
-                }
-                // Folder mapping resolves missing files before dynamic requests
-                // reach this handler. Serve both fixed assets and the captured
-                // document here; no request ever falls through to the network.
-                string mime = uri.AbsolutePath switch
-                {
-                    "/index.html" => "text/html; charset=utf-8",
-                    "/viewer.css" => "text/css; charset=utf-8",
-                    "/vendor/rhwp/rhwp_bg.wasm" => "application/wasm",
-                    _ => "text/javascript; charset=utf-8"
-                };
-                var content = new FileStream(Path.Combine(assets, uri.AbsolutePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)),
-                    FileMode.Open, FileAccess.Read, FileShare.Read);
-                args.Response = environment.CreateWebResourceResponse(content, 200, "OK", "Content-Type: " + mime + "\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff");
-            };
-            bool navigated = false;
-            core.NavigationStarting += (_, args) => { if (args.Uri != Page || navigated) args.Cancel = true; else navigated = true; };
-            core.NavigationCompleted += (_, args) => { if (!args.IsSuccess) Fail(new IOException("로컬 미리보기 문서를 불러오지 못했습니다: " + args.WebErrorStatus)); };
-            core.FrameCreated += (_, args) => args.Frame.NavigationStarting += (frameSender, navigation) => navigation.Cancel = true;
-            core.NewWindowRequested += (_, args) => args.Handled = true;
-            core.PermissionRequested += (_, args) => { args.State = CoreWebView2PermissionState.Deny; args.SavesInProfile = false; };
-            core.DownloadStarting += (_, args) => args.Cancel = true;
-            core.BasicAuthenticationRequested += (_, args) => args.Cancel = true;
-            core.ClientCertificateRequested += (_, args) => { args.Cancel = true; args.Handled = true; };
-            core.ServerCertificateErrorDetected += (_, args) => args.Action = CoreWebView2ServerCertificateErrorAction.Cancel;
-            core.ProcessFailed += (_, args) => Fail(new IOException("로컬 미리보기 표시 프로세스 오류: " + args.ProcessFailedKind));
-            bool started = false;
-            core.WebMessageReceived += (_, args) =>
-            {
-                if (disposed || failed || current != generation || args.Source != Page) return;
-                try
-                {
-                    string json = args.WebMessageAsJson;
-                    if (json.Length > 32768) throw new InvalidDataException("미리보기 메시지가 너무 큽니다.");
-                    using var parsed = JsonDocument.Parse(json);
-                    JsonElement message = parsed.RootElement;
-                    string? packetType = message.GetProperty("type").GetString();
-                    // Only bounded passage data gets a larger envelope. Normal
-                    // renderer status/errors retain the original strict limit.
-                    if (packetType != "passage" && json.Length > 4096) throw new InvalidDataException("미리보기 상태 메시지가 너무 큽니다.");
-                    if (message.GetProperty("type").GetString() == "ready" && !started)
-                    {
-                        started = true;
-                        core.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "show", generation = current, identity, sha256 = expectedSha256 }));
-                        return;
-                    }
-                    if (!started || message.GetProperty("generation").GetInt32() != current || message.GetProperty("identity").GetString() != identity || message.GetProperty("sha256").GetString() != expectedSha256) return;
-                    string? type = message.GetProperty("type").GetString();
-                    if (type == "passage")
-                    {
-                        // No action capability: the consumer must separately
-                        // revalidate this immutable source-bound UI memo target.
-                        if (!completion.Task.IsCompletedSuccessfully || DocumentIdentity != identity) return;
-                        DocumentPassageTarget target = ReadPassage(message, identity, expectedSha256, RenderedPageCount);
-                        PassageDoubleClicked?.Invoke(this, target);
-                        return;
-                    }
-                    if (type == "error") throw new InvalidDataException("HWPX 로컬 쪽 렌더링에 실패했습니다. " + message.GetProperty("message").GetString());
-                    if (type != "rendered") throw new InvalidDataException("허용되지 않은 미리보기 상태입니다.");
-                    int count = message.GetProperty("pageCount").GetInt32();
-                    int page = message.GetProperty("page").GetInt32();
-                    if (count is < 1 or > 10000 || page < 1 || page > count) throw new InvalidDataException("미리보기 쪽 정보가 올바르지 않습니다.");
-                    if (!completion.Task.IsCompleted && page != 1) throw new InvalidDataException("첫 쪽 표시가 확인되지 않았습니다.");
-                    RenderedPageCount = count;
-                    DocumentIdentity = identity;
-                    status.Text = $"{label} · {page}/{count}쪽 · 로컬 미리보기";
-                    status.TextWrapping = TextWrapping.NoWrap;
-                    status.TextTrimming = TextTrimming.CharacterEllipsis;
-                    status.ToolTip = status.Text + "\n한컴 검수와 다를 수 있습니다.";
-                    AutomationProperties.SetHelpText(status, identity);
-                    AutomationProperties.SetName(status, status.Text);
-                    completion.TrySetResult();
-                }
-                catch (Exception error) { Fail(error); }
-            };
-            core.Navigate(Page);
+                type = "show",
+                generation = current,
+                identity,
+                sha256 = expectedSha256,
+                preserveView
+            }));
             await completion.Task.WaitAsync(TimeSpan.FromSeconds(90));
+        }
+        catch (OperationCanceledException) when (current != generation || disposed)
+        {
+            return;
         }
         catch (Exception error)
         {
             if (current != generation || disposed) return;
-            Fail(error);
+            FailCurrent(current, error);
             throw;
         }
         finally
         {
             if (current == generation && ReferenceEquals(pending, completion)) pending = null;
         }
+    }
 
-        void Fail(Exception error)
+    private Task EnsureInitializedAsync()
+    {
+        if (initializeTask is not null && !initializeTask.IsFaulted && !initializeTask.IsCanceled && view is not null)
+            return initializeTask;
+        initializeTask = InitializeResidentWebViewAsync();
+        return initializeTask;
+    }
+
+    private async Task InitializeResidentWebViewAsync()
+    {
+        TearDownWebView();
+        string assets = Path.Combine(AppContext.BaseDirectory, "viewer");
+        LaunchDescriptor.RequirePath(assets, true);
+        foreach (string path in AssetPaths)
+            LaunchDescriptor.RequirePath(Path.Combine(assets, path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)), false);
+        viewerAssetsPath = assets;
+
+        var browser = new WebView2 { Visibility = Visibility.Collapsed };
+        view = browser;
+        layout.Children.Insert(0, browser);
+
+        environment ??= await CoreWebView2Environment.CreateAsync(null, profile, new CoreWebView2EnvironmentOptions
         {
-            if (disposed || failed || current != generation) return;
-            failed = true;
-            RenderedPageCount = 0;
-            DocumentIdentity = "";
-            status.Text = "미리보기를 표시하지 못했습니다. 원본은 변경되지 않았습니다. " + error.Message;
-            status.TextWrapping = TextWrapping.Wrap;
-            status.ToolTip = status.Text;
-            status.TextTrimming = TextTrimming.None;
-            AutomationProperties.SetName(status, status.Text);
-            AutomationProperties.SetHelpText(status, identity);
-            completion.TrySetException(error);
-            if (browser is not null) browser.Visibility = Visibility.Collapsed;
-            ErrorRaised?.Invoke(this, status.Text);
+            AllowSingleSignOnUsingOSPrimaryAccount = false,
+            AreBrowserExtensionsEnabled = false
+        }).WaitAsync(TimeSpan.FromSeconds(30));
+        if (disposed || !ReferenceEquals(view, browser)) return;
+
+        await browser.EnsureCoreWebView2Async(environment).WaitAsync(TimeSpan.FromSeconds(30));
+        if (disposed || !ReferenceEquals(view, browser)) return;
+
+        CoreWebView2 core = browser.CoreWebView2;
+        var settings = core.Settings;
+        settings.AreDevToolsEnabled = false;
+        settings.AreDefaultContextMenusEnabled = false;
+        settings.AreHostObjectsAllowed = false;
+        settings.AreDefaultScriptDialogsEnabled = false;
+        settings.AreBrowserAcceleratorKeysEnabled = false;
+        settings.IsStatusBarEnabled = false;
+        settings.IsBuiltInErrorPageEnabled = false;
+        settings.IsScriptEnabled = true;
+        settings.IsZoomControlEnabled = false;
+        settings.IsPinchZoomEnabled = false;
+        settings.IsSwipeNavigationEnabled = false;
+        settings.IsWebMessageEnabled = true;
+        settings.IsPasswordAutosaveEnabled = false;
+        settings.IsGeneralAutofillEnabled = false;
+
+        readySource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        core.AddWebResourceRequestedFilter("*", CoreWebView2WebResourceContext.All);
+        core.WebResourceRequested += (_, args) => HandleWebResourceRequested(args);
+        bool navigated = false;
+        core.NavigationStarting += (_, args) => { if (args.Uri != Page || navigated) args.Cancel = true; else navigated = true; };
+        core.NavigationCompleted += (_, args) =>
+        {
+            if (!args.IsSuccess)
+            {
+                var error = new IOException("로컬 미리보기 문서를 불러오지 못했습니다: " + args.WebErrorStatus);
+                readySource?.TrySetException(error);
+                FailCurrent(generation, error);
+            }
+        };
+        core.FrameCreated += (_, args) => args.Frame.NavigationStarting += (_, navigation) => navigation.Cancel = true;
+        core.NewWindowRequested += (_, args) => args.Handled = true;
+        core.PermissionRequested += (_, args) => { args.State = CoreWebView2PermissionState.Deny; args.SavesInProfile = false; };
+        core.DownloadStarting += (_, args) => args.Cancel = true;
+        core.BasicAuthenticationRequested += (_, args) => args.Cancel = true;
+        core.ClientCertificateRequested += (_, args) => { args.Cancel = true; args.Handled = true; };
+        core.ServerCertificateErrorDetected += (_, args) => args.Action = CoreWebView2ServerCertificateErrorAction.Cancel;
+        core.ProcessFailed += (_, args) =>
+        {
+            var error = new IOException("로컬 미리보기 표시 프로세스 오류: " + args.ProcessFailedKind);
+            readySource?.TrySetException(error);
+            TearDownWebView();
+            initializeTask = null;
+            FailCurrent(generation, error);
+        };
+        core.WebMessageReceived += (_, args) => HandleWebMessage(args);
+        core.Navigate(Page);
+        await readySource.Task.WaitAsync(TimeSpan.FromSeconds(30));
+    }
+
+    private void HandleWebResourceRequested(CoreWebView2WebResourceRequestedEventArgs args)
+    {
+        if (environment is null || disposed ||
+            !Uri.TryCreate(args.Request.Uri, UriKind.Absolute, out Uri? uri) ||
+            uri.Scheme != "https" || uri.Host != "hwp-document.invalid" || !uri.IsDefaultPort ||
+            uri.UserInfo.Length != 0 || uri.Query.Length != 0 || uri.Fragment.Length != 0 || args.Request.Method != "GET")
+        {
+            args.Response = environment?.CreateWebResourceResponse(Stream.Null, 403, "Forbidden", "Content-Type: text/plain\r\nCache-Control: no-store");
+            return;
+        }
+        if (args.Request.Uri == Origin + "/document.hwpx")
+        {
+            byte[]? snapshot = currentBytes;
+            if (snapshot is null)
+            {
+                args.Response = environment.CreateWebResourceResponse(Stream.Null, 404, "Not Found", "Content-Type: text/plain\r\nCache-Control: no-store");
+                return;
+            }
+            args.Response = environment.CreateWebResourceResponse(new MemoryStream(snapshot, false), 200, "OK",
+                "Content-Type: application/octet-stream\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff");
+            return;
+        }
+        if (!AssetPaths.Contains(uri.AbsolutePath))
+        {
+            args.Response = environment.CreateWebResourceResponse(Stream.Null, 403, "Forbidden", "Content-Type: text/plain\r\nCache-Control: no-store");
+            return;
+        }
+        string mime = uri.AbsolutePath switch
+        {
+            "/index.html" => "text/html; charset=utf-8",
+            "/viewer.css" => "text/css; charset=utf-8",
+            "/vendor/rhwp/rhwp_bg.wasm" => "application/wasm",
+            _ => "text/javascript; charset=utf-8"
+        };
+        var content = new FileStream(Path.Combine(viewerAssetsPath, uri.AbsolutePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)),
+            FileMode.Open, FileAccess.Read, FileShare.Read);
+        args.Response = environment.CreateWebResourceResponse(content, 200, "OK",
+            "Content-Type: " + mime + "\r\nCache-Control: no-store\r\nX-Content-Type-Options: nosniff");
+    }
+
+    private void HandleWebMessage(CoreWebView2WebMessageReceivedEventArgs args)
+    {
+        if (disposed || args.Source != Page) return;
+        try
+        {
+            string json = args.WebMessageAsJson;
+            if (json.Length > 32768) throw new InvalidDataException("미리보기 메시지가 너무 큽니다.");
+            using var parsed = JsonDocument.Parse(json);
+            JsonElement message = parsed.RootElement;
+            string? packetType = message.GetProperty("type").GetString();
+            if (packetType == "ready")
+            {
+                if (message.EnumerateObject().Count() != 1) throw new InvalidDataException("예상하지 못한 미리보기 준비 메시지입니다.");
+                readySource?.TrySetResult();
+                return;
+            }
+            if (packetType != "passage" && json.Length > 4096) throw new InvalidDataException("미리보기 메시지가 너무 큽니다.");
+            if (!message.TryGetProperty("generation", out JsonElement genEl) || genEl.GetInt32() != generation)
+                return; // Stale message from a superseded generation; ignore cleanly.
+            if (currentFailed ||
+                message.GetProperty("identity").GetString() != currentIdentity ||
+                message.GetProperty("sha256").GetString() != currentSha256)
+                return;
+
+            if (packetType == "error")
+            {
+                if (message.EnumerateObject().Count() != 5) throw new InvalidDataException("예상하지 못한 미리보기 오류 메시지입니다.");
+                throw new InvalidDataException(message.GetProperty("message").GetString() ?? "로컬 쪽 미리보기 오류");
+            }
+            if (packetType == "passage")
+            {
+                if (pending is not null && !pending.Task.IsCompleted) return;
+                PassageDoubleClicked?.Invoke(this, ReadPassage(message, currentIdentity, currentSha256, RenderedPageCount));
+                return;
+            }
+            if (packetType != "rendered" || message.EnumerateObject().Count() != 6)
+                throw new InvalidDataException("예상하지 못한 미리보기 메시지입니다.");
+            int page = message.GetProperty("page").GetInt32();
+            int count = message.GetProperty("pageCount").GetInt32();
+            if (count < 1 || count > 10000 || page < 1 || page > count)
+                throw new InvalidDataException("쪽 수 응답이 올바르지 않습니다.");
+            if (!currentPreserveView && pending is not null && !pending.Task.IsCompleted && page != 1)
+                throw new InvalidDataException("첫 쪽 표시가 확인되지 않았습니다.");
+            RenderedPageCount = count;
+            CurrentPage = page;
+            DocumentIdentity = currentIdentity;
+            SetStatus($"{currentLabel} · {page}/{count}쪽");
+            pending?.TrySetResult();
+        }
+        catch (Exception error)
+        {
+            FailCurrent(generation, error);
+        }
+    }
+
+    private void FailCurrent(int targetGeneration, Exception error)
+    {
+        if (disposed || targetGeneration != generation || currentFailed) return;
+        currentFailed = true;
+        RenderedPageCount = 0;
+        CurrentPage = 0;
+        DocumentIdentity = "";
+        string message = "미리보기를 표시하지 못했습니다. " + error.Message;
+        SetStatus(message);
+        placeholderText.Text = message;
+        placeholder.Visibility = Visibility.Visible;
+        if (view is not null) view.Visibility = Visibility.Collapsed;
+        pending?.TrySetException(error);
+        ErrorRaised?.Invoke(this, message);
+    }
+
+    private void SetStatus(string text)
+    {
+        StatusText = text;
+        StatusChanged?.Invoke(this, text);
+    }
+
+    private void TearDownWebView()
+    {
+        readySource?.TrySetCanceled();
+        readySource = null;
+        if (view is not null)
+        {
+            layout.Children.Remove(view);
+            view.Dispose();
+            view = null;
         }
     }
 
@@ -279,9 +407,9 @@ internal sealed class HwpxDocumentPane : UserControl, IDisposable
     {
         if (disposed) return;
         Dispatcher.VerifyAccess();
-        Clear("문서 미리보기가 닫혔습니다.");
+        pending?.TrySetCanceled();
+        pending = null;
+        TearDownWebView();
         disposed = true;
-        // The uniquely owned profile is never shared with OMP or existing auth.
-        // Do not erase browser evidence or interfere with asynchronous process exit.
     }
 }

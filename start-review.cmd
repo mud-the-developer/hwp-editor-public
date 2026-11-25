@@ -1,19 +1,13 @@
 @echo off
 setlocal
-title HWP Page Review - http://127.0.0.1:8765
+title HWP Editor - Legacy Review
 cd /d "%~dp0"
 call "%~dp0setup-source.cmd"
 if errorlevel 1 (
     pause
     exit /b 1
 )
-echo HWP Page Review: http://127.0.0.1:8765
-echo Keep this window open while using the review page.
-echo Press Ctrl+C or close this window to stop the server.
-echo.
-".venv\Scripts\python.exe" "scripts\hwp_review.py" serve "work\review" --port 8765 --open
+".venv\Scripts\python.exe" -B -X utf8 "scripts\hwp_desktop.py" --legacy-desktop
 set "REVIEW_EXIT=%ERRORLEVEL%"
-echo.
-echo Server stopped. Exit code: %REVIEW_EXIT%
-pause
+if not "%REVIEW_EXIT%"=="0" pause
 exit /b %REVIEW_EXIT%

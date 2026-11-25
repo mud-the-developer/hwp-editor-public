@@ -102,7 +102,7 @@ class ReopenedContractTests(unittest.TestCase):
                     "native": native,
                 },
             )
-            return SimpleNamespace(returncode=0)
+            return SimpleNamespace(wait=lambda timeout: 0)
 
         exporter = n.NativeContractExporter(w, r.plan_hash(plan))
         exporter.phase = 1
@@ -111,7 +111,7 @@ class ReopenedContractTests(unittest.TestCase):
             if gate
             else patch.object(n, "contract_gate", wraps=n.contract_gate)
         )
-        with patch.object(n.subprocess, "run", side_effect=child), context as checked:
+        with patch.object(n.subprocess, "Popen", side_effect=child), context as checked:
             try:
                 result = exporter(source, run / "candidate.pdf")
             except (ValueError, RuntimeError):

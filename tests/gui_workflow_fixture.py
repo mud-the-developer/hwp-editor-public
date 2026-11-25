@@ -1,4 +1,4 @@
-"""Continuous Tk→HTTP→Edge host. Default SYNTHETIC never starts Hancom.
+"""Continuous native Tk → HTTP fixture. Default SYNTHETIC never starts Hancom.
 Explicit Native mode: exact EXE + NEW unsigned TOY only, no real reports/retries.
 
 Own NEW fixture files only. Chooser/confirm and Native/export/security are MOCKS;
@@ -403,9 +403,6 @@ def main(argv=None):
             patch.object(d.filedialog, "askopenfilename", return_value=str(source))
         )
         stack.enter_context(patch.object(d.messagebox, "askyesno", return_value=True))
-        stack.enter_context(
-            patch.object(d, "open_window", return_value="SYNTHETIC: test owns browser")
-        )
         original = p.new_project
 
         def project(selected, **kwargs):
@@ -447,7 +444,7 @@ def main(argv=None):
                     app.info.path / "proposal-layout.json",
                     layout_plan(app.info.path, OLD, NEW),
                 )
-                app.mode.set(d.MODES["layout"][0])
+                app.mode.set(d.MODES["layout"])
             if fill:
                 if app.info is None:
                     raise ValueError("Prepared unsigned fill TOY workspace missing")
@@ -461,10 +458,13 @@ def main(argv=None):
                 wait(root, app)
                 if app.info is None or not app.info.has_fill_input:
                     raise ValueError("Actual fill input was not revalidated by Tk")
-                app.mode.set(d.MODES["fill"][0])
+                app.mode.set(d.MODES["fill"])
                 app.update_controls()
             app.open_button.invoke()
             wait(root, app)
+            review_view = app.review_window
+            if review_view is None:
+                raise ValueError("Native HWP review window did not open")
             events.append("Tk review launch callback → exact owned HTTP server")
             if app.info is None:
                 raise ValueError("Prepared GUI workspace missing")
@@ -506,6 +506,9 @@ def main(argv=None):
                     break
             else:
                 raise TimeoutError("Owned synthetic browser test did not stop")
+            if review_view.busy or review_view.active:
+                raise ValueError("Review still active; no shutdown")
+            review_view.close()
             app.session.stop()
             root.update()
             if r.file_hash(source) != source_sha:

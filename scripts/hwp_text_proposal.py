@@ -10,7 +10,7 @@ import os
 import uuid
 
 
-def compile_text(payload, manifest, baseline):
+def _authored_plan(payload):
     if not isinstance(payload, dict) or set(payload) != {"workspace_id", "baseline_hwpx_sha256", "edits"}:
         raise ValueError("문서 ID·기준 해시와 명시한 교체 문구만 허용합니다.")
     plan = {"schema": 1, **payload}
@@ -18,8 +18,20 @@ def compile_text(payload, manifest, baseline):
     for edit in plan["edits"]:
         if not isinstance(edit, dict) or not isinstance(edit.get("new_text"), str) or not edit["new_text"].strip():
             raise ValueError("빈 문구 삭제·자료 추측은 지원하지 않습니다. 정확한 새 문구를 입력하세요.")
+    return plan
+
+
+def compile_text(payload, manifest, baseline):
+    plan = _authored_plan(payload)
     review.validate_plan(plan, manifest, baseline)
     return plan
+
+
+def compile_layout(payload, manifest, baseline):
+    """Derive allowed regions and original row heights; never take them as input."""
+    review.hwp_fixed_layout.require_native_profile(baseline)
+    native = review.hwp_native_plan.proposal(_authored_plan(payload), manifest, baseline)
+    return review.hwp_fixed_layout.proposal(native, manifest, baseline)
 
 
 def archive_previous(workspace: Path, previous: bytes | None):
@@ -41,7 +53,7 @@ def archive_previous(workspace: Path, previous: bytes | None):
 def write_proposal(workspace, plan, expected_revision):
     # Atomic whole-file publication, not a filesystem transaction/CAS against an
     # arbitrary external writer. Local browser requests are server-serialized.
-    path = workspace / "proposal.json"
+    path = workspace / {1: "proposal.json", 3: "proposal-layout.json"}[plan["schema"]]
     if review.file_revision(path) != expected_revision:raise ValueError("수정안이 저장 전에 변경됐습니다. 최신안을 다시 확인하세요.")
     raw = json.dumps(plan, ensure_ascii=False, indent=2).encode("utf-8")
     temporary = workspace / (".proposal-" + uuid.uuid4().hex + ".tmp")

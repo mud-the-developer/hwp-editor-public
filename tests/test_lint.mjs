@@ -1,13 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ESLint } from 'eslint';
-import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { browserScript, root } from '../scripts/lint.mjs';
 
 const engine = new ESLint({ cwd: root });
-async function browserRules(source) {
-  const [result] = await engine.lintText(source, { filePath: 'web/fixture.inline.js' });
+async function viewerRules(source) {
+  const [result] = await engine.lintText(source, { filePath: join(root, 'native/HWPReview.Native/ViewerAssets/fixture.js') });
   return result.messages.map(message => message.ruleId);
 }
 
@@ -19,11 +18,16 @@ test('inline browser code preserves real HTML line/column positions, including U
   assert.equal(source.split('\n').length, html.split('\n').length);
 });
 
-test('template review inline script receives browser correctness and DOM-safety lint', async () => {
-  const html = await readFile(join(root, 'web/template-review.html'), 'utf8');
-  const source = browserScript(html);
-  const [result] = await engine.lintText(source, { filePath: 'web/template-review.inline.js' });
-  assert.deepEqual(result.messages, []);
+test('native WebView scripts and OMP bridge pass correctness and DOM-safety lint', async () => {
+  const results = await engine.lintFiles([
+    'native/HWPReview.Native/Bridge/omp-bridge.mjs',
+    'native/HWPReview.Native/TerminalAssets/terminal.js',
+    'native/HWPReview.Native/ViewerAssets/viewer.js',
+    'native/HWPReview.Native/ViewerAssets/svg-safety.js',
+  ]);
+  for (const result of results) {
+    assert.deepEqual(result.messages, [], result.filePath);
+  }
 });
 
 test('all executable inline blocks are covered; JSON document data is not executable code', () => {
@@ -37,21 +41,21 @@ test('all executable inline blocks are covered; JSON document data is not execut
 });
 
 test('browser globals are recognized but missing names and unreachable code are blocked', async () => {
-  assert.deepEqual(await browserRules('document.querySelector("p").textContent="safe";'), []);
-  assert((await browserRules('unknownReviewName();')).includes('no-undef'));
-  assert((await browserRules('// eslint-disable-next-line no-undef\nunknownReviewName();')).includes('no-undef'));
-  assert((await browserRules('function bad(){return;document.title="never";}')).includes('no-unreachable'));
+  assert.deepEqual(await viewerRules('document.querySelector("p").textContent="safe";'), []);
+  assert((await viewerRules('unknownReviewName();')).includes('no-undef'));
+  assert((await viewerRules('// eslint-disable-next-line no-undef\nunknownReviewName();')).includes('no-undef'));
+  assert((await viewerRules('function bad(){return;document.title="never";}')).includes('no-unreachable'));
 });
 
-test('review data cannot become parsed HTML; literal empty clearing remains allowed', async () => {
-  assert((await browserRules('document.body.innerHTML=location.hash;')).includes('no-restricted-syntax'));
-  assert((await browserRules('document.body["outerHTML"]=location.hash;')).includes('no-restricted-syntax'));
-  assert((await browserRules('document.body.insertAdjacentHTML("beforeend",location.hash);')).includes('no-restricted-syntax'));
-  assert.deepEqual(await browserRules('document.body.innerHTML="";document.body.textContent=location.hash;'), []);
+test('viewer data cannot become parsed HTML; literal empty clearing remains allowed', async () => {
+  assert((await viewerRules('document.body.innerHTML=location.hash;')).includes('no-restricted-syntax'));
+  assert((await viewerRules('document.body["outerHTML"]=location.hash;')).includes('no-restricted-syntax'));
+  assert((await viewerRules('document.body.insertAdjacentHTML("beforeend",location.hash);')).includes('no-restricted-syntax'));
+  assert.deepEqual(await viewerRules('document.body.innerHTML="";document.body.textContent=location.hash;'), []);
 });
 
-test('dynamic execution of review text is blocked', async () => {
-  assert((await browserRules('eval(location.hash);')).includes('no-eval'));
-  assert((await browserRules('new Function("return 1");')).includes('no-new-func'));
-  assert((await browserRules('setTimeout("alert(1)",1);')).includes('no-implied-eval'));
+test('dynamic execution of viewer text is blocked', async () => {
+  assert((await viewerRules('eval(location.hash);')).includes('no-eval'));
+  assert((await viewerRules('new Function("return 1");')).includes('no-new-func'));
+  assert((await viewerRules('setTimeout("alert(1)",1);')).includes('no-implied-eval'));
 });

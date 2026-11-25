@@ -115,44 +115,18 @@ class DesktopTests(unittest.TestCase):
         self.assertTrue(d.inspect_workspace(self.path).has_fill_input)
         self.assertEqual((self.path / "fill-input.json").read_bytes(), b"INVALID SYNTHETIC INPUT")
 
-    def test_all_mode_urls_have_only_exact_local_allowlisted_routes(self):
-        for mode in d.MODES:
-            url = d.review_url("http://127.0.0.1:8765", mode)
-            self.assertTrue(url.startswith("http://127.0.0.1:8765/"))
-        self.assertEqual(d.review_url("http://127.0.0.1:8765", "fill"), "http://127.0.0.1:8765/fill")
-        with self.assertRaises(ValueError):d.review_url("http://127.0.0.1:8765", "../apply")
-
-    def test_external_credentials_paths_and_invalid_ports_are_rejected(self):
-        for origin in ("https://127.0.0.1:8765", "http://localhost:8765", "http://evil.invalid:8765",
-                       "http://127.0.0.1:0", "http://127.0.0.1:65536", "http://127.0.0.1:8765/",
-                       "http://user@127.0.0.1:8765", "http://127.0.0.1:8765\n"):
-            with self.subTest(origin=origin), self.assertRaises(ValueError):d.review_url(origin, "memo")
-        with patch.object(d.webbrowser, "open") as browser:
-            with self.assertRaises(ValueError):d.open_window("http://evil.invalid/")
-            with self.assertRaises(ValueError):d.open_window("http://127.0.0.1:8765/api/approve")
-            browser.assert_not_called()
-
-    def test_edge_uses_literal_argv_without_shell_and_is_not_terminated(self):
-        edge = self.path / "SYNTHETIC Edge.exe"
-        edge.touch()
-        with patch.object(d.subprocess, "Popen") as spawn, patch.object(d.webbrowser, "open") as browser:
-            url = d.review_url("http://127.0.0.1:8765", "native")
-            d.open_window(url, edge)
-            self.assertEqual(spawn.call_args.args[0], [str(edge), "--no-first-run", "--app=" + url])
-            self.assertIs(spawn.call_args.kwargs["shell"], False)
-            spawn.return_value.terminate.assert_not_called()
-            browser.assert_not_called()
-
-    def test_edge_failure_does_not_silently_switch_to_browser(self):
-        edge = self.path / "SYNTHETIC Edge.exe"
-        edge.touch()
-        with patch.object(d.subprocess, "Popen", side_effect=OSError("Synthetic browser failure")), patch.object(d.webbrowser, "open") as browser:
-            with self.assertRaises(OSError):d.open_window("http://127.0.0.1:8765/", edge)
-            browser.assert_not_called()
-
-    def test_explicit_default_browser_failure_is_reported(self):
-        with patch.object(d.webbrowser, "open", return_value=False):
-            with self.assertRaisesRegex(RuntimeError, "브라우저"):d.open_window("http://127.0.0.1:8765/")
+    def test_retired_review_documents_are_not_served(self):
+        session = d.ReviewSession()
+        session.start(self.path)
+        self.addCleanup(session.stop)
+        self.assertEqual(session.legacy_client().snapshot("text")["manifest"]["workspace_id"], session.info.workspace_id)
+        for route in ("/", "/fill"):
+            conn = http.client.HTTPConnection("127.0.0.1", session._server.server_port, timeout=5)
+            try:
+                conn.request("GET", route)
+                self.assertEqual(conn.getresponse().status, 404)
+            finally:
+                conn.close()
 
     def test_owned_server_auto_port_readiness_and_no_writes(self):
         before = snapshot(self.path)
@@ -167,8 +141,9 @@ class DesktopTests(unittest.TestCase):
         response = connection.getresponse()
         self.assertEqual(response.status, 200)
         self.assertEqual(json.loads(response.read())["manifest"]["workspace_id"], info.workspace_id)
-        with self.assertRaises(ValueError):session.url("fill")
-        self.assertIn("proposal=native", session.url("native"))
+        with self.assertRaises(ValueError):
+            session.legacy_client().snapshot("fill")
+        self.assertEqual(session.legacy_client().snapshot("layout")["proposal_kind"], "layout")
         session.stop()
         self.assertFalse(session.running)
         self.assertEqual(snapshot(self.path), before)
@@ -260,9 +235,6 @@ class DesktopWidgetTests(unittest.TestCase):
         except tk.TclError as error:self.skipTest("Tk display unavailable; not a visual pass: " + str(error))
         self.root.withdraw()
         self.addCleanup(self.destroy)
-        self.edge = patch.object(d, "find_edge", return_value=None)
-        self.edge.start()
-        self.addCleanup(self.edge.stop)
         self.app = d.DesktopApp(self.root)
         self.gui_temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.gui_temp.cleanup)
@@ -301,10 +273,10 @@ class DesktopWidgetTests(unittest.TestCase):
             inspect.assert_called_once()
         self.assertIn("3쪽", self.app.summary.get())
         self.assertEqual(str(self.app.open_button.cget("state")), "normal")
-        self.app.mode.set(d.MODES["fill"][0])
+        self.app.mode.set(d.MODES["fill"])
         self.app.update_controls()
         self.assertEqual(str(self.app.open_button.cget("state")), "disabled")
-        self.app.mode.set(d.MODES["native"][0])
+        self.app.mode.set(d.MODES["layout"])
         self.app.update_controls()
         self.assertEqual(str(self.app.open_button.cget("state")), "normal")
         self.app.path.set(str(self.info.path / "new-folder"))
@@ -313,7 +285,7 @@ class DesktopWidgetTests(unittest.TestCase):
 
     def test_failed_check_never_retries_or_opens_window(self):
         self.app.path.set(str(self.info.path))
-        with patch.object(d, "inspect_workspace", side_effect=ValueError("SYNTHETIC source mismatch")) as inspect, patch.object(d, "open_window") as open_window:
+        with patch.object(d, "inspect_workspace", side_effect=ValueError("SYNTHETIC source mismatch")) as inspect, patch.object(d, "LegacyReviewWindow") as open_window:
             self.app.check_workspace()
             self.wait()
             inspect.assert_called_once()
@@ -322,16 +294,10 @@ class DesktopWidgetTests(unittest.TestCase):
         self.assertIsNone(self.app.info)
         self.assertEqual(str(self.app.open_button.cget("state")), "disabled")
 
-    def test_browser_error_keeps_owned_url_and_cancelled_close_does_not_stop(self):
+    def test_cancelled_close_preserves_an_owned_session(self):
         self.app.path.set(str(self.info.path))
         self.app.info = self.info
-        self.app.session = SimpleNamespace(running=True, info=self.info, origin="http://127.0.0.1:8765", failure="", stop=lambda: self.fail("No stop on cancellation"), url=lambda mode:d.review_url("http://127.0.0.1:8765", mode))
-        self.app.update_controls()
-        with patch.object(d, "inspect_workspace", return_value=self.info), patch.object(d, "open_window", side_effect=OSError("SYNTHETIC window failed")):
-            self.app.launch(None)
-            self.wait()
-        self.assertEqual(self.app.address.get(), "http://127.0.0.1:8765/")
-        self.assertEqual(str(self.app.copy_button.cget("state")), "normal")
+        self.app.session = SimpleNamespace(running=True, info=self.info, stopping=False, stop=lambda: self.fail("No stop on cancellation"))
         with patch.object(d.messagebox, "askyesno", return_value=False):
             self.app.close()
         self.assertFalse(self.app.closing)

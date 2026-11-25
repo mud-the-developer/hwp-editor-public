@@ -4,17 +4,29 @@ Inspired by Paperless-ngx/Paperdesk/Okular workflows; NO borrowed source/assets.
 Library presence != integrity/approval. No watcher, history DB, Native or cleanup.
 """
 from dataclasses import dataclass
+from datetime import datetime, timezone
+import hashlib
+import io
+import json
 from pathlib import Path
 import os
 import re
+import secrets
 import stat
+import xml.etree.ElementTree as ET
+import zipfile
 
+import hwp_blank_document as blank_document
 import hwp_report_project as projects
 
 import hwp_review as review
 
 MAX_METADATA = 4 * 1024 * 1024
 MAX_COMMENTS = 16 * 1024 * 1024
+MAX_HWPX_BYTES = 64 * 1024 * 1024
+MAX_HISTORY_CHECKPOINTS = 200
+PROTECTED_DIR_NAMES = frozenset(("example", ".hwpreview", ".git"))
+PROTECTED_FILE_NAMES = frozenset(("baseline.hwpx", "baseline.hwp", "baseline.pdf", "source.hwpx"))
 STATES = {"prepared": "검토 자료 있음", "staged": "준비 전", "incomplete": "미완료·중단", "attention": "확인 필요", "empty": "빈 폴더"}
 
 
@@ -320,7 +332,8 @@ def scan_workspace(root=None, *, limit=500, visit_limit=10000, depth_limit=32):
                         matches = records.get(os.path.normcase(str(path)), [])
                         documents.append({"path": str(path), "name": path.name,
                                           "relative_path": path.relative_to(root).as_posix(),
-                                          "project_root": str(matches[0]) if len(matches) == 1 else ""})
+                                          "project_root": str(matches[0]) if len(matches) == 1 else "",
+                                          "protected": is_protected_live_path(path, root)})
                         if len(matches) > 1:
                             issues.append(f"같은 원본에 연결된 저장 작업이 여러 개입니다 · {path.name}")
                 except (OSError, ValueError) as error:
@@ -367,7 +380,6 @@ def export_notes(workspace, destination):
     for comment in payload["comments"]:groups.setdefault(comment["page"], []).append(comment)
     identity = {"source": source.name, "source_sha256": manifest["source_audit"]["sha256"],
                 "workspace_id": manifest["workspace_id"], "saved_comments_sha256": comments_sha}
-    import json
     lines = ["# 저장된 검토 메모", "", "> 문서 수정 승인·적용 결과·제출 확인이 아닙니다. 저장한 메모만 포함하며 브라우저의 미저장 초안은 포함하지 않습니다.", "",
              "```json", json.dumps(identity, ensure_ascii=True, indent=2), "```", "",
              f"- 원본 페이지: {len(manifest['pages'])}쪽", f"- 저장된 메모: {len(payload['comments'])}개", ""]
@@ -387,3 +399,354 @@ def export_notes(workspace, destination):
     encoded = text.encode("utf-8")  # Validate before creating a destination (e.g. malformed Unicode).
     with destination.open("xb") as stream:stream.write(encoded)
     return {"path": str(destination), "notes": len(payload["comments"]), "saved_comments_sha256": comments_sha}
+
+
+def is_protected_live_path(path, workspace_root=None):
+    """Return True if path is under example/, .hwpreview/, a project folder, or a baseline filename."""
+    candidate = Path(path)
+    if candidate.name.casefold() in PROTECTED_FILE_NAMES:
+        return True
+    if any(part.casefold() in PROTECTED_DIR_NAMES for part in candidate.parts):
+        return True
+    root = Path(workspace_root).resolve(strict=False) if workspace_root is not None else None
+    for parent in candidate.parents:
+        if root is not None and not parent.is_relative_to(root):
+            break
+        if parent.name.casefold() in PROTECTED_DIR_NAMES:
+            return True
+        if projects.has_project_marker(parent):
+            return True
+    return False
+
+
+def _require_editable_live_path(workspace_root, path, *, new=False):
+    root = work_folder(workspace_root)
+    checked = workspace_document(root, path, new=new)
+    if is_protected_live_path(checked, root):
+        raise ValueError(
+            "보호 경로(example/·기준 원본·내부 관리 폴더)는 직접 편집하거나 덮어쓸 수 없습니다. "
+            "별도 작업 폴더로 복사한 뒤 편집하세요."
+        )
+    return root, checked
+
+
+def validate_hwpx_bytes(raw):
+    """Validate bounded HWPX bytes (ZIP integrity + non-empty well-formed Contents/section0.xml)."""
+    if not isinstance(raw, (bytes, bytearray)) or not 1 <= len(raw) <= MAX_HWPX_BYTES:
+        raise ValueError("HWPX 파일 크기가 허용 범위(1B~64MiB)를 벗어났습니다.")
+    try:
+        with zipfile.ZipFile(io.BytesIO(raw), "r") as archive:
+            if archive.testzip() is not None:
+                raise ValueError("HWPX ZIP 압축이 손상되었거나 저장 중입니다.")
+            if "Contents/section0.xml" not in archive.namelist():
+                raise ValueError("HWPX에 Contents/section0.xml이 없습니다.")
+            section_xml = archive.read("Contents/section0.xml")
+    except zipfile.BadZipFile as error:
+        raise ValueError("유효한 HWPX(ZIP) 파일이 아닙니다.") from error
+    if not section_xml or len(section_xml) > MAX_HWPX_BYTES:
+        raise ValueError("Contents/section0.xml이 비어 있거나 허용 크기를 넘었습니다.")
+    upper = section_xml[:4096].upper()
+    if b"<!DOCTYPE" in upper or b"<!ENTITY" in upper:
+        raise ValueError("안전하지 않은 XML 선언(DOCTYPE/ENTITY)이 포함되어 있습니다.")
+    try:
+        ET.fromstring(section_xml)
+    except ET.ParseError as error:
+        raise ValueError("Contents/section0.xml 구문이 올바르지 않습니다.") from error
+    return hashlib.sha256(raw).hexdigest()
+
+
+def _read_regular_hwpx(path):
+    info = path.lstat()
+    if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+        raise ValueError("연결되지 않은 실제 HWPX 파일이어야 합니다.")
+    if info.st_size <= 0 or info.st_size > MAX_HWPX_BYTES:
+        raise ValueError("HWPX 파일 크기가 허용 범위(1B~64MiB)를 벗어났습니다.")
+    with path.open("rb") as stream:
+        raw = stream.read(MAX_HWPX_BYTES + 1)
+    if len(raw) > MAX_HWPX_BYTES or not raw:
+        raise ValueError("HWPX 파일 크기가 허용 한도를 넘었습니다.")
+    sha256 = validate_hwpx_bytes(raw)
+    return raw, sha256
+
+
+def _ensure_directory(path):
+    checked = projects._unlinked(Path(path))
+    checked.mkdir(parents=True, exist_ok=True)
+    if not stat.S_ISDIR(projects._unlinked(checked).lstat().st_mode):
+        raise ValueError("앱 관리 경로가 실제 폴더가 아닙니다.")
+    return checked
+
+
+def _live_originals_dir(workspace_root):
+    return _ensure_directory(workspace_root / ".hwpreview" / "originals")
+
+
+def _live_history_dir(workspace_root, relative_path):
+    key = hashlib.sha256(os.path.normcase(relative_path).encode("utf-8")).hexdigest()[:16]
+    return _ensure_directory(workspace_root / ".hwpreview" / "history" / key)
+
+
+def _ensure_original_backup(workspace_root, raw, sha256):
+    """Store one-time immutable backup in .hwpreview/originals/<sha256>.hwpx; never overwrite."""
+    originals = _live_originals_dir(workspace_root)
+    target = originals / f"{sha256}.hwpx"
+    if os.path.lexists(target):
+        projects._unlinked(target)
+        existing_raw, existing_sha = _read_regular_hwpx(target)
+        if existing_sha != sha256 or len(existing_raw) != len(raw):
+            raise ValueError("불변 원본 백업의 SHA-256이 일치하지 않습니다. 백업을 덮어쓰지 않습니다.")
+        return target
+    try:
+        with target.open("xb") as stream:
+            stream.write(raw)
+    except FileExistsError:
+        projects._unlinked(target)
+        _, existing_sha = _read_regular_hwpx(target)
+        if existing_sha != sha256:
+            raise ValueError("불변 원본 백업의 SHA-256이 일치하지 않습니다.")
+    return target
+
+
+def _write_json_atomic(path, payload):
+    encoded = (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+    temp = path.parent / f".{path.name}.{secrets.token_hex(6)}.tmp"
+    try:
+        with temp.open("xb") as stream:
+            stream.write(encoded)
+            stream.flush()
+        os.replace(temp, path)
+    finally:
+        if os.path.lexists(temp):
+            try:
+                temp.unlink()
+            except OSError:
+                pass
+
+
+def _load_history_index(history_dir, relative_path):
+    index_file = history_dir / "index.json"
+    if not os.path.lexists(index_file):
+        return {
+            "schema": "hwp-live-history-v1",
+            "relative_path": relative_path,
+            "original_sha256": "",
+            "original_path": "",
+            "checkpoints": [],
+        }
+    data = bounded_json(index_file, MAX_METADATA)
+    if (
+        not isinstance(data, dict)
+        or data.get("schema") != "hwp-live-history-v1"
+        or not isinstance(data.get("checkpoints"), list)
+    ):
+        raise ValueError("체크포인트 이력 파일(index.json) 형식이 올바르지 않습니다.")
+    return data
+
+
+def _format_checkpoints_view(index_data):
+    return {
+        "original_sha256": index_data.get("original_sha256", ""),
+        "original_path": index_data.get("original_path", ""),
+        "checkpoints": list(index_data.get("checkpoints", [])),
+    }
+
+
+def _append_checkpoint(workspace_root, history_dir, index_data, raw, sha256, *, reason):
+    now = datetime.now(timezone.utc)
+    if not index_data.get("original_sha256"):
+        orig_path = _ensure_original_backup(workspace_root, raw, sha256)
+        index_data["original_sha256"] = sha256
+        index_data["original_path"] = str(orig_path)
+    checkpoints = index_data.setdefault("checkpoints", [])
+    if checkpoints and checkpoints[-1].get("sha256") == sha256:
+        return False, checkpoints[-1]
+
+    stamp = now.strftime("%Y%m%d-%H%M%S-%f")[:19]
+    cp_id = f"cp-{stamp}-{sha256[:8]}"
+    filename = f"{stamp}-{sha256[:12]}.hwpx"
+    cp_path = history_dir / filename
+    if not os.path.lexists(cp_path):
+        with cp_path.open("xb") as stream:
+            stream.write(raw)
+    entry = {
+        "id": cp_id,
+        "sha256": sha256,
+        "created_at": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "reason": reason,
+        "size": len(raw),
+        "file": filename,
+    }
+    checkpoints.append(entry)
+    if len(checkpoints) > MAX_HISTORY_CHECKPOINTS:
+        del checkpoints[:-MAX_HISTORY_CHECKPOINTS]
+    _write_json_atomic(history_dir / "index.json", index_data)
+    return True, entry
+
+
+def open_live_document(workspace_root, path):
+    """Open an active workspace .hwpx for direct Plan A editing with one-time original backup."""
+    root, doc = _require_editable_live_path(workspace_root, path, new=False)
+    raw, sha256 = _read_regular_hwpx(doc)
+    relative = doc.relative_to(root).as_posix()
+    history_dir = _live_history_dir(root, relative)
+    index_data = _load_history_index(history_dir, relative)
+    if not index_data.get("original_sha256"):
+        orig_path = _ensure_original_backup(root, raw, sha256)
+        index_data["original_sha256"] = sha256
+        index_data["original_path"] = str(orig_path)
+    if not index_data.get("checkpoints"):
+        _append_checkpoint(root, history_dir, index_data, raw, sha256, reason="initial")
+    else:
+        _append_checkpoint(root, history_dir, index_data, raw, sha256, reason="auto")
+        _write_json_atomic(history_dir / "index.json", index_data)
+    return {
+        "path": str(doc),
+        "relative_path": relative,
+        "name": doc.name,
+        "sha256": sha256,
+        **_format_checkpoints_view(index_data),
+    }
+
+
+def record_live_checkpoint(workspace_root, path, *, reason="auto"):
+    """Record a checkpoint in .hwpreview/history/ when the active .hwpx SHA-256 changes."""
+    if reason not in ("initial", "auto", "manual", "pre-restore", "restore"):
+        raise ValueError("지원하지 않는 체크포인트 사유입니다.")
+    root, doc = _require_editable_live_path(workspace_root, path, new=False)
+    raw, sha256 = _read_regular_hwpx(doc)
+    relative = doc.relative_to(root).as_posix()
+    history_dir = _live_history_dir(root, relative)
+    index_data = _load_history_index(history_dir, relative)
+    recorded, entry = _append_checkpoint(root, history_dir, index_data, raw, sha256, reason=reason)
+    return {
+        "recorded": recorded,
+        "sha256": sha256,
+        "checkpoint": entry,
+        **_format_checkpoints_view(index_data),
+    }
+
+
+def list_live_checkpoints(workspace_root, path):
+    """List immutable original + auto-saved checkpoint timeline for a workspace .hwpx."""
+    root, doc = _require_editable_live_path(workspace_root, path, new=False)
+    relative = doc.relative_to(root).as_posix()
+    history_dir = _live_history_dir(root, relative)
+    index_data = _load_history_index(history_dir, relative)
+    return _format_checkpoints_view(index_data)
+
+
+def read_live_checkpoint(workspace_root, path, checkpoint_id):
+    """Resolve and verify a checkpoint (or 'original') file path and SHA-256."""
+    if not isinstance(checkpoint_id, str) or not checkpoint_id or len(checkpoint_id) > 128:
+        raise ValueError("유효한 체크포인트 ID가 필요합니다.")
+    root, doc = _require_editable_live_path(workspace_root, path, new=False)
+    relative = doc.relative_to(root).as_posix()
+    history_dir = _live_history_dir(root, relative)
+    index_data = _load_history_index(history_dir, relative)
+    if checkpoint_id == "original":
+        orig_sha = index_data.get("original_sha256", "")
+        if not orig_sha:
+            raise ValueError("불변 원본 백업이 아직 기록되지 않았습니다.")
+        target = _live_originals_dir(root) / f"{orig_sha}.hwpx"
+        expected_sha = orig_sha
+    else:
+        match = next((row for row in index_data.get("checkpoints", []) if row.get("id") == checkpoint_id), None)
+        if match is None:
+            raise ValueError("요청한 체크포인트를 찾을 수 없습니다.")
+        target = history_dir / match["file"]
+        expected_sha = match["sha256"]
+    projects._unlinked(target)
+    raw, actual_sha = _read_regular_hwpx(target)
+    if actual_sha != expected_sha:
+        raise ValueError("체크포인트 파일의 SHA-256 검증에 실패했습니다.")
+    return {
+        "checkpoint_id": checkpoint_id,
+        "sha256": actual_sha,
+        "file_path": str(target),
+        "size": len(raw),
+    }
+
+
+def restore_live_checkpoint(workspace_root, path, checkpoint_id):
+    """Restore a verified checkpoint or original into the active workspace .hwpx atomically."""
+    root, doc = _require_editable_live_path(workspace_root, path, new=False)
+    resolved = read_live_checkpoint(root, doc, checkpoint_id)
+    target_path = Path(resolved["file_path"])
+    target_bytes, target_sha = _read_regular_hwpx(target_path)
+    if target_sha != resolved["sha256"]:
+        raise ValueError("복원 대상 체크포인트 해시가 일치하지 않습니다.")
+
+    relative = doc.relative_to(root).as_posix()
+    history_dir = _live_history_dir(root, relative)
+    index_data = _load_history_index(history_dir, relative)
+    try:
+        current_raw, current_sha = _read_regular_hwpx(doc)
+        if current_sha != target_sha:
+            _append_checkpoint(root, history_dir, index_data, current_raw, current_sha, reason="pre-restore")
+    except (OSError, ValueError):
+        pass
+
+    temp = doc.parent / f".{doc.name}.{secrets.token_hex(6)}.restore.tmp"
+    try:
+        with temp.open("xb") as stream:
+            stream.write(target_bytes)
+            stream.flush()
+        os.replace(temp, doc)
+    finally:
+        if os.path.lexists(temp):
+            try:
+                temp.unlink()
+            except OSError:
+                pass
+
+    _append_checkpoint(root, history_dir, index_data, target_bytes, target_sha, reason="restore")
+    return {
+        "path": str(doc),
+        "relative_path": relative,
+        "name": doc.name,
+        "sha256": target_sha,
+        **_format_checkpoints_view(index_data),
+    }
+
+
+def create_blank_live_document(workspace_root, destination):
+    """Create a new blank HWPX in the workspace without overwriting existing or protected paths."""
+    root, target = _require_editable_live_path(workspace_root, destination, new=True)
+    raw = blank_document.blank_document()
+    validate_hwpx_bytes(raw)
+    with target.open("xb") as stream:
+        stream.write(raw)
+    return open_live_document(root, target)
+
+
+def open_in_hancom(workspace_root, path):
+    """Open the active workspace .hwpx directly in Hancom after ensuring original backup."""
+    root, doc = _require_editable_live_path(workspace_root, path, new=False)
+    open_live_document(root, doc)
+    if os.name != "nt" or not hasattr(os, "startfile"):
+        raise RuntimeError("한글에서 열기는 Windows 환경에서만 지원합니다.")
+    os.startfile(str(doc))
+    return {"opened": True, "path": str(doc)}
+
+
+def export_live_document(workspace_root, source_path, destination_path, *, checkpoint_id=""):
+    """Export verified active or checkpoint HWPX bytes to a new non-protected .hwpx file."""
+    root, doc = _require_editable_live_path(workspace_root, source_path, new=False)
+    dest = projects._unlinked(Path(destination_path))
+    if dest.suffix.lower() != ".hwpx":
+        raise ValueError("내보내기 파일은 .hwpx 확장자여야 합니다.")
+    if os.path.lexists(dest):
+        raise ValueError("기존 파일은 덮어쓰지 않습니다. 새 파일 이름을 선택하세요.")
+    if not dest.parent.is_dir():
+        raise ValueError("내보낼 대상 폴더가 존재하지 않습니다.")
+    if is_protected_live_path(dest, root):
+        raise ValueError("보호 경로(example/·기준 원본·내부 관리 폴더)로는 내보낼 수 없습니다.")
+    if checkpoint_id:
+        resolved = read_live_checkpoint(root, doc, checkpoint_id)
+        raw, sha256 = _read_regular_hwpx(Path(resolved["file_path"]))
+    else:
+        raw, sha256 = _read_regular_hwpx(doc)
+    with dest.open("xb") as stream:
+        stream.write(raw)
+    return {"path": str(dest), "sha256": sha256, "size": len(raw)}
+

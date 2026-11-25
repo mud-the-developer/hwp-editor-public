@@ -16,13 +16,12 @@ internal sealed class OmpTerminalPane : UserControl, IAsyncDisposable
     private const string Origin = "https://hwp-omp.invalid";
     private const string Page = Origin + "/index.html";
     private static readonly UTF8Encoding Utf8 = new(false, true);
-    private static readonly OmpAgentState DisconnectedState = new(false, "", "disconnected", false, "", "", "실제 OMP 공개 연결이 없습니다.");
+    private static readonly OmpAgentState DisconnectedState = new(false, "", "disconnected", false, "", "", "OMP가 시작되지 않았습니다.");
     private static readonly HashSet<string> AssetPaths = new(StringComparer.Ordinal)
     {
         "/index.html", "/terminal.js", "/terminal.css", "/vendor/xterm/xterm.js", "/vendor/xterm/xterm.css", "/vendor/addon-fit/addon-fit.js", "/vendor/unicode-graphemes/addon-unicode-graphemes.js"
     };
     private readonly Grid layout = new();
-    private readonly TextBlock diagnostic = new() { Text = "실제 OMP 터미널을 시작하려면 실행을 선택하세요.", TextWrapping = TextWrapping.Wrap, Margin = new Thickness(8), Foreground = SystemColors.ControlTextBrush };
     private readonly Channel<(int Generation, JsonElement Message)> incoming = Channel.CreateBounded<(int Generation, JsonElement Message)>(new BoundedChannelOptions(64) { SingleReader = true, SingleWriter = true, FullMode = BoundedChannelFullMode.Wait });
     private readonly CancellationTokenSource lifetime = new();
     private readonly Task messageTask;
@@ -50,13 +49,14 @@ internal sealed class OmpTerminalPane : UserControl, IAsyncDisposable
     public bool IsStarting => starting;
     public int? OwnedProcessId => session?.OwnedProcessId;
     public int? LastExitCode => session?.LastExitCode;
+    public string StatusText { get; private set; } = "OMP 터미널 대기 중";
     public OmpAgentState AgentState
     {
         get
         {
             OmpAgentState state = bridge?.State ?? DisconnectedState;
-            return state.CanSend && (starting || !IsRunning || !rendererHealthy || inputBlocked)
-                ? state with { CanSend = false } : state;
+            return state.IsIdle && (starting || !IsRunning || !rendererHealthy || inputBlocked)
+                ? state with { IsIdle = false } : state;
         }
     }
     // HwndHost/WebView focus is not always reflected by WPF's focus tree.
@@ -76,10 +76,7 @@ internal sealed class OmpTerminalPane : UserControl, IAsyncDisposable
 
     public OmpTerminalPane()
     {
-        layout.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        layout.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-        layout.Children.Add(diagnostic);
-        Background = SystemColors.WindowBrush;
+        Background = new SolidColorBrush(Color.FromRgb(0x10, 0x13, 0x18));
         Content = layout;
         MinHeight = 200;
         System.Windows.Automation.AutomationProperties.SetName(this, "실제 OMP 터미널");
@@ -112,13 +109,13 @@ internal sealed class OmpTerminalPane : UserControl, IAsyncDisposable
             session.StatusChanged += SessionStatusChanged;
             session.ErrorRaised += SessionErrorRaised;
             // The same-user control listener is created before the actual child.
-            // It controls only the extension attached to this native TUI session.
+            // It observes lifecycle/model/idle state and forwards abort/shutdown only.
             bridge = new OmpSessionBridge(launch, Dispatcher, () => session?.IsRunning == true);
             bridge.AgentEvent += BridgeAgentEvent;
             // Start the output consumer before any native process is created.
             outputLifetime = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
             outputTask = PumpOutputAsync(session, outputLifetime.Token);
-            SetStatus("OMP를 시작합니다. 계정·모델 설정은 이 격리된 OMP 안에서 직접 확인하세요.");
+            StatusText = "OMP 시작 중…";
             startupCancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
             ConPtySession owned = session;
             await Task.Run(() => owned.Start(launch, columns, rows, startupCancellation.Token));
@@ -138,25 +135,18 @@ internal sealed class OmpTerminalPane : UserControl, IAsyncDisposable
             starting = false; StatusChanged?.Invoke(this, EventArgs.Empty);
         }
     }
-    public Task SendPromptAsync(string requestId, string contextSha256, string text)
-    {
-        Dispatcher.VerifyAccess();
-        if (starting || !IsRunning || !rendererHealthy || inputBlocked || bridge is null)
-            throw new InvalidOperationException("실제 터미널·공개 연결이 정상일 때만 명시적으로 OMP 요청을 전송합니다.");
-        return bridge.SendPromptAsync(requestId, contextSha256, text);
-    }
 
     public Task AbortAgentAsync()
     {
         Dispatcher.VerifyAccess();
-        if (bridge is null) throw new InvalidOperationException("소유한 OMP 공개 연결이 없습니다.");
+        if (bridge is null) throw new InvalidOperationException("소유한 OMP 연결이 없습니다.");
         return bridge.AbortAsync();
     }
 
     public async Task ShutdownAgentAsync()
     {
         Dispatcher.VerifyAccess();
-        if (bridge is null || session is null) throw new InvalidOperationException("소유한 OMP 공개 연결이 없습니다.");
+        if (bridge is null || session is null) throw new InvalidOperationException("소유한 OMP 연결이 없습니다.");
         Task requested = bridge.ShutdownAsync();
         // Pipe ACK/event/EOF and native exit notifications can arrive in either
         // order. Only this held process's exit settles shutdown; never retry/kill.
@@ -166,7 +156,6 @@ internal sealed class OmpTerminalPane : UserControl, IAsyncDisposable
         await exited;
     }
 
-
     private void BridgeAgentEvent(object? sender, OmpAgentEvent value)
     {
         Dispatcher.VerifyAccess();
@@ -174,7 +163,6 @@ internal sealed class OmpTerminalPane : UserControl, IAsyncDisposable
         AgentEvent?.Invoke(this, value);
         if (value.Kind == "state") StatusChanged?.Invoke(this, EventArgs.Empty);
     }
-
 
     public async Task PasteDraftAsync(string text)
     {
@@ -185,12 +173,11 @@ internal sealed class OmpTerminalPane : UserControl, IAsyncDisposable
         pasteId = ++nextId;
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         pasteAcknowledged = completion;
-        bridge?.ObserveTerminalInput();
         Post(new { v = 1, seq = NextSequence(), type = "paste", id = pasteId, text });
         try
         {
             await completion.Task.WaitAsync(TimeSpan.FromSeconds(15));
-            SetStatus("초안을 OMP 입력란에 붙여넣었습니다. 전송하려면 OMP 안에서 직접 Enter를 누르세요.");
+            StatusText = "문단 참조를 OMP 입력란에 전달했습니다.";
             FocusTerminal();
         }
         catch (TimeoutException)
@@ -223,7 +210,6 @@ internal sealed class OmpTerminalPane : UserControl, IAsyncDisposable
         foreach (string path in AssetPaths) LaunchDescriptor.RequirePath(Path.Combine(assets, path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)), false);
         var browser = new WebView2();
         view = browser;
-        Grid.SetRow(browser, 1);
         layout.Children.Add(browser);
         CoreWebView2Environment environment = await CoreWebView2Environment.CreateAsync(null, userDataDirectory, new CoreWebView2EnvironmentOptions { AllowSingleSignOnUsingOSPrimaryAccount = false, AreBrowserExtensionsEnabled = false }).WaitAsync(TimeSpan.FromSeconds(30));
         await browser.EnsureCoreWebView2Async(environment).WaitAsync(TimeSpan.FromSeconds(30));
@@ -324,7 +310,6 @@ internal sealed class OmpTerminalPane : UserControl, IAsyncDisposable
         try
         {
             if (!IsRunning || inputBlocked) throw new InvalidOperationException("OMP 입력이 현재 차단되어 있습니다.");
-            bridge?.ObserveTerminalInput();
             await session!.SendInputAsync(message.GetProperty("text").GetString()!, message.GetProperty("encoding").GetString() == "binary");
             Post(new { v = 1, seq = NextSequence(), type = "input-ack", id = PositiveId(message) });
         }
@@ -357,10 +342,10 @@ internal sealed class OmpTerminalPane : UserControl, IAsyncDisposable
                             if (pasteAcknowledged is null || PositiveId(message) != pasteId) throw new InvalidDataException("붙여넣기 확인 식별자가 일치하지 않습니다.");
                             var pending = pasteAcknowledged; pasteAcknowledged = null;
                             if (message.GetProperty("ok").GetBoolean()) pending.TrySetResult();
-                            else pending.TrySetException(new InvalidOperationException("OMP의 bracketed-paste 입력란이 아직 준비되지 않았습니다. 직접 입력란으로 이동한 뒤 다시 선택하세요. Enter는 보내지 않았습니다."));
+                            else pending.TrySetException(new InvalidOperationException("OMP 입력란이 bracketed-paste 준비 상태가 아닙니다."));
                             break;
                         case "diagnostic":
-                            if (message.GetProperty("code").GetString() == "paste-not-ready") ReportError("OMP 입력란이 안전한 붙여넣기를 받을 준비가 되지 않았습니다. Enter를 보내지 않았습니다.");
+                            if (message.GetProperty("code").GetString() == "paste-not-ready") StatusText = "OMP 입력란이 붙여넣기 준비 전입니다.";
                             else BlockInput("터미널 입력 또는 메시지 경계를 확인하지 못했습니다. 입력은 자동 재전송하지 않습니다.");
                             break;
                     }
@@ -391,7 +376,6 @@ internal sealed class OmpTerminalPane : UserControl, IAsyncDisposable
                 catch (TimeoutException)
                 {
                     ReportError("터미널 출력 확인이 지연됩니다. 출력을 재전송하거나 OMP를 종료하지 않고 흐름을 대기합니다.");
-                    // Do not replay output (it may already have affected terminal state).
                     await ack.Task.WaitAsync(cancellation);
                 }
                 outputAcknowledged = null;
@@ -400,7 +384,6 @@ internal sealed class OmpTerminalPane : UserControl, IAsyncDisposable
         catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
         catch (Exception error) { RendererFailure("터미널 출력 전달이 중단되었습니다. 소유한 OMP와 파일은 보존됩니다. " + error.Message); }
     }
-
 
     private long NextSequence() => ++outgoingSequence;
     private bool Post(object message)
@@ -434,11 +417,11 @@ internal sealed class OmpTerminalPane : UserControl, IAsyncDisposable
         bridge?.NativeStatusChanged();
         if (session?.IsRunning == true)
         {
-            if (!inputBlocked && rendererHealthy) SetStatus("실제 OMP 실행 중 (PID " + OwnedProcessId + "). 창을 닫기 전에 OMP 안에서 직접 종료하세요. 저장된 답변은 문서 생성·승인이 아닙니다.");
+            if (!inputBlocked && rendererHealthy) StatusText = "OMP 실행 중 (PID " + OwnedProcessId + ")";
         }
         else
         {
-            SetStatus("소유한 OMP가 종료되었습니다. 종료 코드: " + LastExitCode + ". 준비·세션 파일은 보존됩니다.");
+            StatusText = "OMP 종료됨 (코드 " + LastExitCode + ")";
             if (rendererHealthy) Post(new { v = 1, seq = NextSequence(), type = "state", running = false });
         }
         StatusChanged?.Invoke(this, EventArgs.Empty);
@@ -447,10 +430,9 @@ internal sealed class OmpTerminalPane : UserControl, IAsyncDisposable
     {
         if (!disposed && ReferenceEquals(sender, session)) BlockInput(message);
     });
-    private void SetStatus(string message) { diagnostic.Text = message; }
     private void ReportError(string message)
     {
-        diagnostic.Text = message;
+        StatusText = message;
         ErrorRaised?.Invoke(this, message);
         StatusChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -460,7 +442,7 @@ internal sealed class OmpTerminalPane : UserControl, IAsyncDisposable
         inputBlocked = true;
         startupCancellation?.Cancel();
         if (rendererHealthy) Post(new { v = 1, seq = NextSequence(), type = "blocked" });
-        ReportError(message + (IsRunning ? " 소유한 OMP는 종료하지 않았습니다. 실행 상태가 불확실하면 창을 닫거나 보고서를 바꾸지 마세요." : " 실행을 자동 재시도하지 않습니다."));
+        ReportError(message + (IsRunning ? " 소유한 OMP는 종료하지 않았습니다. 실행 상태가 불확실하면 창을 닫거나 폴더를 전환하지 마세요." : " 실행을 자동 재시도하지 않습니다."));
     }
     private void RendererFailure(string message)
     {

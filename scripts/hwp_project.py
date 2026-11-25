@@ -194,16 +194,12 @@ class BaselineExporter:
                 str(self.phase),
             ]
         try:
-            result = subprocess.run(
-                command,
-                # Frozen GUI workers never read stdin. Inheriting a pipe being
-                # consumed by the parent's reader can block bootloader startup.
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=240,
-                check=False,
+            # Wait on the owned handle; subprocess.run(timeout=...) kills on timeout.
+            worker = subprocess.Popen(
+                command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL, shell=False, close_fds=True,
             )
+            returncode = worker.wait(timeout=240)
         except subprocess.TimeoutExpired as error:
             raise RuntimeError(
                 "한글 준비 시간이 초과됐습니다. 소유자가 한글/접근 대화상자를 확인하세요. 한글을 강제 종료하거나 자동 재시도하지 않았습니다."
@@ -213,7 +209,7 @@ class BaselineExporter:
                 "한글 준비 단계가 완료 응답 없이 중단됐습니다. 실패한 준비 폴더를 유지합니다."
             )
         payload = review.read_json(reply)
-        if result.returncode or payload.get("ok") is not True:
+        if returncode or payload.get("ok") is not True:
             raise RuntimeError(
                 "한글 준비 실패: " + str(payload.get("error", "unknown"))
             )

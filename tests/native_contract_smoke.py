@@ -404,15 +404,13 @@ def run(
             finally:
                 connection.close()
 
-        token_match = re.search(
-            r"const token='([a-f0-9]+)'", request("GET", "/")[1].decode()
-        )
-        if token_match is None:
+        token = getattr(server, "review_token", "")
+        if not token:
             raise ValueError("TOY UI token missing")
         headers = {
             "Origin": origin,
             "Content-Type": "application/json",
-            "X-Review-Token": token_match.group(1),
+            "X-Review-Token": token,
             "If-Match": '"' + r.file_hash(w / n.PROPOSALS[schema]) + '"',
         }
         payload = {

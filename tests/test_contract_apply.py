@@ -187,7 +187,7 @@ class ContractWorkerTests(unittest.TestCase):
                 ],
             )
             self.assertEqual(kwargs["stdin"], n.subprocess.DEVNULL)
-            self.assertEqual(kwargs["timeout"], 240)
+            self.assertIs(kwargs["shell"], False)
             r.write_json(
                 run / "contract-export-reply-0.json",
                 {
@@ -199,12 +199,12 @@ class ContractWorkerTests(unittest.TestCase):
                     "native": {"SYNTHETIC": True},
                 },
             )
-            return SimpleNamespace(returncode=0)
+            return SimpleNamespace(wait=lambda timeout: 0)
 
         exporter = n.NativeContractExporter(w, r.plan_hash(plan))
         with (
             patch.object(n, "frozen", return_value=True),
-            patch.object(n.subprocess, "run", side_effect=child),
+            patch.object(n.subprocess, "Popen", side_effect=child),
             patch.object(r, "native_export") as generic,
         ):
             result = exporter(
@@ -235,10 +235,10 @@ class ContractWorkerTests(unittest.TestCase):
                     "native": {"SYNTHETIC": True},
                 },
             )
-            return SimpleNamespace(returncode=0)
+            return SimpleNamespace(wait=lambda timeout: 0)
 
         exporter = n.NativeContractExporter(w, r.plan_hash(plan))
-        with patch.object(n.subprocess, "run", side_effect=child):
+        with patch.object(n.subprocess, "Popen", side_effect=child):
             with self.assertRaises(ValueError):
                 exporter(
                     source,
@@ -297,7 +297,7 @@ class ContractWorkerTests(unittest.TestCase):
         w, run, source, plan, _ = self.stage(2)
         (run / "contract-export-request-0.json").unlink()
         exporter = n.NativeContractExporter(w, r.plan_hash(plan))
-        with patch.object(n.subprocess, "run") as child:
+        with patch.object(n.subprocess, "Popen") as child:
             with self.assertRaisesRegex(ValueError, "has not passed"):
                 exporter(
                     source,

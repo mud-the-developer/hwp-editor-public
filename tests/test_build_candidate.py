@@ -58,7 +58,7 @@ def synthetic_frozen_report():
         "debug_checks": (
             "callback_visible_without_console",
             "wheel_preserves_contract",
-            "failed_window_retains_exact_url",
+            "native_review_page_renders",
             "source_failure_revokes_ready",
             "shutdown_bounded_without_forced_close",
         ),
@@ -154,8 +154,9 @@ class CandidateTests(unittest.TestCase):
             },
             "self_test": synthetic_frozen_report(),
             "artifact_set": f"releases/{b.APP_VERSION}/SYNTHETIC",
-            "qualified_native_schemas": [3],
+            "qualified_native_schemas": [3, 4],
         }
+        self.proofs = tuple(self.root / f"SYNTHETIC-SCHEMA-{schema}" for schema in (1, 3, 4))
         self.bundle()
         dist = self.root / "dist"
         dist.mkdir()
@@ -211,7 +212,7 @@ class CandidateTests(unittest.TestCase):
             patch.object(b, "promote_release") as promote,
         ):
             with self.assertRaises(expected):
-                b.promote_checked_candidate(self.release, self.root / "NOT-A-PROOF")
+                b.promote_checked_candidate(self.release, *self.proofs)
             native.assert_not_called()
             promote.assert_not_called()
         self.assertEqual(
@@ -337,11 +338,7 @@ class CandidateTests(unittest.TestCase):
             patch.object(b, "promote_release") as promote,
         ):
             with self.assertRaises(ValueError):
-                b.promote_checked_candidate(
-                    self.release,
-                    self.root / "SYNTHETIC-PROOF",
-                    self.root / "SYNTHETIC-LAYOUT",
-                )
+                b.promote_checked_candidate(self.release, *self.proofs)
             promote.assert_not_called()
         self.assertTrue(self.release.exists())
         self.assertEqual(
@@ -351,18 +348,12 @@ class CandidateTests(unittest.TestCase):
     def test_fill_candidate_cannot_promote_with_legacy_text_and_layout_evidence_only(
         self,
     ):
-        self.meta["qualified_native_schemas"] = [3, 4]
-        self.bundle()
         with (
             patch.object(b, "validate_native_evidence") as native,
             patch.object(b, "promote_release") as promote,
         ):
             with self.assertRaises(ValueError):
-                b.promote_checked_candidate(
-                    self.release,
-                    self.root / "SYNTHETIC-TEXT",
-                    self.root / "SYNTHETIC-LAYOUT",
-                )
+                b.promote_checked_candidate(self.release, *self.proofs[:2])
             native.assert_not_called()
             promote.assert_not_called()
         self.assertEqual(
@@ -372,18 +363,14 @@ class CandidateTests(unittest.TestCase):
     def test_validated_staged_promotion_binds_one_complete_set(self):
         # Native validation is deliberately a MOCK in this isolated BUILD test;
         # actual acceptance uses the new unsigned TOY lab with all real gates.
-        with patch.object(
-            b, "validate_native_evidence", return_value={"SYNTHETIC_ONLY": True}
-        ) as native:
-            reply = b.promote_checked_candidate(
-                self.release,
-                self.root / "SYNTHETIC-PROOF",
-                self.root / "SYNTHETIC-LAYOUT",
-            )
-            self.assertEqual(native.call_count, 2)
-            native.assert_called_with(
-                self.root / "SYNTHETIC-LAYOUT", self.exe, schema=3
-            )
+        with patch.object(b, "validate_native_evidence", return_value={"SYNTHETIC_ONLY": True}):
+            candidate, artifact_set, digest = b.validate_checked_candidate(self.release, *self.proofs)
+            self.assertEqual(candidate, self.release)
+            self.assertEqual(digest, self.meta["executable_sha256"])
+            self.assertFalse(artifact_set.exists())
+            self.assertEqual((self.root / "dist/HWPReview.exe").read_bytes(), b"LAST WORKING SYNTHETIC")
+            self.assertEqual(self.exe.read_bytes(), b"SYNTHETIC NOT EXE")
+            reply = b.promote_checked_candidate(self.release, *self.proofs)
         self.assertTrue(reply["local_promoted"])
         self.assertFalse(reply["published"])
         self.assertEqual(
@@ -396,31 +383,32 @@ class CandidateTests(unittest.TestCase):
             ).read_bytes(),
         )
 
-    def test_missing_or_failed_layout_evidence_cannot_promote_text_only_pass(self):
-        with (
-            patch.object(b, "validate_native_evidence", return_value={}) as native,
-            patch.object(b, "promote_release") as promote,
-        ):
-            with self.assertRaisesRegex(ValueError, "Both schema1 and schema3"):
-                b.promote_checked_candidate(self.release, self.root / "SYNTHETIC-TEXT")
-            native.assert_not_called()
-            promote.assert_not_called()
-        with (
-            patch.object(
-                b,
-                "validate_native_evidence",
-                side_effect=[{}, ValueError("SYNTHETIC LAYOUT BLOCKED")],
-            ) as native,
-            patch.object(b, "promote_release") as promote,
-        ):
-            with self.assertRaisesRegex(ValueError, "LAYOUT BLOCKED"):
-                b.promote_checked_candidate(
-                    self.release,
-                    self.root / "SYNTHETIC-TEXT",
-                    self.root / "SYNTHETIC-LAYOUT",
-                )
-            self.assertEqual(native.call_count, 2)
-            promote.assert_not_called()
+    def test_missing_or_failed_layout_or_fill_cannot_promote(self):
+        working_exe = self.root / "dist/HWPReview.exe"
+        for missing in range(3):
+            with self.subTest(missing=missing):
+                evidence = list(self.proofs)
+                evidence[missing] = None
+                with self.assertRaisesRegex(ValueError, "schemas 1, 3 and 4"):
+                    b.validate_checked_candidate(self.release, *evidence)
+        for broken in (1, 2):
+            def check(proof, executable, *, schema=1):
+                if schema != (1, 3, 4)[self.proofs.index(proof)] or executable != self.exe:
+                    raise AssertionError("Proof was matched to the wrong schema or candidate")
+                if proof == self.proofs[broken]:
+                    raise ValueError("SYNTHETIC WORKER BLOCKED")
+
+            with (
+                self.subTest(broken=broken),
+                patch.object(b, "validate_native_evidence", side_effect=check),
+                self.assertRaisesRegex(ValueError, "WORKER BLOCKED"),
+            ):
+                b.promote_checked_candidate(self.release, *self.proofs)
+        self.meta["qualified_native_schemas"] = [3]
+        self.bundle()
+        with self.assertRaisesRegex(ValueError, "schemas 1, 3 and 4"):
+            b.promote_checked_candidate(self.release, *self.proofs)
+        self.assertEqual(working_exe.read_bytes(), b"LAST WORKING SYNTHETIC")
         self.assertTrue(self.release.exists())
         self.assertEqual(
             (self.root / "dist/HWPReview.exe").read_bytes(), b"LAST WORKING SYNTHETIC"
@@ -466,9 +454,121 @@ class CandidateTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     b.validate_native_evidence(proof, self.exe, schema=3)
                 baseline.assert_not_called()
-        for schema in (True, 2, 4):
+        for schema in (True, 2, 5):
             with self.assertRaises(ValueError):
                 b.validate_native_evidence(proof, self.exe, schema=schema)
+
+    def test_fill_replays_saved_hwp_structure_and_rendered_cells(self):
+        import hwp_review as r
+        from test_hwp_fill_plan import FillTests
+
+        toy = FillTests("test_exact_replay_regions_and_unsigned_policy_are_new_contract")
+        toy.setUp()
+        self.addCleanup(toy.doCleanups)
+        fill = r.hwp_fill_plan
+        lab = self.root / "work/toy-contract-SYNTHETIC-FILL"
+        workspace = lab / "owned-project/_review"
+        baseline = workspace / "baseline.hwpx"
+        run = workspace / "runs/20260101T000000-a1b2c3d4"
+        run.mkdir(parents=True)
+        source = workspace.parent / "TOY-ONLY-unsigned-contract.hwp"
+        source.write_bytes(toy.source.read_bytes())
+        baseline.write_bytes(toy.baseline.read_bytes())
+        (workspace / "baseline.pdf").write_bytes((toy.w / "baseline.pdf").read_bytes())
+        manifest = {
+            **toy.manifest, "source": str(source), "objects": {"tbl": 1},
+            "source_audit": {**toy.manifest["source_audit"], "embedded_binary_hashes": []},
+        }
+        r.write_json(workspace / "manifest.json", manifest)
+        plan, selected = toy.plan, toy.selected()
+        sha = r.plan_hash(plan)
+        scope = r.plan_hash(fill.approval_scope(plan))
+        r.write_json(workspace / "proposal-fill.json", plan)
+        r.write_json(run / "plan.json", plan)
+        filled = run / "candidate.hwpx"
+        fill.write_input(baseline, filled, selected)
+        (run / "candidate.hwp").write_bytes(b"SYNTHETIC ONLY; NOT A NATIVE HWP")
+        toy.pdf(run / "candidate-buffer.pdf", ["Value A", "Value B"])
+        good_pdf = (run / "candidate-buffer.pdf").read_bytes()
+        structural = fill.structural_gate(baseline, filled, selected, plan["header_spine"])
+        proof_path = lab / "TOY-ONLY-contract-verification.json"
+        proof = {
+            "test_only_not_deliverable": True,
+            "human_visual_review_required": True,
+            "actual_parent_engine_and_http": True,
+            "test_consent_only_new_unsigned_fixture": True,
+            "source_unchanged": True,
+            "approval_and_baselines_unchanged": True,
+            "duplicate_blocked": True,
+            "unapproved_blocked_before_native": True,
+            "stale_plan_blocked_before_native": True,
+            "download_bytes_verified": True,
+            "real_report_modified": False,
+            "status": "checks_passed_needs_human_visual_review",
+            "actual_worker": "frozen",
+            "executable_sha256": build_source.sha256(self.exe),
+            "workspace": str(workspace),
+            "source_sha256_before": r.file_hash(source),
+            "schema": 4,
+            "plan_sha256": sha,
+            "run": str(run),
+        }
+        r.write_json(proof_path, proof)
+        reopened = run / "candidate-reopened.hwpx"
+        pdf = run / "candidate.pdf"
+        owner = {"exit_confirmed": True, "status": "owned_exit_confirmed"}
+
+        def retain_fake_worker_outputs(*, changed_structure=False, missing_value=False, unconfirmed=False):
+            # Synthetic receipts exercise read-only replay; no Hancom/UI/approval is issued.
+            if changed_structure:
+                wrong = toy.change(
+                    filled, lambda part: part.replace(b"Value B", b"Wrong B")
+                )
+                reopened.write_bytes(wrong.read_bytes())
+            else:
+                reopened.write_bytes(filled.read_bytes())
+            if missing_value:
+                toy.pdf(run / "missing-value.pdf", ["Value A", ""])
+                pdf.write_bytes((run / "missing-value.pdf").read_bytes())
+            else:
+                pdf.write_bytes(good_pdf)
+            zero = {"native_pages": 1, "owned_session": owner}
+            one = {
+                **zero, "saved_hwp_contract": structural,
+                "reopened_hwpx_sha256": r.file_hash(reopened),
+                "owned_session": {**owner, "exit_confirmed": not unconfirmed},
+            }
+            for phase, native in enumerate((zero, one)):
+                r.write_json(run / f"contract-export-reply-{phase}.json", {
+                    "ok": True, "schema": 4, "phase": phase, "plan_sha256": sha,
+                    "approval_scope_sha256": scope, "native": native,
+                })
+            r.write_json(run / "verification.json", {
+                "status": proof["status"], "result_binding_policy": r.RESULT_POLICY,
+                "structural_gate": True, "rendered_page_text_exact": True,
+                "source_unchanged": True, "embedded_binaries_equal": True,
+                "layout_gate": {"passed": True}, "native_contract": structural,
+                "saved_hwp_reopen_export": {**one, "parent_saved_hwp_contract": structural},
+            })
+            r.seal_result(run, manifest, plan)
+
+        def validate():
+            return b.validate_native_evidence(proof_path, self.exe, schema=4)
+
+        with (
+            patch.object(r, "approved_plan", return_value=selected),
+            patch.object(r, "hwp_audit", return_value={"embedded_binary_hashes": []}),
+        ):
+            retain_fake_worker_outputs()
+            self.assertEqual(validate()["run"], str(run))
+            for violation in ("changed_structure", "missing_value", "unconfirmed"):
+                with self.subTest(violation=violation):
+                    retain_fake_worker_outputs(**{violation: True})
+                    with self.assertRaises(ValueError):
+                        validate()
+            retain_fake_worker_outputs()
+            with self.assertRaisesRegex(ValueError, "unbound"):
+                b.validate_native_evidence(proof_path, self.exe, schema=3)
 
     def test_source_only_failed_or_foreign_native_proof_is_rejected_without_opening_workspace(
         self,

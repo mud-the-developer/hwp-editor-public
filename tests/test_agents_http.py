@@ -3,7 +3,6 @@
 import http.client
 import importlib
 import json
-import re
 import threading
 import unittest
 from unittest.mock import Mock, patch
@@ -28,12 +27,9 @@ class AgentHttpTests(unittest.TestCase):
         self.thread.start()
         self.addCleanup(self.close)
         self.origin = f"http://127.0.0.1:{self.server.server_port}"
-        code, body = self.request("GET", "/")
-        self.assertEqual(code, 200)
-        match = re.search(r"const token='([a-f0-9]+)'", body.decode())
-        if match is None:
-            raise AssertionError("Synthetic token missing")
-        self.token = match[1]
+        code, _ = self.request("GET", "/")
+        self.assertEqual(code, 404)
+        self.token = self.server.review_token
 
     def close(self):
         self.server.shutdown()

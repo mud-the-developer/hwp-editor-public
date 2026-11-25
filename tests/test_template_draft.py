@@ -4,7 +4,6 @@ from copy import deepcopy
 from io import BytesIO
 import json
 from pathlib import Path
-import re
 import sys
 import tempfile
 import threading
@@ -253,11 +252,7 @@ class TemplateDraftTests(unittest.TestCase):
             )
             self.thread.start()
             self.url = "http://127.0.0.1:" + str(self.server.server_port)
-            with urllib.request.urlopen(self.url) as response:
-                html = response.read().decode()
-            match = re.search(r'name="review-token" content="([a-f0-9]+)"', html)
-            assert match is not None
-            self.token = match[1]
+            self.token = self.server.template_review_token
         sent = {"X-Review-Token": self.token}
         if payload is not None:
             sent.update({"Origin": self.url, "Content-Type": "application/json"})

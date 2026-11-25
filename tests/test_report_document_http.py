@@ -5,7 +5,6 @@ import http.client
 from io import BytesIO
 import json
 from pathlib import Path
-import re
 import sys
 import tempfile
 import threading
@@ -40,9 +39,9 @@ class DocumentHttpTests(unittest.TestCase):
         self.thread.start()
         self.addCleanup(self.close_server)
         self.origin = "http://127.0.0.1:" + str(self.server.server_port)
-        status, body = self.request("GET", "/", token=False)
-        self.assertEqual(status, 200)
-        self.token = re.search(rb'name="review-token" content="([a-f0-9]{64})"', body)[1].decode()
+        self.token = self.server.template_review_token
+        status, _ = self.request("GET", "/")
+        self.assertEqual(status, 404)
         self.control = self.server.report_control
         runtime = {
             "cli": "SYNTHETIC-NOT-EXECUTED/profile/bin/pi.cmd",

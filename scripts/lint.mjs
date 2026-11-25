@@ -1,7 +1,6 @@
 // Local source checks only. Never opens a document or calls approval/native apply.
 import { ESLint } from 'eslint';
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -40,16 +39,19 @@ export async function lint() {
   if (run(python, ['-X', 'utf8', '-m', 'ruff', 'check', 'scripts', 'tests'])) return 1;
   if (run(python, ['-X', 'utf8', 'scripts/hwp_safety_lint.py', 'scripts', 'tests'])) return 1;
   const engine = new ESLint({ cwd: root, overrideConfigFile: join(root, 'eslint.config.mjs') });
-  const results = await engine.lintFiles(['eslint.config.mjs', 'scripts/**/*.mjs', 'tests/**/*.mjs', 'native/HWPReview.Native/TerminalAssets/terminal.js', 'native/HWPReview.Native/ViewerAssets/*.js']);
-  for (const name of ['review', 'fill-review', 'template-review', 'report-workspace']) {
-    results.push(...await engine.lintText(browserScript(await readFile(join(root, `web/${name}.html`), 'utf8')),
-      { filePath: join(root, `web/${name}.inline.js`) }));
-  }
+  const results = await engine.lintFiles([
+    'eslint.config.mjs',
+    'scripts/**/*.mjs',
+    'tests/**/*.mjs',
+    'native/HWPReview.Native/Bridge/omp-bridge.mjs',
+    'native/HWPReview.Native/TerminalAssets/terminal.js',
+    'native/HWPReview.Native/ViewerAssets/*.js',
+  ]);
   const formatter = await engine.loadFormatter('stylish');
-  const output = formatter.format(results).replaceAll('.inline.js', '.html');
+  const output = formatter.format(results);
   if (output) console.log(output);
   if (results.some(result => result.errorCount || result.warningCount)) return 1;
-  console.log('PASS: Python correctness + Node/browser JavaScript + review DOM safety lint');
+  console.log('PASS: Python correctness + Node/browser JavaScript + native WebView DOM safety lint');
   return 0;
 }
 

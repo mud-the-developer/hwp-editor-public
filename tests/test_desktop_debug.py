@@ -19,27 +19,20 @@ from test_desktop import DesktopWidgetTests, fixture, snapshot
 
 class DebugWidgetTests(DesktopWidgetTests):
     # Use the synthetic setup, not the inherited test methods (see load_tests).
-    def test_failed_window_launch_retains_the_requested_contract_url(self):
+    def test_failed_window_state_read_keeps_the_owned_session_without_fallback(self):
         self.app.path.set(str(self.info.path))
         self.app.info = self.info
-        session = Mock()
-        session.running = True
-        session.stopping = False
-        session.info = self.info
-        session.origin = "http://127.0.0.1:8765"
-        session.url.side_effect = lambda mode: d.review_url(session.origin, mode)
+        session = Mock(running=True, stopping=False, info=self.info)
+        session.legacy_client.return_value.snapshot.side_effect = OSError("Synthetic state failure")
         self.app.session = session
-        self.app.mode.set(d.MODES["native"][0])
-        with (
-            patch.object(d, "inspect_workspace", return_value=self.info),
-            patch.object(
-                d, "open_window", side_effect=OSError("Synthetic Edge failure")
-            ),
-        ):
-            self.app.launch(None)
+        self.app.mode.set(d.MODES["layout"])
+        with patch.object(d, "inspect_workspace", return_value=self.info), patch.object(d, "LegacyReviewWindow") as window:
+            self.app.launch()
             self.wait()
-        self.assertEqual(self.app.address.get(), d.review_url(session.origin, "native"))
-        self.assertIsNotNone(self.app.info)
+        self.assertIn("Synthetic state failure", self.app.last_error)
+        self.assertIsNone(self.app.review_window)
+        self.assertTrue(self.app.session.running)
+        window.assert_not_called()
         session.stop.assert_not_called()
 
     def test_source_failure_with_live_server_revokes_ready_state_but_preserves_server(
@@ -59,9 +52,9 @@ class DebugWidgetTests(DesktopWidgetTests):
                 "inspect_workspace",
                 side_effect=ValueError("Synthetic changed source"),
             ),
-            patch.object(d, "open_window") as window,
+            patch.object(d, "LegacyReviewWindow") as window,
         ):
-            self.app.launch(None)
+            self.app.launch()
             self.wait()
             window.assert_not_called()
         self.assertIsNone(self.app.info)
@@ -109,17 +102,17 @@ class DebugWidgetTests(DesktopWidgetTests):
         before = snapshot(self.info.path)
         with (
             patch.object(self.app, "show_text"),
-            patch.object(d, "open_window") as launch,
+            patch.object(d, "LegacyReviewWindow") as launch,
         ):
             self.app.show_license()
             launch.assert_not_called()
         self.assertEqual(snapshot(self.info.path), before)
 
     def test_mousewheel_over_mode_picker_does_not_change_the_contract(self):
-        self.app.mode.set(d.MODES["native"][0])
+        self.app.mode.set(d.MODES["layout"])
         self.app.mode_picker.event_generate("<MouseWheel>", delta=-120)
         self.root.update_idletasks()
-        self.assertEqual(self.app.mode.get(), d.MODES["native"][0])
+        self.assertEqual(self.app.mode.get(), d.MODES["layout"])
 
     def test_pending_shutdown_locks_launch_and_keeps_manual_stop_available(self):
         self.app.path.set(str(self.info.path))

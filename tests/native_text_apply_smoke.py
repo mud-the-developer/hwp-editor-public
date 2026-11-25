@@ -241,10 +241,9 @@ def run(output, executable=None, *, run_native=False, toy_only=False):
             finally:
                 connection.close()
 
-        match = re.search(r"const token='([a-f0-9]+)'", request("GET", "/")[1].decode())
-        if match is None:
+        token = getattr(server, "review_token", "")
+        if not token:
             raise ValueError("Exact TOY UI token missing")
-        token = match.group(1)
         headers = {
             "Origin": origin,
             "X-Review-Token": token,

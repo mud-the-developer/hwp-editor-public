@@ -1,8 +1,7 @@
 """Windows-native HWPX authoring and retained advanced HWP tools.
 
-Normal startup owns one WPF window and the existing report server. No browser,
-model, document approval or Hancom starts automatically. The previous Tk hub and
-its bounded HWP paths remain available only through explicit advanced entry.
+Normal startup owns one WPF window. Explicit advanced entry opens the local
+Tk HWP review tools; approvals and applies still use the owned review handler.
 """
 
 from __future__ import annotations
@@ -13,29 +12,21 @@ import http.client
 import os
 from pathlib import Path
 import queue
-import re
-import subprocess
 import sys
 import threading
 import time
 import tkinter as tk
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 from typing import TYPE_CHECKING
-import webbrowser
 
 from hwp_resources import legal_notice, resource_root
+from hwp_legacy_ui import KINDS as MODES, LegacyReviewWindow
 import hwp_project
 
 if TYPE_CHECKING:
     from hwp_report_project import ReportProjectInfo
 
 ROOT = resource_root()
-MODES = {
-    "memo": ("페이지 메모 · 글자 수정안", "/"),
-    "native": ("문단 수정안 검토", "/?proposal=native&panel=summary"),
-    "layout": ("표 높이 유지 수정안 검토", "/?proposal=layout&panel=summary"),
-    "fill": ("빈칸 채우기", "/fill"),
-}
 
 
 def engine():
@@ -119,14 +110,6 @@ def inspect_workspace(path: Path) -> WorkspaceInfo:
     )
 
 
-def review_url(origin: str, mode: str) -> str:
-    match = re.fullmatch(r"http://127\.0\.0\.1:([0-9]{1,5})", origin)
-    if not match or not 1 <= int(match[1]) <= 65535:
-        raise ValueError("검토 창은 이 앱의 로컬 서버에서만 열 수 있습니다.")
-    if mode not in MODES:
-        raise ValueError("지원하는 검토 화면을 선택하세요.")
-    return origin + MODES[mode][1]
-
 
 class ReviewSession:
     """Own precisely one Python HTTPServer/thread, NEVER other PIDs or Hancom."""
@@ -198,22 +181,24 @@ class ReviewSession:
                     "127.0.0.1", server.server_port, timeout=10
                 )
                 try:
-                    connection.request("GET", "/" if report else "/api/state")
+                    if report:
+                        token = getattr(server, "template_review_token", "")
+                        if not token:
+                            raise RuntimeError("다른 보고서 서버의 응답입니다.")
+                        probe_path = "/api/report-state" if getattr(info, "document_first", False) else "/api/template-state"
+                        connection.request("GET", probe_path, headers={"X-Review-Token": token})
+                    else:
+                        connection.request("GET", "/api/state")
                     response = connection.getresponse()
-                    maximum = 1024 * 1024 if report else 16 * 1024 * 1024
+                    maximum = 16 * 1024 * 1024
                     data = response.read(maximum + 1)
                     if response.status != 200 or len(data) > maximum:
                         raise RuntimeError("검토 서버의 자료 확인이 실패했습니다.")
+                    state = engine().parse_json(data)
                     if report:
-                        match = re.search(
-                            rb'name="review-token" content="([a-f0-9]{64})"', data
-                        )
-                        if match is None or match[1].decode("ascii") != getattr(
-                            server, "template_review_token", None
-                        ):
+                        if not isinstance(state, dict) or not state.get("revision"):
                             raise RuntimeError("다른 보고서 서버의 응답입니다.")
                     else:
-                        state = engine().parse_json(data)
                         if state.get("manifest", {}).get("workspace_id") != info.workspace_id:
                             raise RuntimeError("다른 작업의 서버 응답입니다.")
                 finally:
@@ -229,17 +214,14 @@ class ReviewSession:
         except Exception as error:
             self._failure = str(error)
 
-    def url(self, mode: str) -> str:
+    def legacy_client(self):
+        from hwp_legacy_client import LegacyReviewClient
+
         with self._lock:
-            if is_report_info(self.info):
-                if mode != "report":
-                    raise ValueError("보고서 작업에서 HWP Native 모드를 열 수 없습니다.")
-                return self.origin + "/"
-            if mode == "fill" and self.info and not self.info.has_fill_input:
-                raise ValueError(
-                    "빈칸 입력 자료가 없습니다. 먼저 준비된 값을 전달해 주세요."
-                )
-            return review_url(self.origin, mode)
+            info, server = self.info, self._server
+            if not isinstance(info, WorkspaceInfo) or server is None or not self.running or self.stopping:
+                raise ValueError("기존 HWP 검토 작업에 연결하지 못했습니다.")
+            return LegacyReviewClient(server.server_port, server.review_token, info.path, info.workspace_id)
 
     def stop(self, timeout: float = 20):
         if timeout <= 0:
@@ -248,12 +230,10 @@ class ReviewSession:
             server, thread = self._server, self._thread
             if server is None:
                 return
-            controller = getattr(server, "text_apply_controller", None)
-            if controller is not None:
-                controller.require_idle()
-            report = getattr(server, "report_control", None)
-            if report is not None:
-                report.require_idle()
+            for name in ("text_apply_controller", "contract_apply_controller", "report_control"):
+                controller = getattr(server, name, None)
+                if controller is not None:
+                    controller.require_idle()
             deadline = time.monotonic() + timeout
             if thread and thread.is_alive() and self._shutdown_thread is None:
                 # HTTPServer.shutdown itself waits for the active serial request.
@@ -288,49 +268,6 @@ class ReviewSession:
             self._shutdown_error = ""
 
 
-def find_edge() -> Path | None:
-    # Fixed installed-browser locations only. No PATH scan, downloaded executable,
-    # document-provided command, or install/registry change.
-    for variable in ("PROGRAMFILES(X86)", "PROGRAMFILES", "LOCALAPPDATA"):
-        base = os.environ.get(variable)
-        if base:
-            path = Path(base) / "Microsoft/Edge/Application/msedge.exe"
-            if path.is_file():
-                return path
-    return None
-
-
-def open_window(url: str, edge: Path | None = None) -> str:
-    # Revalidate even if called outside the UI; never open data-supplied URLs.
-    match = re.fullmatch(r"(http://127\.0\.0\.1:[0-9]{1,5})(/.*)", url)
-    if not match or not any(url == review_url(match[1], mode) for mode in MODES):
-        raise ValueError("알 수 없는 검토 주소입니다.")
-    if edge is not None:
-        if not edge.is_file():
-            raise FileNotFoundError(
-                "Edge 실행 파일을 찾을 수 없습니다. 브라우저 버튼을 사용하세요."
-            )
-        subprocess.Popen(
-            [str(edge), "--no-first-run", "--app=" + url],
-            shell=False,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        return "전용 검토 창을 요청했습니다. 화면 안에서 자료를 직접 확인하세요."
-    if not webbrowser.open(url, new=1):
-        raise RuntimeError(
-            "브라우저를 열지 못했습니다. 아래 로컬 주소를 복사해 직접 열 수 있습니다."
-        )
-    return "브라우저에 검토 화면을 요청했습니다."
-
-
-class WindowLaunchError(RuntimeError):
-    """Browser failure AFTER source verification; retain the exact requested URL."""
-
-    def __init__(self, info, url, error):
-        super().__init__(str(error))
-        self.info, self.url = info, url
-
 
 class DesktopApp:
     # build_ui initializes these widgets synchronously before any callback. Keep
@@ -345,7 +282,6 @@ class DesktopApp:
     elapsed: tk.StringVar
     error_hint: tk.StringVar
     path: tk.StringVar
-    address: tk.StringVar
     review_options: ttk.Frame
     primary_actions: ttk.Frame
     error_panel: ttk.Frame
@@ -354,8 +290,6 @@ class DesktopApp:
     progress: ttk.Progressbar
     entry: ttk.Entry
     new_button: ttk.Button
-    report_new_button: ttk.Button
-    report_revision_button: ttk.Button
     action_menu: tk.Menu
     add_button: ttk.Button
     prepare_button: ttk.Button
@@ -365,9 +299,7 @@ class DesktopApp:
     choose: ttk.Button
     check: ttk.Button
     library_button: ttk.Button
-    copy_button: ttk.Button
     stop_button: ttk.Button
-    browser_button: ttk.Button
     version_label: ttk.Label
 
     def __init__(
@@ -375,11 +307,9 @@ class DesktopApp:
         root: tk.Tk,
         workspace: Path | None = None,
         session: ReviewSession | None = None,
-        *,
-        report_base: Path | None = None,
     ):
         self.root, self.session = root, session or ReviewSession()
-        self.edge = find_edge()
+        self.review_window = None
         self.events = queue.Queue()
         self.busy = self.closing = False
         self.info = None
@@ -391,9 +321,6 @@ class DesktopApp:
         self.cancel_requested = threading.Event()
         self.task_started = 0
         self.stage_message = ""
-        from hwp_desktop_reports import ReportActions
-
-        self.reports = ReportActions(self, report_base)
         from hwp_desktop_ui import build_ui
 
         build_ui(self, root, workspace, MODES)
@@ -408,7 +335,6 @@ class DesktopApp:
         )
         root.bind("<Control-o>", lambda event: self.new_document())
         root.bind("<Control-Shift-O>", lambda event: self.choose_folder())
-        root.bind("<Control-n>", lambda event: self.reports.new())
         root.bind("<FocusIn>", self.reveal_focus)
         self.update_controls()
         root.after(100, self.poll)
@@ -463,15 +389,9 @@ class DesktopApp:
         self.root.after_idle(reveal)
 
     def mode_key(self):
-        if is_report_info(self.info):
-            return "report"
-        return next(
-            (key for key, value in MODES.items() if value[0] == self.mode.get()), "memo"
-        )
+        return next((key for key, label in MODES.items() if label == self.mode.get()), "text")
 
     def same_path(self):
-        if is_report_info(self.info):
-            return self.path.get().strip() == str(self.info.root)
         selected = (
             self.project.root
             if self.project is not None
@@ -525,7 +445,6 @@ class DesktopApp:
             or self.closing
             or not self.same_path()
             or self.info is None
-            or is_report_info(self.info)
             or getattr(self.session, "stopping", False)
         ):
             return
@@ -601,8 +520,6 @@ class DesktopApp:
         self.update_controls()
 
     def render_state(self):
-        if self.reports.render():
-            return
         self.open_button.configure(text="검토 시작")
         for label, text in zip(
             self.step_labels, ("1  문서 선택", "2  원본 확인", "3  검토 시작")
@@ -645,8 +562,6 @@ class DesktopApp:
             self.open_button,
             self.export_button,
             self.cancel_button,
-            self.report_new_button,
-            self.report_revision_button,
         ):
             button.pack_forget()
         button = {
@@ -655,11 +570,7 @@ class DesktopApp:
             "staged": self.prepare_button,
             "ready": self.open_button,
         }[state]
-        if state == "idle":
-            self.report_new_button.pack(side="left")
-            button.pack(side="left", padx=8)
-        else:
-            button.pack(side="left")
+        button.pack(side="left")
         if state == "ready":
             self.export_button.pack(side="left", padx=8)
         if self.preparing:
@@ -697,15 +608,11 @@ class DesktopApp:
         stopping = getattr(self.session, "stopping", False)
         available = (
             self.same_path() and not self.busy and not self.closing and not stopping
-            and (not is_report_info(self.info) or self.info.gate_passed)
         )
         fill_missing = (
             self.mode_key() == "fill" and self.info and not self.info.has_fill_input
         )
-        for widget in (self.open_button, self.browser_button):
-            widget.configure(
-                state="normal" if available and not fill_missing else "disabled"
-            )
+        self.open_button.configure(state="normal" if available and not fill_missing else "disabled")
         for widget in (self.entry, self.choose, self.check):
             widget.configure(
                 state="disabled"
@@ -723,17 +630,12 @@ class DesktopApp:
         )
         self.mode_picker.configure(
             state="disabled"
-            if self.busy or self.closing or stopping or is_report_info(self.info)
+            if self.busy or self.closing or stopping or self.review_window is not None
             else "readonly"
         )
         self.stop_button.configure(
             state="normal"
             if (self.session.running or stopping) and not self.busy and not self.closing
-            else "disabled"
-        )
-        self.copy_button.configure(
-            state="normal"
-            if self.address.get() and not self.busy and not stopping
             else "disabled"
         )
         input_ready = (
@@ -774,7 +676,7 @@ class DesktopApp:
         )
         self.export_button.configure(
             state="normal"
-            if self.same_path() and not is_report_info(self.info)
+            if self.same_path()
             and not self.busy and not self.closing and not stopping
             else "disabled"
         )
@@ -787,16 +689,13 @@ class DesktopApp:
             self.progress.grid_remove()
         self.mode_help.set(
             {
-                "report": "준비된 HWPX 원고와 양식의 정확한 범위만 비교합니다. 승인·생성·한글 검수는 별도입니다.",
-                "memo": "원본에 메모하고 정확한 교체 문구로 수정안을 직접 작성합니다. 저장·승인·실제 적용은 별도입니다.",
-                "native": "준비된 문단 수정안의 문구·주황색 영역·변경 범위를 직접 검토합니다.",
-                "layout": "원래 표 높이를 유지하는 별도 수정안입니다. 각 행 높이와 생성 미리보기 범위를 확인합니다.",
+                "text": "원본과 교체 문구를 비교하고 페이지 메모를 저장합니다. 승인과 한글 적용은 별도입니다.",
+                "layout": "선택 문구·영역과 원래 표 행 높이를 검토합니다. 임의 행 높이 변경은 지원하지 않습니다.",
                 "fill": "값·근거·빈칸 위치를 직접 연결합니다. 입력 자료 준비가 먼저 필요합니다."
                 if fill_missing
                 else "준비된 값을 원본의 빈칸에 연결합니다. 서명·직인 없는 작성 양식에만 사용합니다.",
             }[self.mode_key()]
         )
-        self.reports.controls()
 
     def choose_folder(self):
         if (
@@ -844,28 +743,14 @@ class DesktopApp:
                 self.events.put(("ok", operation()))
             except Exception as error:
                 # Discard traceback references; retain just source-safe context.
-                context = (
-                    (error.info, error.url)
-                    if isinstance(error, WindowLaunchError)
-                    else None
-                )
-                if role in ("report", "report-revision") and isinstance(getattr(error, "project_root", None), Path):
-                    context = {"report_root": error.project_root}
-                self.events.put(
-                    (
-                        "error",
-                        ((type(error).__name__ + ": " + str(error))[:6000], context),
-                    )
-                )
+                self.events.put(("error", (type(error).__name__ + ": " + str(error))[:6000]))
 
         try:
             threading.Thread(
                 target=worker, name="HWP-desktop-task", daemon=True
             ).start()
         except Exception as error:
-            self.events.put(
-                ("error", ((type(error).__name__ + ": " + str(error))[:6000], None))
-            )
+            self.events.put(("error", (type(error).__name__ + ": " + str(error))[:6000]))
 
     def check_workspace(self):
         if (
@@ -879,12 +764,8 @@ class DesktopApp:
         path = Path(self.path.get().strip())
 
         def operation():
-            if os.path.lexists(path / "report-project.json"):
-                return "report-checked", report_engine().inspect(path)
-            if (path / "template-manifest.json").exists() or (path / "harness.json").exists():
-                raise ValueError(
-                    "기존 단독 계획 폴더는 원본 프로필·피드백을 가져와 새 보고서 작업으로 검토하세요. 기존 승인은 옮기지 않습니다."
-                )
+            if any(os.path.lexists(path / name) for name in ("report-project.json", "template-manifest.json", "harness.json")):
+                raise ValueError("이 창은 기존 .hwp 검토 전용입니다. HWPX 편집은 기본 창에서 작업 폴더를 여세요.")
             project = hwp_project.scan_folder(path)
             info = (
                 inspect_workspace(project.workspace)
@@ -954,48 +835,39 @@ class DesktopApp:
 
         self.task("한글 연결을 확인하고 있습니다…", operation)
 
-    def launch(self, edge):
+    def launch(self):
+        if self.review_window is not None:
+            self.review_window.window.lift()
+            return
         if (
             not self.same_path()
             or self.info is None
             or self.busy
             or self.closing
-            or getattr(self.session, "stopping", False)
+            or self.session.stopping
         ):
             return
-        report = is_report_info(self.info)
-        path = self.info.root if report else self.info.path
-        mode = self.mode_key()
+        path, mode = self.info.path, self.mode_key()
 
         def operation():
-            # Reverify on launch; a previously enabled button is not source proof.
-            info = report_engine().inspect(path) if report else inspect_workspace(path)
-            if report and not info.gate_passed:
-                raise ValueError("보고서 검토가 차단되었습니다: " + "; ".join(info.issues))
+            info = inspect_workspace(path)
             if mode == "fill" and not info.has_fill_input:
-                raise ValueError(
-                    "빈칸 입력 자료가 없습니다. 자료 준비 후 다시 확인하세요."
-                )
+                raise ValueError("빈칸 입력 자료가 없습니다. fill-input.json을 준비한 뒤 다시 확인하세요.")
             if not self.session.running:
                 if self.session.info is not None:
                     self.session.stop()
                 self.session.start(path)
-            elif self.session.info is None or (
-                self.session.info.root
-                if is_report_info(self.session.info)
-                else self.session.info.path
-            ) != path:
-                raise RuntimeError(
-                    "현재 서버와 다른 작업 폴더입니다. 내 서버를 먼저 닫으세요."
-                )
-            url = self.session.url(mode)
-            try:
-                message = open_window(url, edge)
-            except Exception as error:
-                raise WindowLaunchError(info, url, error) from error
-            return "opened", (info, url, message)
+            elif not isinstance(self.session.info, WorkspaceInfo) or self.session.info.path != path:
+                raise RuntimeError("다른 작업의 검토 창을 먼저 닫으세요.")
+            client = self.session.legacy_client()
+            return "opened", (info, client, mode, client.snapshot(mode))
 
-        self.task("내 로컬 검토 서버와 창을 열고 있습니다…", operation)
+        self.task("로컬 HWP 검토 화면을 준비합니다…", operation)
+
+    def review_closed(self):
+        self.review_window = None
+        self.status.set("검토 창을 닫았습니다. 다른 작업을 선택하려면 내 검토 서버를 닫으세요.")
+        self.update_controls()
 
     def stop_server(self):
         if (
@@ -1004,12 +876,17 @@ class DesktopApp:
             or not (self.session.running or getattr(self.session, "stopping", False))
         ):
             return
+        view = self.review_window
+        if view is not None and not view.may_close():
+            return
         if not messagebox.askyesno(
             "검토 서버 닫기",
-            "검토 창에서 작성 중인 메모와 위치를 먼저 저장했나요?\n\n이 앱이 연 검토 서버만 닫습니다. 한글이나 다른 서버, 승인 기록은 건드리지 않습니다.",
+            "이 앱이 연 검토 창과 서버를 닫을까요? 한글이나 다른 서버, 원본, 승인 기록은 변경하지 않습니다.",
             parent=self.root,
         ):
             return
+        if view is not None:
+            view.destroy()
 
         def operation():
             self.session.stop()
@@ -1049,7 +926,7 @@ class DesktopApp:
             self.progress.stop()
             self.progress.grid_remove()
             if kind == "error":
-                self.last_error, launch = payload
+                self.last_error = payload
                 self.status.set(
                     "작업을 완료하지 못했습니다. ‘오류 자세히’에서 원인을 확인하세요."
                 )
@@ -1061,37 +938,16 @@ class DesktopApp:
                         self.library_window.status.set(
                             "목록 확인 실패 · 자료를 삭제하거나 복구하지 않았습니다"
                         )
-                elif isinstance(launch, dict) and "report_root" in launch:
-                    self.reports.accept_failure(launch["report_root"], self.last_error)
-                elif (
-                    launch
-                    and self.session.running
-                    and not getattr(self.session, "stopping", False)
-                ):
-                    self.info, url = launch
-                    self.address.set(url)
-                    self.summary.set(
-                        "자료 확인은 완료했지만 창을 열지 못했습니다. 선택한 화면의 주소는 남아 있습니다. ‘브라우저로 열기’ 또는 ‘주소 복사’를 직접 선택하세요."
-                    )
                 else:
                     self.info = self.project = None
                     self.summary.set(
                         "준비 완료 표시를 해제했습니다. 실제 자료를 임의로 고치거나 잠금을 해제하지 않습니다. 서버가 남아 있으면 초안을 저장하고 ‘내 검토 서버 닫기’를 눌러주세요."
                     )
-                    if not self.session.running:
-                        self.address.set("")
                 self.closing = False
             else:
                 self.last_error = ""
                 operation, data = payload
-                if operation in ("report-ready", "report-checked"):
-                    self.reports.accept(data)
-                    if operation == "report-ready" and data.gate_passed:
-                        self.root.after_idle(lambda: self.launch(self.edge))
-                elif operation == "report-revise":
-                    self.address.set("")
-                    self.reports.open_revision(data[0], data[1])
-                elif operation == "checked":
+                if operation == "checked":
                     project, info = data
                     self.project, self.info = project, info
                     self.path.set(str(project.root))
@@ -1137,11 +993,14 @@ class DesktopApp:
                         f"저장된 메모 {data['notes']}개를 내보냈습니다 · 승인/문서 적용 아님"
                     )
                 elif operation == "opened":
-                    self.info, url, message = data
-                    self.address.set(url)
-                    self.status.set(message)
+                    self.info, client, mode, state = data
+                    try:
+                        self.review_window = LegacyReviewWindow(self.root, client, mode, state, self.review_closed)
+                    except (ValueError, KeyError, tk.TclError) as error:
+                        self.callback_error(type(error), error, None)
+                    else:
+                        self.status.set("기존 HWP 검토 창을 열었습니다. 브라우저는 실행하지 않습니다.")
                 elif operation == "stopped":
-                    self.address.set("")
                     self.status.set(
                         "내 검토 서버를 닫았습니다. 원본과 승인 기록은 그대로입니다."
                     )
@@ -1151,11 +1010,10 @@ class DesktopApp:
             self.update_controls()
         if (
             not self.busy
-            and self.address.get()
+            and self.session.info is not None and not self.last_error
             and not self.session.running
             and not getattr(self.session, "stopping", False)
         ):
-            self.address.set("")
             self.last_error = (
                 self.session.failure or "이 앱의 로컬 검토 서버가 중단되었습니다."
             )
@@ -1165,11 +1023,8 @@ class DesktopApp:
             self.update_controls()
         self.root.after(100, self.poll)
 
-    def copy_address(self):
-        if self.address.get():
-            self.root.clipboard_clear()
-            self.root.clipboard_append(self.address.get())
-            self.status.set("이 앱의 로컬 검토 주소를 복사했습니다.")
+    def review_window_may_close(self):
+        return self.review_window is None or self.review_window.may_close()
 
     def show_text(self, title, text):
         window = tk.Toplevel(self.root)
@@ -1219,7 +1074,8 @@ class DesktopApp:
         if self.busy or self.closing:
             self.status.set("진행 중인 확인/검토 요청이 끝난 뒤 앱을 닫아주세요.")
             return
-        self.reports.close_dialog()
+        if not self.review_window_may_close():
+            return
         if (
             self.session.running or getattr(self.session, "stopping", False)
         ) and not messagebox.askyesno(
@@ -1228,6 +1084,8 @@ class DesktopApp:
             parent=self.root,
         ):
             return
+        if self.review_window is not None:
+            self.review_window.destroy()
 
         def operation():
             self.session.stop()
@@ -1264,11 +1122,6 @@ def main():
         help="Explicit packaging test: NEW directory, synthetic data only, no browser/Hancom/approval",
     )
     modes.add_argument(
-        "--report-gui-host-dir",
-        type=Path,
-        help="Explicit NEW unsigned synthetic GUI host; no model/Hancom or automatic approval",
-    )
-    modes.add_argument(
         "--native-gui-host-dir", type=Path,
         help="Explicit NEW unsigned WPF/actual-OMP fixture; inert local provider/OS, UI-only consent",
     )
@@ -1289,7 +1142,7 @@ def main():
     )
     args = parser.parse_args()
     if args.legacy_desktop and any((
-        args.setup_requirements, args.check_requirements, args.self_test_dir, args.report_gui_host_dir,
+        args.setup_requirements, args.check_requirements, args.self_test_dir,
         args.native_gui_host_dir, args.baseline_export, args.text_export, args.contract_export,
     )):
         parser.error("Advanced desktop cannot mix synthetic or worker modes")
@@ -1313,21 +1166,16 @@ def main():
         from hwp_setup_ui import run
 
         raise SystemExit(run())
-    if args.report_gui_host_dir is not None or args.native_gui_host_dir is not None:
+    if args.native_gui_host_dir is not None:
         if (
             args.contract_run is not None or args.contract_phase is not None
             or args.text_run is not None or args.text_phase is not None
             or args.baseline_phase is not None or args.baseline_probe
         ):
-            parser.error("Synthetic report host cannot mix worker modes")
-        if args.native_gui_host_dir is not None:
-            from hwp_native_smoke import run
+            parser.error("Synthetic native host cannot mix worker modes")
+        from hwp_native_smoke import run
 
-            raise SystemExit(run(args.native_gui_host_dir))
-        from hwp_report_smoke import run_gui_host
-
-        run_gui_host(args.report_gui_host_dir)
-        return
+        raise SystemExit(run(args.native_gui_host_dir))
     if args.baseline_probe and args.baseline_export is None:
         parser.error("Probe requires the exact baseline workspace")
     if args.contract_export is not None:

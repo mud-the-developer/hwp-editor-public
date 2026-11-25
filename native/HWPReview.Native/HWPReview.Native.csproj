@@ -19,9 +19,9 @@
     <StartupObject>HWPReview.Native.Program</StartupObject>
     <AssemblyName>HWPReview.Native</AssemblyName>
     <RootNamespace>HWPReview.Native</RootNamespace>
-    <Version>1.0.0</Version>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <Version>1.0.0-rc.1</Version>
+    <AssemblyVersion>1.0.0.1</AssemblyVersion>
+    <FileVersion>1.0.0.1</FileVersion>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <Deterministic>true</Deterministic>
@@ -32,13 +32,12 @@
   <ItemGroup>
     <Compile Include="Program.cs" />
     <Compile Include="OwnedHostClient.cs" />
-    <Compile Include="ReportApi.cs" />
     <Compile Include="MainWindow.cs" />
     <Compile Include="AppIcons.cs" />
-    <Compile Include="SourceMentionCompletion.cs" />
     <Compile Include="ConPtySession.cs" />
     <Compile Include="OmpTerminalPane.cs" />
     <Compile Include="HwpxDocumentPane.cs" />
+    <Compile Include="HwpxLiveWatcher.cs" />
     <Compile Include="OmpInstalledRuntime.cs" />
     <Compile Include="OmpSessionBridge.cs" />
     <Page Include="Styles.xaml" />

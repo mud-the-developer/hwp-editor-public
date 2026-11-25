@@ -10,7 +10,6 @@ import importlib
 import json
 import os
 from pathlib import Path
-import re
 import secrets
 import sys
 import threading
@@ -180,13 +179,13 @@ def approve_fixture(workspace, plan, report):
             connection.close()
 
     try:
-        token = re.search(r"const token='([a-f0-9]+)'", request("GET", "/")[1].decode())
-        if token is None:
+        token = getattr(server, "review_token", "")
+        if not token:
             raise ValueError("Fixture UI token missing")
         headers = {
             "Origin": origin,
             "Content-Type": "application/json",
-            "X-Review-Token": token.group(1),
+            "X-Review-Token": token,
             "If-Match": '"' + r.file_hash(workspace / "proposal-fill.json") + '"',
         }
         payload = {

@@ -68,17 +68,15 @@ def configure_style(root):
 
 
 def build_ui(app, root, workspace, modes):
-    root.title("HWP Editor")
+    root.title("HWP Editor · 기존 HWP 도구")
     root.geometry("880x740")
     root.minsize(700, 600)
     root.configure(background="#f5f7fa")
     menu = tk.Menu(root, tearoff=False)
     app.action_menu = tk.Menu(menu, tearoff=False)
-    app.action_menu.add_command(label="새 보고서 (HWPX) · Ctrl+N", command=app.reports.new)
     app.action_menu.add_command(label="새 HWP 문서 · Ctrl+O", command=app.new_document)
     app.action_menu.add_command(label="작업 폴더 열기", command=app.choose_folder)
     app.action_menu.add_command(label="작업 목록", command=app.show_library)
-    app.action_menu.add_command(label="고급: 준비된 HWPX 원고 합성", command=app.reports.advanced)
     app.action_menu.add_separator()
     app.action_menu.add_command(label="닫기", command=app.close)
     menu.add_cascade(label="작업", menu=app.action_menu)
@@ -112,12 +110,12 @@ def build_ui(app, root, workspace, modes):
     app.canvas.bind("<Configure>", resize)
     app.wheel_delta = 0
     root.bind("<MouseWheel>", app.scroll_wheel)
-    ttk.Label(body, text="HWPX 보고서 · 문서 검토", style="Title.TLabel").grid(
+    ttk.Label(body, text="기존 HWP 검토", style="Title.TLabel").grid(
         row=0, column=0, sticky="w"
     )
     ttk.Label(
         body,
-        text="원본 양식과 준비된 원고를 비교하고, 승인한 범위만 새 검토본으로 만드세요.",
+        text="작업용 사본을 검토합니다. 저장된 수정안의 승인과 한글 적용은 별도입니다.",
         style="Muted.TLabel",
         wraplength=700,
     ).grid(row=1, column=0, sticky="w", pady=(5, 20))
@@ -140,12 +138,12 @@ def build_ui(app, root, workspace, modes):
     card = ttk.Frame(body, style="Card.TFrame", padding=24)
     card.grid(row=3, column=0, sticky="ew")
     card.columnconfigure(0, weight=1)
-    app.document_title = tk.StringVar(value="보고서 양식과 HWPX 원고를 선택하세요")
+    app.document_title = tk.StringVar(value="검토할 기존 .hwp 문서를 선택하세요")
     ttk.Label(
         card, textvariable=app.document_title, style="CardTitle.TLabel", wraplength=680
     ).grid(row=0, column=0, sticky="w")
     app.summary = tk.StringVar(
-        value="새 보고서는 한글 실행 없이 HWPX를 직접 읽습니다. 기존 HWP 문서는 별도 원본 확인 경로를 사용합니다."
+        value="원본을 보존하고 기준 PDF·HWPX를 준비한 뒤 검토합니다. HWPX 편집은 기본 창에서 작업하세요."
     )
     ttk.Label(
         card,
@@ -154,14 +152,14 @@ def build_ui(app, root, workspace, modes):
         wraplength=680,
         justify="left",
     ).grid(row=1, column=0, sticky="ew", pady=(10, 20))
-    app.mode = tk.StringVar(value=modes["memo"][0])
+    app.mode = tk.StringVar(value=modes["text"])
     app.review_options = ttk.Frame(card, style="CardBody.TFrame")
     app.review_options.grid(row=2, column=0, sticky="ew", pady=(0, 16))
     app.review_options.columnconfigure(0, weight=1)
     app.mode_picker = ttk.Combobox(
         app.review_options,
         textvariable=app.mode,
-        values=[v[0] for v in modes.values()],
+        values=list(modes.values()),
         state="readonly",
         font=("맑은 고딕", 11),
     )
@@ -177,15 +175,6 @@ def build_ui(app, root, workspace, modes):
     ).grid(row=1, column=0, sticky="w", pady=(8, 0))
     app.primary_actions = ttk.Frame(card, style="CardBody.TFrame")
     app.primary_actions.grid(row=3, column=0, sticky="ew")
-    app.report_new_button = ttk.Button(
-        app.primary_actions,
-        text="새 보고서 (HWPX)",
-        style="Primary.TButton",
-        command=app.reports.new,
-    )
-    app.report_revision_button = ttk.Button(
-        app.primary_actions, text="새 원고로 다시 검토", command=app.reports.revise
-    )
     app.new_button = ttk.Button(
         app.primary_actions,
         text="HWP 문서 선택",
@@ -208,7 +197,7 @@ def build_ui(app, root, workspace, modes):
         app.primary_actions,
         text="검토 시작",
         style="Primary.TButton",
-        command=lambda: app.launch(app.edge),
+        command=app.launch,
     )
     app.export_button = ttk.Button(
         app.primary_actions, text="저장된 메모 내보내기", command=app.export_saved_notes
@@ -254,7 +243,7 @@ def build_ui(app, root, workspace, modes):
     ).grid(row=8, column=0, sticky="w", pady=(16, 8))
     utilities = ttk.Frame(body)
     utilities.grid(row=9, column=0, sticky="ew")
-    ttk.Button(utilities, text="폴더 · 연결 설정", command=app.toggle_details).pack(
+    ttk.Button(utilities, text="작업 폴더 설정", command=app.toggle_details).pack(
         side="left"
     )
     app.library_button = ttk.Button(
@@ -282,21 +271,8 @@ def build_ui(app, root, workspace, modes):
         app.details, text="폴더 다시 확인", command=app.check_workspace
     )
     app.check.grid(row=1, column=1, padx=(8, 0))
-    address = ttk.Frame(app.details)
-    address.grid(row=2, column=0, columnspan=2, sticky="ew")
-    address.columnconfigure(0, weight=1)
-    app.address = tk.StringVar()
-    ttk.Entry(address, textvariable=app.address, state="readonly").grid(
-        row=0, column=0, sticky="ew", ipady=6
-    )
-    app.copy_button = ttk.Button(address, text="주소 복사", command=app.copy_address)
-    app.copy_button.grid(row=0, column=1, padx=(8, 0))
     tools = ttk.Frame(app.details)
-    tools.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(10, 0))
-    app.browser_button = ttk.Button(
-        tools, text="기본 브라우저로 열기", command=lambda: app.launch(None)
-    )
-    app.browser_button.pack(side="left")
+    tools.grid(row=2, column=0, columnspan=2, sticky="ew", pady=(10, 0))
     app.stop_button = ttk.Button(
         tools, text="내 검토 서버 닫기", command=app.stop_server
     )

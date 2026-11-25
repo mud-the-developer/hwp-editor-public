@@ -4,7 +4,6 @@ from pathlib import Path
 from types import ModuleType, SimpleNamespace
 import http.client
 import json
-import re
 import sys
 import tempfile
 import threading
@@ -235,7 +234,7 @@ class TextApplyTests(unittest.TestCase):
                     "0",
                 ],
             )
-            self.assertEqual(kwargs["timeout"], 240)
+            self.assertIs(kwargs["shell"], False)
             self.assertEqual(kwargs["stdin"], a.subprocess.DEVNULL)
             r.write_json(
                 self.run_dir / "text-export-reply-0.json",
@@ -246,11 +245,11 @@ class TextApplyTests(unittest.TestCase):
                     "native": {"SYNTHETIC": True},
                 },
             )
-            return SimpleNamespace(returncode=0)
+            return SimpleNamespace(wait=lambda timeout: 0)
 
         with (
             patch.object(a, "frozen", return_value=True),
-            patch.object(a.subprocess, "run", side_effect=child),
+            patch.object(a.subprocess, "Popen", side_effect=child),
             patch.object(r, "native_export") as generic,
         ):
             result = exporter(
@@ -261,7 +260,7 @@ class TextApplyTests(unittest.TestCase):
             self.assertTrue(result["SYNTHETIC"])
             generic.assert_not_called()
             self.assertEqual(exporter.phase, 1)
-        with patch.object(a.subprocess, "run") as process:
+        with patch.object(a.subprocess, "Popen") as process:
             with self.assertRaises(ValueError):
                 exporter(self.run_dir / "candidate.hwpx", self.w / "OUTSIDE.pdf")
             process.assert_not_called()
@@ -361,10 +360,8 @@ class TextApplyTests(unittest.TestCase):
             finally:
                 connection.close()
 
-        match = re.search(r"const token='([a-f0-9]+)'", request("GET", "/")[1].decode())
-        if match is None:
-            self.fail("Synthetic token missing")
-        token = match.group(1)
+        self.assertEqual(request("GET", "/")[0], 404)
+        token = server.review_token
         headers = {
             "Origin": origin,
             "X-Review-Token": token,

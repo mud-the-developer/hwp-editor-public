@@ -13,7 +13,6 @@ import sys
 import threading
 import time
 import tempfile
-import re
 import tkinter as tk
 import zipfile
 
@@ -76,39 +75,39 @@ def debug_checks(root, app, desktop, info):
     app.path.set(str(info.path))
     app.project = None
     app.info = info
-    app.mode.set(desktop.MODES["native"][0])
+    app.mode.set(desktop.MODES["layout"])
     app.mode_picker.event_generate("<MouseWheel>", delta=-120)
-    if app.mode.get() != desktop.MODES["native"][0]:
+    if app.mode.get() != desktop.MODES["layout"]:
         raise RuntimeError("Wheel changed the proposal contract")
     checks["wheel_preserves_contract"] = True
-    original_window, original_inspect = desktop.open_window, desktop.inspect_workspace
-
-    def blocked_window(*args):
-        raise OSError("SYNTHETIC WINDOW FAILURE; no browser launched")
-
-    desktop.open_window = blocked_window
+    original_inspect = desktop.inspect_workspace
     try:
         app.session.start(info.path)
-        app.launch(None)
+        app.launch()
         wait_ui(root, app)
-        if app.address.get() != app.session.url("native") or app.info is None:
-            raise RuntimeError("Requested proposal URL lost after window failure")
-        checks["failed_window_retains_exact_url"] = True
+        view = app.review_window
+        if view is None:
+            raise RuntimeError("Native HWP review did not open")
+        deadline = time.monotonic() + 10
+        while view._bitmap is None and time.monotonic() < deadline:
+            root.update()
+            time.sleep(.01)
+        if view._bitmap is None or view._bitmap.width() < 1 or view.can_apply():
+            raise RuntimeError("Native review did not show the original page safely")
+        checks["native_review_page_renders"] = True
+        view.close()
 
         def blocked_source(*args):
             raise ValueError("SYNTHETIC SOURCE FAILURE; no file was changed")
 
         desktop.inspect_workspace = blocked_source
-        app.launch(None)
+        app.launch()
         wait_ui(root, app)
-        if app.info is not None or str(app.open_button.cget("state")) != "disabled":
+        if app.info is not None or app.review_window is not None or str(app.open_button.cget("state")) != "disabled":
             raise RuntimeError("Changed-source error retained stale ready state")
         checks["source_failure_revokes_ready"] = True
     finally:
         desktop.inspect_workspace = original_inspect
-        # Never restore the real opener under a still-running test worker.
-        if not app.busy:
-            desktop.open_window = original_window
         app.session.stop()
     session = desktop.ReviewSession()
     session.start(info.path)
@@ -392,13 +391,12 @@ def text_proposal_checks(desktop, review, workspace):
         )
         connection.request("GET", "/")
         response = connection.getresponse()
-        ui = response.read().decode("utf-8")
-        if response.status != 200 or 'id="draft-save"' not in ui:
-            raise RuntimeError("Manual draft UI missing from bundle")
-        match = re.search(r"const token='([a-f0-9]+)'", ui)
-        if match is None:
+        response.read()
+        if response.status != 404:
+            raise RuntimeError("Legacy manual draft HTML route should return 404")
+        token = getattr(session._server, "review_token", "")
+        if not token:
             raise RuntimeError("Manual draft token missing")
-        token = match.group(1)
         payload = {
             "workspace_id": manifest["workspace_id"],
             "baseline_hwpx_sha256": manifest["baseline_hwpx_sha256"],
@@ -488,13 +486,12 @@ def text_apply_checks(desktop, review, workspace):
         )
         connection.request("GET", "/")
         response = connection.getresponse()
-        ui = response.read().decode("utf-8")
-        if response.status != 200 or 'id="apply-text"' not in ui:
-            raise RuntimeError("Frozen bounded apply UI is missing")
-        match = re.search(r"const token='([a-f0-9]+)'", ui)
-        if match is None:
+        response.read()
+        if response.status != 404:
+            raise RuntimeError("Legacy bounded apply HTML route should return 404")
+        token = getattr(session._server, "review_token", "")
+        if not token:
             raise RuntimeError("Frozen apply token missing")
-        token = match.group(1)
         payload = {
             "workspace_id": manifest["workspace_id"],
             "baseline_hwpx_sha256": manifest["baseline_hwpx_sha256"],
@@ -601,11 +598,11 @@ def result_download_checks(desktop, review, workspace):
         )
         connection.request("GET", "/")
         response = connection.getresponse()
-        ui = response.read().decode("utf-8")
-        if response.status != 200 or 'id="download-hwp"' not in ui:
-            raise RuntimeError("Frozen result download controls missing")
-        match = re.search(r"const token='([a-f0-9]+)'", ui)
-        if match is None:
+        response.read()
+        if response.status != 404:
+            raise RuntimeError("Legacy result download HTML route should return 404")
+        token = getattr(session._server, "review_token", "")
+        if not token:
             raise RuntimeError("Frozen download token missing")
         route = f"/result/{run_id}/hwp"
         connection.request("GET", route)
@@ -617,7 +614,7 @@ def result_download_checks(desktop, review, workspace):
             connection.request(
                 "GET",
                 f"/result/{run_id}/{kind}",
-                headers={"X-Review-Token": match.group(1)},
+                headers={"X-Review-Token": token},
             )
             response = connection.getresponse()
             blob = response.read()
@@ -630,7 +627,7 @@ def result_download_checks(desktop, review, workspace):
         old = (run_path / "candidate.hwp").read_bytes()
         binding = (run_path / review.RESULT_FILE).read_bytes()
         (run_path / "candidate.hwp").write_bytes(b"CHANGED SYNTHETIC")
-        connection.request("GET", route, headers={"X-Review-Token": match.group(1)})
+        connection.request("GET", route, headers={"X-Review-Token": token})
         response = connection.getresponse()
         response.read()
         if (
@@ -702,30 +699,14 @@ def pi_boundary_checks(desktop, review, workspace):
             response = connection.getresponse()
             return response.status, response.read()
 
-        status, page = request("GET", "/")
-        ui = page.decode("utf-8")
-        match = re.search(r"const token='([a-f0-9]+)'", ui)
-        if (
-            status != 200
-            or match is None
-            or any(
-                'id="' + key + '"' not in ui
-                for key in (
-                    "pi-chat-connect",
-                    "pi-chat-consent",
-                    "pi-context-confirm",
-                    "pi-context-actions",
-                    "pi-chat-artifacts",
-                    "pi-chat-progress",
-                    "pi-chat-progress-text",
-                )
-            )
-        ):
-            raise RuntimeError("Frozen Pi consent/review controls missing")
+        status, _ = request("GET", "/")
+        token = getattr(server, "review_token", "")
+        if status != 404 or not token:
+            raise RuntimeError("Frozen Pi boundary legacy route or token check failed")
         headers = {
             "Origin": origin,
             "Content-Type": "application/json",
-            "X-Review-Token": match[1],
+            "X-Review-Token": token,
         }
         if request("GET", "/api/pi/chat")[0] != 403:
             raise RuntimeError("Pi chat token guard missing")
@@ -847,15 +828,15 @@ def recovery_checks(desktop, review, workspace):
         )
         connection.request("GET", "/")
         response = connection.getresponse()
-        ui = response.read().decode("utf-8")
-        if response.status != 200 or 'id="recovery-restore"' not in ui:
-            raise RuntimeError("Frozen recovery UI missing")
-        match = re.search(r"const token='([a-f0-9]+)'", ui)
-        if match is None:
+        response.read()
+        if response.status != 404:
+            raise RuntimeError("Legacy recovery HTML route should return 404")
+        token = getattr(server, "review_token", "")
+        if not token:
             raise RuntimeError("Frozen recovery token missing")
         headers = {
             "Origin": session.origin,
-            "X-Review-Token": match.group(1),
+            "X-Review-Token": token,
             "Content-Type": "application/json",
             "If-Match": '"absent"',
         }
@@ -1006,10 +987,6 @@ def run(directory):
         review = desktop.engine()
         root_assets = resource_root()
         expected = (
-            "web/review.html",
-            "web/fill-review.html",
-            "web/template-review.html",
-            "web/report-workspace.html",
             "docs/template-review-draft.md",
             "docs/report-harness.md",
             "docs/user-guide.md",
@@ -1057,7 +1034,8 @@ def run(directory):
             import hwp_report_runtime
             import hwp_report_project
             import hwp_report_ui
-            import hwp_desktop_reports
+            import hwp_legacy_client
+            import hwp_legacy_ui
             import hwp_synthetic_report
             import hwp_report_smoke
             import hwp_report_control
@@ -1101,7 +1079,8 @@ def run(directory):
                 hwp_report_runtime,
                 hwp_report_project,
                 hwp_report_ui,
-                hwp_desktop_reports,
+                hwp_legacy_client,
+                hwp_legacy_ui,
                 hwp_synthetic_report,
                 hwp_report_smoke,
                 hwp_report_control,
@@ -1180,9 +1159,21 @@ def run(directory):
                 server = session._server
                 if server is None:
                     raise RuntimeError("Synthetic owned server did not start")
+                if not getattr(server, "review_token", ""):
+                    raise RuntimeError("Review token missing")
+                for route in ("/", "/fill"):
+                    connection = http.client.HTTPConnection(
+                        "127.0.0.1", server.server_port, timeout=10
+                    )
+                    try:
+                        connection.request("GET", route)
+                        response = connection.getresponse()
+                        response.read()
+                        if response.status != 404:
+                            raise RuntimeError("Legacy HTML route should return 404: " + route)
+                    finally:
+                        connection.close()
                 for route in (
-                    "/",
-                    "/fill",
                     "/api/state",
                     "/api/state?proposal=native",
                     "/api/state?proposal=layout",
@@ -1199,8 +1190,6 @@ def run(directory):
                         data = response.read()
                         if response.status != 200:
                             raise RuntimeError("Packaged route failed: " + route)
-                        if route == "/" and b"__TOKEN__" in data:
-                            raise RuntimeError("Review token missing")
                         if route == "/page/1.png?dpi=144" and not data.startswith(
                             b"\x89PNG"
                         ):

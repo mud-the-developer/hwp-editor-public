@@ -4,7 +4,6 @@ from copy import deepcopy
 import http.client
 import json
 from pathlib import Path
-import re
 import sys
 import tempfile
 import threading
@@ -259,14 +258,10 @@ class ReviewSessionTests(unittest.TestCase):
                 conn.close()
 
         try:
-            token_match = re.search(
-                r"const token='([a-f0-9]+)'", request("GET", "/")[1].decode()
-            )
-            if token_match is None:
-                self.fail("Synthetic UI token missing")
+            self.assertEqual(request("GET", "/")[0], 404)
             headers = {
                 "Origin": origin,
-                "X-Review-Token": token_match.group(1),
+                "X-Review-Token": server.review_token,
                 "Content-Type": "application/json",
                 "If-Match": '"absent"',
             }

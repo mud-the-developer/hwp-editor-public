@@ -250,21 +250,72 @@ class NativeHost:
             return workspace.scan_workspace(self.workspace_root)
         if method == "open_workspace":
             _closed(params, ("root",))
-            self._idle(initial_intake=True)
             root = _absolute(params["root"])
+            self._idle(initial_intake=self.workspace_root is None)
             listing = workspace.scan_workspace(root)
-            root = Path(listing["root"])
-            if root != self.workspace_root:
-                try:
-                    self.session.stop()
-                except Exception as error:
-                    self.ownership_error = (
-                        "작업 폴더 전환 중 기존 서버 종료를 확인하지 못했습니다. 기존 작업과 프로세스를 보존합니다. "
-                        "자동 재시도하지 않습니다: " + str(error)
-                    )[:ERROR_LIMIT]
-                    raise RuntimeError(self.ownership_error) from error
-                self.workspace_root = root
+            try:
+                self.session.stop()
+            except Exception as error:
+                self.ownership_error = (
+                    "작업 폴더 전환 중 기존 서버 종료를 확인하지 못했습니다. 기존 작업과 프로세스를 보존합니다. "
+                    "자동 재시도하지 않습니다: " + str(error)
+                )[:ERROR_LIMIT]
+                raise RuntimeError(self.ownership_error) from error
+            self.workspace_root = Path(listing["root"])
             return listing
+        if method == "open_live_document":
+            _closed(params, ("path",))
+            if self.workspace_root is None:
+                raise ValueError("먼저 작업 폴더를 여세요.")
+            return workspace.open_live_document(self.workspace_root, _absolute(params["path"]))
+        if method == "new_blank_live_document":
+            _closed(params, ("destination",))
+            if self.workspace_root is None:
+                raise ValueError("먼저 작업 폴더를 여세요.")
+            return workspace.create_blank_live_document(self.workspace_root, _absolute(params["destination"]))
+        if method == "record_live_checkpoint":
+            if not isinstance(params, dict) or not set(params).issubset({"path", "reason"}) or "path" not in params:
+                raise ValueError("체크포인트 저장 요청 형식이 올바르지 않습니다.")
+            if self.workspace_root is None:
+                raise ValueError("먼저 작업 폴더를 여세요.")
+            reason = params.get("reason", "auto")
+            if not isinstance(reason, str):
+                raise ValueError("체크포인트 사유가 올바르지 않습니다.")
+            return workspace.record_live_checkpoint(self.workspace_root, _absolute(params["path"]), reason=reason)
+        if method == "list_live_checkpoints":
+            _closed(params, ("path",))
+            if self.workspace_root is None:
+                raise ValueError("먼저 작업 폴더를 여세요.")
+            return workspace.list_live_checkpoints(self.workspace_root, _absolute(params["path"]))
+        if method == "read_live_checkpoint":
+            _closed(params, ("path", "checkpoint_id"))
+            if self.workspace_root is None:
+                raise ValueError("먼저 작업 폴더를 여세요.")
+            return workspace.read_live_checkpoint(self.workspace_root, _absolute(params["path"]), params["checkpoint_id"])
+        if method == "restore_live_checkpoint":
+            _closed(params, ("path", "checkpoint_id"))
+            if self.workspace_root is None:
+                raise ValueError("먼저 작업 폴더를 여세요.")
+            return workspace.restore_live_checkpoint(self.workspace_root, _absolute(params["path"]), params["checkpoint_id"])
+        if method == "open_in_hancom":
+            _closed(params, ("path",))
+            if self.workspace_root is None:
+                raise ValueError("먼저 작업 폴더를 여세요.")
+            return workspace.open_in_hancom(self.workspace_root, _absolute(params["path"]))
+        if method == "export_live_document":
+            if not isinstance(params, dict) or not set(params).issubset({"path", "destination", "checkpoint_id"}) or not {"path", "destination"}.issubset(params):
+                raise ValueError("내보내기 요청 형식이 올바르지 않습니다.")
+            if self.workspace_root is None:
+                raise ValueError("먼저 작업 폴더를 여세요.")
+            checkpoint_id = params.get("checkpoint_id", "")
+            if not isinstance(checkpoint_id, str):
+                raise ValueError("체크포인트 ID가 올바르지 않습니다.")
+            return workspace.export_live_document(
+                self.workspace_root,
+                _absolute(params["path"]),
+                _absolute(params["destination"]),
+                checkpoint_id=checkpoint_id,
+            )
         if method in ("open_workspace_document", "new_blank_report"):
             key = "source" if method == "open_workspace_document" else "destination"
             _closed(params, (key,))

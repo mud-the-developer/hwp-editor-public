@@ -3,7 +3,6 @@
 import http.client
 import importlib
 import json
-import re
 import threading
 from unittest.mock import patch
 import unittest
@@ -29,11 +28,8 @@ class ContractHttpTests(unittest.TestCase):
         self.thread.start()
         self.addCleanup(self.close)
         self.origin = f"http://127.0.0.1:{self.server.server_port}"
-        response = self.request("GET", "/")
-        token_match = re.search(r"const token='([a-f0-9]+)'", response[1].decode())
-        if token_match is None:
-            raise AssertionError("Synthetic server token missing")
-        self.token = token_match.group(1)
+        self.assertEqual(self.request("GET", "/")[0], 404)
+        self.token = self.server.review_token
 
     def close(self):
         job = getattr(self.server, "contract_apply_controller")

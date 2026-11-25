@@ -9,7 +9,7 @@
   const bridge = window.chrome.webview;
   const encoder = new TextEncoder();
   const term = new Terminal({
-    fontFamily: '"Cascadia Mono", Consolas, "Malgun Gothic", monospace',
+    fontFamily: '"Cascadia Mono", Consolas, "D2KodingLigature Nerd Font Propo", "Malgun Gothic", monospace',
     fontSize: 14,
     cursorBlink: false,
     cursorStyle: "block",
@@ -162,7 +162,7 @@
         case "input-ack":
           if (!exact(message, ["v", "seq", "type", "id"]) || !activeInput || message.id !== activeInput.id) throw new Error("protocol");
           queuedBytes -= activeInput.bytes;
-          if (activeInput.paste) { send("paste-result", { id: activeInput.paste, ok: true, reason: "" }); tell("초안을 입력란에 붙여넣었습니다. Enter는 직접 눌러야 전송됩니다."); }
+          if (activeInput.paste) { send("paste-result", { id: activeInput.paste, ok: true, reason: "" }); tell(""); }
           activeInput = null;
           drainInput();
           break;
@@ -178,8 +178,7 @@
           if (!exact(message, ["v", "seq", "type", "running"]) || typeof message.running !== "boolean") throw new Error("protocol");
           running = message.running;
           term.options.disableStdin = blocked || !running;
-          if (!running) tell("소유한 OMP가 종료되었습니다. 화면과 준비 파일은 문서 생성·승인의 증거가 아닙니다.");
-          else tell("실제 OMP 입력란입니다. 문서 생성·승인은 앱의 별도 검증 절차에서만 가능합니다.");
+          tell(running ? "" : "소유한 OMP가 종료되었습니다.");
           break;
         case "blocked":
           if (!exact(message, ["v", "seq", "type"])) throw new Error("protocol");

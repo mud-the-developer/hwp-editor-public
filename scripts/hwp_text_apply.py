@@ -178,14 +178,11 @@ class TextExporter:
             str(self.phase),
         ]
         try:
-            result = subprocess.run(
-                command,
-                stdin=subprocess.DEVNULL,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                timeout=240,
-                check=False,
+            worker = subprocess.Popen(
+                command, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL, shell=False, close_fds=True,
             )
+            returncode = worker.wait(timeout=240)
         except subprocess.TimeoutExpired as error:
             raise RuntimeError(
                 "한글 적용 시간이 초과됐습니다. 소유자가 한글/접근 창을 확인하세요. 강제 종료·잠금 해제·자동 재시도하지 않습니다."
@@ -196,7 +193,7 @@ class TextExporter:
                 "적용 worker 완료 응답이 없습니다. 잠금과 증거를 유지합니다."
             )
         data = r.read_json(reply)
-        if result.returncode or data.get("ok") is not True:
+        if returncode or data.get("ok") is not True:
             raise RuntimeError(
                 "한글 글자 적용 차단: " + str(data.get("error", "unknown"))
             )

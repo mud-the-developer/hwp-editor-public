@@ -22,6 +22,8 @@
 
 실패한 출력은 불완전한 미게시 자료로 보존합니다. 자동 롤백·덮어쓰기는 하지 않습니다. 필요한 upstream 소스는 원래 고지를 유지해 설치기의 닫힌 `installer/` 폴더 밖에 별도 제공합니다.
 
+`scripts/hwp_release_sources.py --candidate <checked-release> --upstream <고정 자료 폴더> --output <새 폴더> --commit <정확한 커밋 SHA>`는 검증할 앱 입력, 고정 상류 자료 21개와 대응 소스 체크섬을 로컬에 정리합니다. 이 도구는 위의 공개용 정제나 Git 바이트 대조, 게시 허가를 대신하지 않습니다. 원시 후보나 이 도구의 출력 폴더 전체를 그대로 업로드하지 않습니다.
+
 공개 root `BUILD.json`에는 설치 소비자에게 필요한 최소 binding만 남깁니다.
 
 - 버전과 정확한 EXE/source ZIP 식별·해시
@@ -37,7 +39,7 @@
 
 `Install-HWPReview.cmd`/`.ps1`, `Uninstall-HWPReview.ps1`, 동봉 안내와 정확한 EXE/source/notices는 한 세트입니다. 닫힌 manifest의 이름·크기·SHA256, BUILD의 root 입력·정확한 고지 해시, EXE/source identity가 모두 일치해야 합니다. 현재 사용자 소유권 계약은 `hwp-user-install-receipt-v2`입니다. 정제로 이 계약이나 경로·바이트·충돌 검사를 약화하지 않습니다.
 
-필수 도구는 기존 호환 설치를 유지하고 누락분만 공식 고정 입력으로 준비합니다. UAC·약관·로그인은 사람이 처리하며 한글·보안 모듈·COM cache·개인 인증은 준비하지 않습니다. [설치 상세](desktop-app.md)
+필수 도구는 기존 호환 설치를 유지하고 누락분만 공식 고정 입력으로 준비합니다. 호환 x86 한글의 보안모듈 준비는 명시적 동의가 있을 때만 요청합니다. 한글 본체·COM cache·개인 인증은 준비하지 않습니다. [설치 상세](desktop-app.md)
 
 ## 검증과 승격의 구분
 
@@ -47,6 +49,7 @@
 2. 새 EXE의 source/notice/payload binding과 frozen 동작을 확인합니다. 소스 검사는 frozen GUI·실제 모델 검사를 대신하지 않습니다.
 3. 실제 Windows 설치·제거, 누락 도구·취소·UAC·재부팅·충돌과 clean-PC/다른 PC 검증은 각각 별도입니다. 미수행은 미검증으로 남깁니다.
 4. 실제 한글은 정확한 후보·허용된 새 소유 시험 입력으로만 별도 검수합니다. schema1/3/4 strict guard, schema2·generic Native 차단을 유지하고 첫 실패·timeout·불명확한 정리에서 중단합니다. 자동 재시도·cache 수리·강제 종료로 통과시키지 않습니다.
+   `--verify-release` 및 로컬 승격은 동일 EXE의 스키마 1·3·4 저장·재개방 증거를 모두 요구합니다. 검증 명령은 후보와 기존 배포물을 바꾸지 않습니다.
 5. 대응 소스·고지·실제 수령자 접근·권리 조건을 검토합니다. 기술 검사와 라이선스 적합성은 서로의 증거가 아닙니다.
 6. 사람의 배포·게시 결정은 검증과 별도입니다. 채택·Native 허용·제출 승인도 게시 권한이 아닙니다.
 

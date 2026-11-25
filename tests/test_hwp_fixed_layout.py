@@ -6,11 +6,6 @@ import tempfile
 import unittest
 import http.client
 import json
-import re
-import socket
-import subprocess
-import sys
-import time
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -261,38 +256,26 @@ class FixedLayoutTests(unittest.TestCase):
         }
         r.write_json(self.path / "approved-plan.json", approval)
         old_bytes = (self.path / "approved-plan.json").read_bytes()
-        with socket.socket() as sock:
-            sock.bind(("127.0.0.1", 0))
-            port = sock.getsockname()[1]
-        process = subprocess.Popen(
-            [
-                sys.executable,
-                str(r.ROOT / "scripts/hwp_review.py"),
-                "serve",
-                str(self.path),
-                "--port",
-                str(port),
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
-        self.addCleanup(process.wait)
-        self.addCleanup(process.terminate)
+        import threading
+
+        server = r.create_review_server(self.path, 0)
+        port = server.server_port
+        thread = threading.Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+
+        def close_server():
+            server.shutdown()
+            thread.join(5)
+            server.server_close()
+
+        self.addCleanup(close_server)
         connection = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
         self.addCleanup(connection.close)
-        for _ in range(100):
-            try:
-                connection.request("GET", "/")
-                response = connection.getresponse()
-                html = response.read().decode()
-                break
-            except OSError:
-                time.sleep(0.02)
-        else:
-            self.fail("Synthetic layout HTTP server did not start")
-        match = re.search(r"const token='([^']+)'", html)
-        assert match is not None, "Synthetic review token missing"
-        token = match.group(1)
+        connection.request("GET", "/")
+        response = connection.getresponse()
+        response.read()
+        self.assertEqual(response.status, 404)
+        token = server.review_token
         connection.request("GET", "/api/state?proposal=layout")
         state = json.loads(connection.getresponse().read())
         self.assertEqual(state["proposal"]["schema"], 3)
@@ -325,6 +308,28 @@ class FixedLayoutTests(unittest.TestCase):
         self.assertEqual(
             next((self.path / "approval-history").iterdir()).read_bytes(), old_bytes
         )
+        approved_bytes = (self.path / "approved-plan.json").read_bytes()
+        headers["If-Match"] = '"' + state["proposal_revision"] + '"'
+        edit = {name: self.plan["edits"][0][name] for name in ("anchor_id", "old_text")}
+        body = {
+            "workspace_id": self.manifest["workspace_id"],
+            "baseline_hwpx_sha256": self.manifest["baseline_hwpx_sha256"],
+            "edits": [{**edit, "new_text": "new code"}],
+        }
+        connection.request("POST", "/api/layout-proposal", json.dumps({**body, "row_minima": []}), headers)
+        response = connection.getresponse()
+        response.read()
+        self.assertEqual(response.status, 400)
+        self.assertEqual(r.read_json(self.path / "proposal-layout.json"), self.plan)
+        connection.request("POST", "/api/layout-proposal", json.dumps(body), headers)
+        response = connection.getresponse()
+        self.assertEqual(response.status, 200, response.read() if response.status != 200 else "")
+        revised = json.loads(response.read())["proposal"]
+        self.assertEqual(revised["row_minima"], self.plan["row_minima"])
+        self.assertEqual(revised["edits"][0]["region"], self.plan["edits"][0]["region"])
+        self.assertEqual((self.path / "approved-plan.json").read_bytes(), approved_bytes)
+        connection.request("GET", "/api/state?proposal=layout")
+        self.assertIsNone(json.loads(connection.getresponse().read())["approved_sha256"])
         self.assertFalse(
             (self.path / "runs").exists(), "Approval must not create an apply run"
         )

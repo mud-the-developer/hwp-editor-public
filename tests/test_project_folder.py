@@ -187,7 +187,7 @@ class ProjectTests(unittest.TestCase):
     def test_exporter_rejects_arbitrary_outputs_before_process_launch(self):
         project = self.preparing()
         exporter = p.BaselineExporter(project.workspace)
-        with patch.object(p.subprocess, "run") as process:
+        with patch.object(p.subprocess, "Popen") as process:
             with self.assertRaises(ValueError):
                 exporter(source_path(project), self.root / "OUTSIDE.pdf")
             process.assert_not_called()
@@ -202,16 +202,16 @@ class ProjectTests(unittest.TestCase):
             self.assertEqual(command[-2:], ["--baseline-phase", "0"])
             self.assertNotIn("--native-plan", command)
             self.assertEqual(kwargs["stdin"], p.subprocess.DEVNULL)
-            self.assertEqual(kwargs["timeout"], 240)
+            self.assertIs(kwargs["shell"], False)
             r.write_json(
                 project.workspace / "native-prepare-step-1.json",
                 {"ok": True, "phase": 0, "native": {"native_pages": 1}},
             )
-            return SimpleNamespace(returncode=0)
+            return SimpleNamespace(wait=lambda timeout: 0)
 
         with (
             patch.object(p, "frozen", return_value=True),
-            patch.object(p.subprocess, "run", side_effect=child),
+            patch.object(p.subprocess, "Popen", side_effect=child),
         ):
             exporter = p.BaselineExporter(project.workspace)
             result = exporter(
@@ -230,10 +230,10 @@ class ProjectTests(unittest.TestCase):
                 project.workspace / "native-prepare-step-1.json",
                 {"ok": True, "phase": 2, "native": {"native_pages": 1}},
             )
-            return SimpleNamespace(returncode=0)
+            return SimpleNamespace(wait=lambda timeout: 0)
 
         exporter = p.BaselineExporter(project.workspace)
-        with patch.object(p.subprocess, "run", side_effect=child):
+        with patch.object(p.subprocess, "Popen", side_effect=child):
             with self.assertRaises(ValueError):
                 exporter(
                     source_path(project),
@@ -241,6 +241,22 @@ class ProjectTests(unittest.TestCase):
                     hwpx=project.workspace / "baseline.hwpx",
                 )
         self.assertEqual(exporter.phase, 0)
+
+    def test_timed_out_prepare_worker_is_not_terminated_or_restarted(self):
+        project = self.preparing()
+        exporter = p.BaselineExporter(project.workspace)
+        baseline = project.workspace / "baseline.pdf"
+        with patch.object(p.subprocess, "Popen") as spawn:
+            child = spawn.return_value
+            child.wait.side_effect = p.subprocess.TimeoutExpired("TOY-ONLY", 240)
+            with self.assertRaisesRegex(RuntimeError, "시간이 초과"):
+                exporter(source_path(project), baseline, hwpx=project.workspace / "baseline.hwpx")
+            spawn.assert_called_once()
+            child.wait.assert_called_once_with(timeout=240)
+            child.terminate.assert_not_called()
+            child.kill.assert_not_called()
+        self.assertFalse(baseline.exists())
+        self.assertTrue((project.workspace / "preparing.json").is_file())
 
     @patch.object(native, "owned_session", new=fake_owned_session)
     def test_native_worker_opens_only_verified_copy_and_fixed_new_exports(self):
