@@ -1,7 +1,7 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 
 export const REPO_URL = 'https://github.com/mud-the-developer/hwp-editor-public';
-export const LATEST_TAG = 'v1.0.0-rc.3';
+export const LATEST_TAG = 'v1.0.0-rc.4';
 export const RELEASES_URL = `${REPO_URL}/releases`;
 
 export function baseOptions(): BaseLayoutProps {

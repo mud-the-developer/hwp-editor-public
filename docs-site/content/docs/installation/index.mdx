@@ -3,8 +3,8 @@ title: Windows 설치 및 소스 실행
 description: 공개 Windows x64 설치 ZIP 다운로드, 무결성 확인, 설치 및 소스 실행 방법
 ---
 
-<Callout type="info" title="v1.0.0-rc.3 공개 사전 릴리스">
-  [Windows x64 설치 ZIP](https://github.com/mud-the-developer/hwp-editor-public/releases/download/v1.0.0-rc.3/HWPReview-win-x64-1.0.0-rc.3.zip)과 [SHA256SUMS.txt](https://github.com/mud-the-developer/hwp-editor-public/releases/download/v1.0.0-rc.3/SHA256SUMS.txt)를 같은 릴리스에서 받으세요. 이 EXE는 서명되지 않았으며 실제 한글 시험은 한 PC의 무서명 합성 문서에 한합니다. [검증 범위](/docs/developer/licensing-and-boundaries)
+<Callout type="info" title="v1.0.0-rc.4 공개 사전 릴리스">
+  [Windows x64 설치 ZIP](https://github.com/mud-the-developer/hwp-editor-public/releases/download/v1.0.0-rc.4/HWPReview-win-x64-1.0.0-rc.4.zip)과 [SHA256SUMS.txt](https://github.com/mud-the-developer/hwp-editor-public/releases/download/v1.0.0-rc.4/SHA256SUMS.txt)를 같은 릴리스에서 받으세요. `rc.4`는 사용자 `.bun`을 사용하지 않고 앱 전용 Bun·OMP만 실행합니다. 이 EXE는 서명되지 않았습니다. [검증 범위](/docs/developer/licensing-and-boundaries)
 </Callout>
 
 ## 소스에서 실행
@@ -28,13 +28,13 @@ cd hwp-editor-public
 
 ## 릴리스에서 받을 파일
 
-아래 파일은 [공개 사전 릴리스 v1.0.0-rc.3](https://github.com/mud-the-developer/hwp-editor-public/releases/tag/v1.0.0-rc.3)에 함께 있습니다. 설치하려면 첫 번째 ZIP과 체크섬을 받으세요. 빌드·수정에 필요한 소스는 따로 받으면 됩니다.
+아래 파일은 [공개 사전 릴리스 v1.0.0-rc.4](https://github.com/mud-the-developer/hwp-editor-public/releases/tag/v1.0.0-rc.4)에 함께 있습니다. 설치하려면 첫 번째 ZIP과 체크섬을 받으세요. 빌드·수정에 필요한 소스는 따로 받으면 됩니다.
 
 | 파일명 | 용도 |
 | --- | --- |
-| `HWPReview-win-x64-1.0.0-rc.3.zip` | Windows x64 설치 키트: 앱, 설치·점검·제거 스크립트, 고지 |
-| `HWPReview-source-1.0.0-rc.3.zip` | 이 버전의 정확한 앱 빌드 입력 |
-| `HWPReview-corresponding-source-1.0.0-rc.3.zip` | 앱 빌드 입력, 상류 소스·출처 자료, 빌드 안내 |
+| `HWPReview-win-x64-1.0.0-rc.4.zip` | Windows x64 설치 키트: 앱, 설치·점검·제거 스크립트, 고지 |
+| `HWPReview-source-1.0.0-rc.4.zip` | 이 버전의 정확한 앱 빌드 입력 |
+| `HWPReview-corresponding-source-1.0.0-rc.4.zip` | 앱 빌드 입력, 상류 소스·출처 자료, 빌드 안내 |
 | `SHA256SUMS.txt` | 같은 릴리스에서 배포한 파일들의 SHA-256 체크섬 |
 
 GitHub가 자동 생성하는 `Source code` ZIP은 설치 키트도, 해당 바이너리의 대응 소스 묶음도 아닙니다.
@@ -48,7 +48,7 @@ GitHub가 자동 생성하는 `Source code` ZIP은 설치 키트도, 해당 바�
     같은 릴리스에서 Windows ZIP과 `SHA256SUMS.txt`를 내려받습니다. ZIP을 저장한 폴더에서 PowerShell을 열어 SHA-256을 계산하세요.
 
     ```powershell
-    Get-FileHash '.\HWPReview-win-x64-1.0.0-rc.3.zip' -Algorithm SHA256
+    Get-FileHash '.\HWPReview-win-x64-1.0.0-rc.4.zip' -Algorithm SHA256
     ```
 
     내려받은 `SHA256SUMS.txt`에서 파일명이 같은 줄을 찾아 출력의 `Hash`와 정확히 일치하는지 확인하세요(대소문자 무관). 소스 ZIP도 내려받았다면 명령의 파일명을 바꿔 각각 비교하세요.
@@ -130,6 +130,7 @@ GitHub가 자동 생성하는 `Source code` ZIP은 설치 키트도, 해당 바�
     현재 PC에 `.NET 10 Desktop Runtime`, `WebView2`, `Bun/OMP`, `PowerShell 7`, `D2Coding Nerd Font` 중 빠진 항목이 있으면 설치 안내가 이어집니다.
 
     - 이미 호환 버전이 설치되어 있으면 **재설치하지 않고 그대로 유지**합니다.
+    - Bun·OMP는 **앱 전용 런타임만** 재사용합니다. 앱 전용 경로가 비어 있으면 사용자 `.bun`이 있어도 새로 준비합니다. 필수 도구 준비 창에서 고지를 읽고 **약관 확인 후 필수 환경 준비**를 누르세요.
     - .NET·PowerShell 등 외부 설치기의 약관과 UAC(사용자 계정 컨트롤) 창은 표시될 때 직접 확인합니다.
     - 설치하지 않고 상태만 보려면 [`--check-requirements` CLI 점검](/docs/installation/prerequisites#필수-도구-상태-점검-및-재설치-방법)을 사용하세요. 누락 항목은 `Setup-Requirements.cmd` 또는 앱 상단 `… → 필수 도구 상태`에서 준비합니다.
 
@@ -154,7 +155,7 @@ GitHub가 자동 생성하는 `Source code` ZIP은 설치 키트도, 해당 바�
 | 경로 | 설명 |
 | --- | --- |
 | `%LOCALAPPDATA%\Programs\HWPReview` | `HWPReview.exe`와 런타임 자산, `Uninstall-HWPReview.ps1`, `Setup-Requirements.cmd` |
-| `%LOCALAPPDATA%\HWPReview\Dependencies\Bun-1.4.4-OMP-18.15.0` | 기존 `%USERPROFILE%\.bun`에 정확한 버전이 없을 때 격리 설치되는 Bun/OMP 경로 |
+| `%LOCALAPPDATA%\HWPReview\Dependencies\Bun-1.4.4-OMP-18.15.0` | HWP Editor가 설치·실행하는 유일한 Bun·OMP 런타임 경로 |
 | `%LOCALAPPDATA%\HWPReview\InstallRuns` | 설치·제거 실행 로그 및 결과 JSON |
 | `%LOCALAPPDATA%\HwpReview\SetupRuns` | 필수 외부 도구 점검·설치 실행 로그 |
 | `<작업폴더>\.hwpreview\` | 문서별 최초 불변 원본 백업(`originals/`) 및 체크포인트 이력(`history/`) |

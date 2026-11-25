@@ -11,7 +11,7 @@ HWP Editor는 경량 라이프사이클 브릿지(`OmpSessionBridge`)를 통해 
 
 - **시작**: 상단 바의 **`OMP 시작`** 또는 **`… → OMP 시작 / 다시 시작`**
   - 작업 폴더가 현재 작업 디렉터리(`cwd`)로 지정되어 실행됩니다.
-  - 기존 `%USERPROFILE%\.bun` 또는 격리 설치 경로(`%LOCALAPPDATA%\HWPReview\Dependencies\Bun-1.4.4-OMP-18.15.0`)의 OMP를 자동 탐지합니다.
+  - `%LOCALAPPDATA%\HWPReview\Dependencies\Bun-1.4.4-OMP-18.15.0`의 검증된 앱 전용 OMP만 실행합니다. 사용자 `%USERPROFILE%\.bun`으로 대체하지 않습니다.
 - **중단 / 정상 종료**: 상단 바의 **`중단`** 또는 **`… → OMP 정상 종료`**
   - OMP가 유휴 상태임을 확인할 수 있어야 정상 종료와 폴더 전환을 진행합니다. 요청이 진행 중이면 먼저 완료될 때까지 기다리거나 터미널에서 중단하세요.
 - **터미널 글꼴**: `D2KodingLigature Nerd Font Propo`가 폴백 글꼴로 지정되어 한글과 OMP 상태 표시줄의 아이콘이 깨지지 않습니다.
@@ -24,7 +24,7 @@ HWP Editor는 경량 라이프사이클 브릿지(`OmpSessionBridge`)를 통해 
 
 앱은 개인 OMP 설정이나 로그인 정보를 복사하지 않고 `hwp-report` 프로필을 별도로 사용합니다. Antigravity를 쓰려면 이 프로필에 별도로 설치한 확장과 Agent Client Protocol (ACP) 런타임이 둘 다 필요합니다. 기본 설치 키트에는 포함되지 않습니다.
 
-공개 `v1.0.0-rc.3`에서 앱이 실행하는 OMP는 앱 전용 `.gemini` 폴더를 `GEMINI_HOME`으로 사용합니다. 개인 프로필의 토큰이나 설정을 복사하지 마세요. Antigravity를 사용한다면 앱 전용 프로필에서 로그인·모델 선택을 직접 진행하세요. 해당 확장이나 ACP의 호환성 및 로그인 성공을 보장하지 않습니다.
+앱이 실행하는 OMP는 앱 전용 `.gemini` 폴더를 `GEMINI_HOME`으로 사용합니다. 개인 프로필의 토큰이나 설정을 복사하지 마세요. Antigravity를 사용한다면 앱 전용 프로필에서 로그인·모델 선택을 직접 진행하세요. 해당 확장이나 ACP의 호환성 및 로그인 성공을 보장하지 않습니다.
 
 ## 문단 더블클릭으로 위치·발췌 전달
 
