@@ -1,10 +1,10 @@
 ---
 title: Windows 설치 및 소스 실행
-description: 공개 소스로 실행하는 방법, Windows 설치 후보의 상태와 패키지 검증 절차
+description: 공개 Windows x64 설치 ZIP 다운로드, 무결성 확인, 설치 및 소스 실행 방법
 ---
 
-<Callout type="warn" title="공개 설치 ZIP은 아직 게시하지 않았습니다">
-  `v1.0.0-rc.3` 후보는 한글 저장본의 재개방 검사에서 읽기 순서 변경이 감지되어 게시를 보류했습니다. 아래 **소스에서 실행**으로 시작할 수 있습니다. 후보의 검증 범위는 [라이선스 및 검증 경계](/docs/developer/licensing-and-boundaries)에 기록했습니다.
+<Callout type="info" title="v1.0.0-rc.3 공개 사전 릴리스">
+  [Windows x64 설치 ZIP](https://github.com/mud-the-developer/hwp-editor-public/releases/download/v1.0.0-rc.3/HWPReview-win-x64-1.0.0-rc.3.zip)과 [SHA256SUMS.txt](https://github.com/mud-the-developer/hwp-editor-public/releases/download/v1.0.0-rc.3/SHA256SUMS.txt)를 같은 릴리스에서 받으세요. 이 EXE는 서명되지 않았으며 실제 한글 시험은 한 PC의 무서명 합성 문서에 한합니다. [검증 범위](/docs/developer/licensing-and-boundaries)
 </Callout>
 
 ## 소스에서 실행
@@ -26,29 +26,29 @@ cd hwp-editor-public
   - 기존 OMP / AI 도구 인증 설정 및 공유 런타임
 </Callout>
 
-## 키트 게시 후 확인할 파일
+## 릴리스에서 받을 파일
 
-다음은 **향후 [공개 릴리스 목록](https://github.com/mud-the-developer/hwp-editor-public/releases)에 Windows 키트가 게시된 경우에만** 적용되는 절차입니다. 아래 `<version>`은 실제 배포 버전으로 바꾸세요.
+아래 파일은 [공개 사전 릴리스 v1.0.0-rc.3](https://github.com/mud-the-developer/hwp-editor-public/releases/tag/v1.0.0-rc.3)에 함께 있습니다. 설치하려면 첫 번째 ZIP과 체크섬을 받으세요. 빌드·수정에 필요한 소스는 따로 받으면 됩니다.
 
 | 파일명 | 용도 |
 | --- | --- |
-| `HWPReview-win-x64-<version>.zip` | Windows x64 설치 키트: 앱, 설치·점검·제거 스크립트, 고지 |
-| `HWPReview-source-<version>.zip` | 이 버전의 정확한 앱 빌드 입력 |
-| `HWPReview-corresponding-source-<version>.zip` | 앱 빌드 입력, 상류 소스·출처 자료, 빌드 안내 |
+| `HWPReview-win-x64-1.0.0-rc.3.zip` | Windows x64 설치 키트: 앱, 설치·점검·제거 스크립트, 고지 |
+| `HWPReview-source-1.0.0-rc.3.zip` | 이 버전의 정확한 앱 빌드 입력 |
+| `HWPReview-corresponding-source-1.0.0-rc.3.zip` | 앱 빌드 입력, 상류 소스·출처 자료, 빌드 안내 |
 | `SHA256SUMS.txt` | 같은 릴리스에서 배포한 파일들의 SHA-256 체크섬 |
 
 GitHub가 자동 생성하는 `Source code` ZIP은 설치 키트도, 해당 바이너리의 대응 소스 묶음도 아닙니다.
 
-## 공개 키트가 게시된 뒤의 설치 절차
+## Windows 설치 절차
 
 <Steps>
   <Step>
-    ### 설치 킷 다운로드 및 SHA-256 검증
+    ### 설치 키트 다운로드 및 SHA-256 검증
 
     같은 릴리스에서 Windows ZIP과 `SHA256SUMS.txt`를 내려받습니다. ZIP을 저장한 폴더에서 PowerShell을 열어 SHA-256을 계산하세요.
 
     ```powershell
-    Get-FileHash '.\HWPReview-win-x64-<version>.zip' -Algorithm SHA256
+    Get-FileHash '.\HWPReview-win-x64-1.0.0-rc.3.zip' -Algorithm SHA256
     ```
 
     내려받은 `SHA256SUMS.txt`에서 파일명이 같은 줄을 찾아 출력의 `Hash`와 정확히 일치하는지 확인하세요(대소문자 무관). 소스 ZIP도 내려받았다면 명령의 파일명을 바꿔 각각 비교하세요.
