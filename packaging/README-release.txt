@@ -1,4 +1,4 @@
-HWP Editor 1.0.0-rc.3 — HWPX 보고서 작성·실시간 미리보기 Windows x64 설치 안내
+HWP Editor 1.0.0-rc.4 — HWPX 보고서 작성·실시간 미리보기 Windows x64 설치 안내
 Windows Presentation Foundation (WPF) 한 창의 왼쪽 HWPX 라이브 미리보기 / 오른쪽 순수 oh-my-pi (OMP) 터미널 2패널과 기본 접힘 서랍(Ctrl+B)으로 작성합니다.
 실제 후보의 버전·EXE·소스·검증 범위는 동봉 manifest와 체크섬으로 확인하세요.
 처음 사용한다면 동봉된 사용법.txt를 먼저 읽으세요.
@@ -69,8 +69,9 @@ Windows Presentation Foundation (WPF) 한 창의 왼쪽 HWPX 라이브 미리보
 - Windows PowerShell5.1을 유지합니다. PowerShell7 MSI는 대화형이며 PATH·원격 기능·Microsoft 자동 업데이트를
   기본 해제합니다. Nerd Fonts3.5.1 D2Coding 계열의 Propo Regular/Bold만 현재 사용자 글꼴로 준비합니다.
   실제 이름은 D2KodingLigature Nerd Font Propo이며 문서·터미널의 기본 글꼴은 바꾸지 않습니다.
-- Bun/OMP는 정확한 기존 설치를 재사용하거나 앱 전용 버전별 Dependencies에 새로 준비합니다.
-  기존 ~/.bun·인증·개인 프로필·전역 PATH는 복사/덮어쓰기하지 않습니다. Lifecycle script는 실행하지 않습니다.
+- Bun/OMP는 버전별 앱 전용 Dependencies만 사용합니다. 없으면 그 경로에 새로 준비합니다.
+  사용자 ~/.bun을 재사용하지 않으며 인증·개인 프로필·전역 PATH를 복사/덮어쓰기하지 않습니다.
+  Lifecycle script는 실행하지 않습니다.
 - 외부 바이너리는 ZIP에 동봉하지 않습니다. 원문 고지/출처 수집만으로 결합 글꼴 provenance,
   전체 대응 소스 의무나 법적 재배포 적합성이 인증되지는 않습니다.
 - 환경 준비 로그는 %LOCALAPPDATA%\HwpReview\SetupRuns, 설치/제거 로그는
@@ -136,9 +137,9 @@ Windows Presentation Foundation (WPF) 한 창의 왼쪽 HWPX 라이브 미리보
 - source ZIP의 packaging/windows-dependencies.json과 packaging/omp-runtime.json을 사용합니다.
   후자는 frozen 앱의 native-ui/omp-runtime.json에 배치되며 기존21개 파일/크기/SHA256/닫힌 namespace 기준은 같습니다.
   임의 PATH의 다른 omp.exe로 우회하지 않습니다. 버전 문자열만으로 연결 가능하다고 보지 않습니다.
-- 정확한 기존 사용자 ~/.bun을 재사용하거나 %LOCALAPPDATA%\HWPReview\Dependencies의 새 버전별 root에 준비합니다.
-  사용자 전역 설치가 지원 기준과 다르면 건드리지 않고 새 앱 전용 설치를 준비합니다.
-  이미 존재하는 앱 전용 root가 변경/충돌이면 중단하며 사용자 root로 fallback/자동 수리하지 않습니다.
+- %LOCALAPPDATA%\HWPReview\Dependencies 아래 버전별 앱 전용 root만 허용합니다.
+  호환되는 사용자 ~/.bun이 있어도 사용하지 않습니다. 앱 전용 root가 없으면 같은 경로에 준비하며,
+  기존 root가 손상되거나 충돌하면 자동 복구나 다른 런타임 실행 없이 중단합니다.
 - 공식 Bun 고정 ZIP과 실제 bun.exe를 검증하고 고정 OMP를 온라인으로 준비한 뒤 전체21파일을 확인합니다.
   실패 staging·받은 파일·로그를 보존합니다. 계정·개인 프로필은 복사하지 않고 앱 전용 OMP에서 직접 로그인합니다.
 
@@ -146,7 +147,7 @@ Windows Presentation Foundation (WPF) 한 창의 왼쪽 HWPX 라이브 미리보
 정확한 소스와 라이선스
 - HWP Editor는 AGPL-3.0-only입니다. LICENSE와 licenses/ 원문 고지를 확인하세요.
   비상업 전용이 아니며 조건을 지키는 상업 배포도 가능합니다. 수정·재배포 권리를 제한하지 않습니다.
-- 동봉 HWPReview-source-1.0.0-rc.3.zip은 정확한 allowlist 입력 snapshot입니다.
+- 동봉 HWPReview-source-1.0.0-rc.4.zip은 정확한 allowlist 입력 snapshot입니다.
   SOURCE-MANIFEST.json과 동봉 체크섬의 hash를 검증하세요.
   Git 공개 태그/저장소 전체/Native proof로 간주하지 않습니다.
 - 공개 HWPReview-corresponding-source-<version>.zip에는 같은 앱 입력 ZIP, 상류 자료 20개와 출처 인덱스가 있습니다. 필요한 WebView2 SDK는 앱 ZIP에 포함되며 전체 NuGet은 출처 검증에만 사용합니다. pywin32의 AutoDuck·SWIG 사전 빌드 실행기는 전달하지 않습니다.

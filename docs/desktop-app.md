@@ -2,7 +2,7 @@
 
 ## 현재 범위와 준비
 
-`1.0.0-rc.3` 공개 소스는 Windows x64 WPF 앱입니다. 기본 화면은 왼쪽 HWPX 라이브 미리보기와 오른쪽 ConPTY·xterm·WebView2 기반 OMP 터미널입니다. `Ctrl+B`로 작업 문서와 체크포인트 서랍을 엽니다. 기존 `.hwp` 검토는 별도 데스크톱 창에서 진행합니다. [현재 상태](status.md)는 실제 검증과 소스 기능을 구분합니다.
+`1.0.0-rc.4` 공개 소스는 Windows x64 WPF 앱입니다. 기본 화면은 왼쪽 HWPX 라이브 미리보기와 오른쪽 ConPTY·xterm·WebView2 기반 OMP 터미널입니다. `Ctrl+B`로 작업 문서와 체크포인트 서랍을 엽니다. 기존 `.hwp` 검토는 별도 데스크톱 창에서 진행합니다. [현재 상태](status.md)는 실제 검증과 소스 기능을 구분합니다.
 
 필수 환경은 **.NET 10 Desktop Runtime x64, WebView2 Runtime, Bun 1.4.4/OMP 18.15.0, PowerShell 7.6.9, Nerd Fonts 3.5.1의 D2KodingLigature Nerd Font Propo**입니다. Python은 EXE에 포함됩니다. 일반 .NET Runtime은 Desktop Runtime을 대신하지 않습니다.
 
@@ -28,7 +28,7 @@ WebView2 **SDK 1.0.4314.35**의 고정 Core/Wpf assembly·x64 Loader 3개와 LIC
 
 - .NET: 기존 호환 10.0.x 유지, 누락 시 고정 10.0.14 설치기. 잘못된 명시적 DOTNET_ROOT 설정은 다른 설치로 숨기지 않고 중단합니다.
 - WebView2: 기존 등록 또는 고정 156.0.4314.58 Evergreen 설치기. Microsoft 공유 Updater 때문에 항상 사용자 전용 설치라고 약속하지 않습니다.
-- Bun/OMP: 고정 공식 Bun 일반 x64와 npm 입력을 격리 준비하고 실제 실행기·routing·Bun·native 코드 21개 파일을 검증합니다. lifecycle script·OMP·모델을 실행하지 않습니다. 개인 설치·인증·전역 PATH는 바꾸지 않으며 충돌한 앱 root를 자동 수리하지 않습니다.
+- Bun/OMP: 현재 소스는 `%LOCALAPPDATA%\HWPReview\Dependencies`의 버전별 앱 전용 설치만 인정합니다. 없으면 고정 공식 Bun 일반 x64와 npm 입력을 격리 준비하고 실제 실행기·routing·Bun·native 코드 21개 파일을 검증합니다. 설치 중 lifecycle script·OMP·모델을 실행하지 않습니다. 사용자 `.bun`을 사용하지 않고 인증과 전역 PATH도 바꾸지 않으며, 손상된 앱 전용 설치는 보존해 중단합니다. 이 변경은 게시된 `rc.3` 패키지에 소급 적용되지 않습니다.
 - PowerShell 7.6.9: 크기·SHA256·Microsoft 서명 검사 후 대화형 MSI를 사용합니다. UAC는 직접 확인하고 자동 재부팅하지 않습니다. Windows PowerShell 5.1은 유지합니다.
 - Propo: 고정 Regular/Bold 두 파일을 사용자 Fonts·현재 사용자 등록에만 설치하며 기존 파일·등록은 보존합니다. 문서 글꼴이나 터미널 기본 글꼴을 바꾸지 않습니다.
 - 한글 자동화 보안모듈: 호환되는 32비트 한글이 설치된 경우에만 준비합니다. [한컴 공식 안내](https://developer.hancom.com/hwpautomation)가 연결한 저장소의 고정 커밋 ZIP을 HTTPS로 받고 크기·SHA256·DLL 해시·32비트 형식을 확인한 뒤, 명시적 동의를 받아 사용자 로컬 경로와 현재 사용자 레지스트리(HKEY_CURRENT_USER, HKCU)에 등록합니다. 기존 정상 등록은 다운로드 없이 유지하고 손상·충돌은 보존해 중단합니다. 문서 작업기는 등록 상태만 확인하며 설치·수리하지 않습니다.

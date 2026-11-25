@@ -1,7 +1,6 @@
 """Missing-only external runtime preparation; imports and status checks never install."""
 from contextlib import ExitStack
 import os
-from pathlib import Path
 import re
 import stat
 import subprocess
@@ -81,21 +80,17 @@ def component_status(component):
         return _webview_status()
     if identifier != "omp_runtime":
         raise ValueError("지원하지 않는 필수 런타임입니다.")
-    setup, omp = _setup(), _omp()
-    home = setup._local_app_data() / "HWPReview/NativeOmp/home"
+    omp = _omp()
     managed = omp.managed_runtime_root()
-    if os.path.lexists(managed):
-        # A partial/corrupt managed install is evidence, not a repair/fallback cue.
-        omp._runtime(managed / "bin/omp.exe", home)
-        return {"installed": True, "detail": "앱 전용 Bun 1.4.4 / OMP 18.15.0의 정확한 21개 런타임 파일을 확인했습니다. 기존 로그인은 유지합니다."}
-    existing = Path.home() / ".bun/bin/omp.exe"
-    if os.path.lexists(existing):
-        try:
-            omp._runtime(omp._unlinked(existing), home)
-        except (OSError, ValueError):
-            return {"installed": False, "detail": "기존 사용자 Bun/OMP는 고정 기준과 달라 그대로 둡니다. 별도 앱 전용 경로에 검증한 런타임을 준비합니다."}
-        return {"installed": True, "detail": "기존 사용자 Bun 1.4.4 / OMP 18.15.0의 정확한 런타임을 확인했습니다. 업그레이드·인증 복사를 하지 않습니다."}
-    return {"installed": False, "detail": "Bun 1.4.4 / OMP 18.15.0이 없습니다. 사용자 .bun·PATH·인증과 분리한 앱 전용 경로에 준비합니다."}
+    if not os.path.lexists(managed):
+        return {
+            "installed": False,
+            "detail": "앱 전용 Bun 1.4.4 / OMP 18.15.0이 없습니다. 사용자 .bun 대신 앱 전용 경로에 준비합니다.",
+        }
+    # A partial/corrupt managed install is evidence, not a repair cue.
+    home = _setup()._local_app_data() / "HWPReview/NativeOmp/home"
+    omp._runtime(managed / "bin/omp.exe", home)
+    return {"installed": True, "detail": "앱 전용 Bun 1.4.4 / OMP 18.15.0의 정확한 21개 런타임 파일을 확인했습니다. 기존 로그인은 유지합니다."}
 
 
 def _run_microsoft_exe(component, payload, run, record):

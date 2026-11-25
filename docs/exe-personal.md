@@ -1,6 +1,6 @@
 # Windows EXE 제작 안내
 
-현재 소스 제작 버전은 `1.0.0-rc.3`입니다. 공개 저장소는 <https://github.com/mud-the-developer/hwp-editor-public>입니다. 이 파일명은 기존 문서 주소를 유지한 것이며 개인용·무상 배포가 라이선스 의무를 면제한다는 뜻은 아닙니다.
+현재 소스 제작 버전은 `1.0.0-rc.4`입니다. 공개 저장소는 <https://github.com/mud-the-developer/hwp-editor-public>입니다. 이 파일명은 기존 문서 주소를 유지한 것이며 개인용·무상 배포가 라이선스 의무를 면제한다는 뜻은 아닙니다.
 
 ## 실행 환경
 

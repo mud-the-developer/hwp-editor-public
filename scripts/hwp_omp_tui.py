@@ -393,24 +393,16 @@ def managed_runtime_root():
                      / f"Bun-{BUN_VERSION}-OMP-{VERSION}")
 
 
-def installed_executable():
-    """Prefer an existing managed root; its errors never fall back to user code."""
-    managed = managed_runtime_root()
-    if os.path.lexists(managed):
-        return _unlinked(managed / "bin/omp.exe")
-    return _unlinked(Path.home() / ".bun/bin/omp.exe")
-
-
 class OmpTui:
     """At most one prepared descriptor. Release never kills or removes anything."""
-    def __init__(self, source_identity, *, root=None, executable=None):
+    def __init__(self, source_identity, *, root=None):
         if root is None:
             location = os.environ.get("LOCALAPPDATA")
             if not location:
                 raise ValueError("OMP 전용 앱 저장 위치를 확인할 수 없습니다.")
             root = Path(location) / "HWPReview" / "NativeOmp"
         self.root = _unlinked(root)
-        self.executable = _unlinked(executable) if executable is not None else installed_executable()
+        self.executable = _unlinked(managed_runtime_root() / "bin/omp.exe")
         self.source_identity = deepcopy(source_identity)
         self.launch = None
         self.runtime_sha256 = None

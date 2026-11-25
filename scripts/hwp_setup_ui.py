@@ -88,7 +88,7 @@ class SetupWindow:
             "d2coding_propo": "Propo Regular/Bold만 사용자 계정에 설치 · 실제 이름: D2KodingLigature Nerd Font Propo · 터미널/보고서 기본 글꼴은 유지",
             "dotnet10": "기존 호환 .NET 10 Desktop x64 유지 · Microsoft 설치기는 관리자 UAC 확인 필요 · 자동 재부팅 없음",
             "webview2": "Microsoft Runtime 약관 · 기본 SmartScreen의 Microsoft 정보 전송 및 Evergreen 자동 업데이트 안내 · 기존 공유 Runtime 유지",
-            "omp_runtime": "검증한 Bun/OMP를 별도 앱 경로에 준비 · 기존 .bun·인증·전역 PATH 유지 · 패키지 설치 스크립트 미실행",
+            "omp_runtime": "검증한 Bun/OMP를 앱 전용 경로에만 준비 · 사용자 .bun 미사용 · 기존 인증·전역 PATH 유지 · 패키지 설치 스크립트 미실행",
             "hwp_security": "공식 한컴 x86 모듈 · 한글의 파일 접근 확인 생략 · 명시적 동의 후 현재 사용자에게만 등록 · 기존 정상 등록 유지",
         }
         for index, identifier in enumerate(setup.COMPONENT_IDS):

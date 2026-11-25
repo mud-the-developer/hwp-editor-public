@@ -3,6 +3,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import shutil
 import sys
 import tempfile
 import unittest
@@ -10,6 +11,8 @@ from unittest.mock import PropertyMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import hwp_omp_tui as omp
+import hwp_setup as setup
+import hwp_setup_runtime as setup_runtime
 
 
 class NativeOmpTests(unittest.TestCase):
@@ -17,7 +20,10 @@ class NativeOmpTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name).resolve()
-        self.bun = self.root / "bun"
+        app_data = patch.object(setup, "_local_app_data", return_value=self.root / "local")
+        app_data.start()
+        self.addCleanup(app_data.stop)
+        self.bun = omp.managed_runtime_root()
         self.exe = self.bun / "bin/omp.exe"
         self.manifest = self.root / "omp-runtime.json"
         metadata = {
@@ -57,7 +63,7 @@ class NativeOmpTests(unittest.TestCase):
         deny = patch("subprocess.Popen", side_effect=AssertionError("No process/model startup"))
         deny.start()
         self.addCleanup(deny.stop)
-        self.helper = omp.OmpTui({"synthetic": True}, root=self.root / "owned", executable=self.exe)
+        self.helper = omp.OmpTui({"synthetic": True}, root=self.root / "owned")
 
     def rebaseline(self):
         """Test-only reviewed fixture; never accept installed bytes in production."""
@@ -95,7 +101,8 @@ class NativeOmpTests(unittest.TestCase):
         auth.parent.mkdir()
         auth.write_bytes(b"SYNTHETIC USER AUTH; NEVER COPY")
         private = self.root / "managed-owned"
-        with patch.object(omp, "managed_runtime_root", return_value=self.bun), patch.object(Path, "home", return_value=user):
+        with patch.object(Path, "home", return_value=user):
+            self.assertTrue(setup_runtime.component_status({"id": "omp_runtime"})["installed"])
             helper = omp.OmpTui({"synthetic": True}, root=private)
             launch = helper.prepare()
         self.assertEqual(Path(launch["runtime"]["bun_root"]), self.bun)
@@ -129,26 +136,54 @@ class NativeOmpTests(unittest.TestCase):
         damaged = self.bun / "bin/bun.exe"
         damaged.write_bytes(b"CORRUPT MANAGED RUNTIME")
         private = self.root / "managed-invalid"
-        with patch.object(omp, "managed_runtime_root", return_value=self.bun), patch.object(Path, "home", side_effect=AssertionError("No fallback after managed admission failure")):
+        with patch.object(Path, "home", side_effect=AssertionError("No user runtime lookup")):
+            with self.assertRaisesRegex(ValueError, "runtime file"):
+                setup_runtime.component_status({"id": "omp_runtime"})
             helper = omp.OmpTui({"synthetic": True}, root=private)
             with self.assertRaises(ValueError):
                 helper.prepare()
         self.assertEqual(damaged.read_bytes(), b"CORRUPT MANAGED RUNTIME")
         self.assertFalse((private / "launches").exists())
 
-    def test_absent_managed_runtime_reuses_valid_existing_user_installation(self):
+    def test_user_bun_alone_is_missing_and_setup_publishes_only_the_app_runtime(self):
+        run = self.root / "setup-run"
+        stage = run / "omp-runtime"
+        shutil.copytree(self.bun, stage)
         user = self.root / "global-user"
         user.mkdir()
         global_root = user / ".bun"
         self.bun.rename(global_root)
-        managed = self.root / "not-installed-managed"
-        with patch.object(omp, "managed_runtime_root", return_value=managed), patch.object(Path, "home", return_value=user):
-            helper = omp.OmpTui({"synthetic": True}, root=self.root / "global-owned")
-            launch = helper.prepare()
-        self.assertEqual(Path(launch["runtime"]["bun_root"]), global_root)
-        self.assertFalse(managed.exists())
-        self.assertTrue((global_root / omp.ADDON_RELATIVE).is_file())
-        helper.release(launch["launch_id"])
+        global_files = {
+            p.relative_to(global_root): p.read_bytes()
+            for p in global_root.rglob("*") if p.is_file()
+        }
+        private = self.root / "owned"
+        component = {"id": "omp_runtime"}
+        with patch.object(Path, "home", return_value=user):
+            self.assertFalse(setup_runtime.component_status(component)["installed"])
+            with self.assertRaises(FileNotFoundError):
+                self.helper.prepare()
+            self.assertFalse(private.exists())
+            self.assertFalse(self.bun.exists())
+
+            # Only the downloader/package process is substituted. Publication
+            # and both runtime admissions use the exact synthetic tree.
+            with patch.object(setup_runtime, "_stage_bun_omp", return_value=stage):
+                setup_runtime.install_component(component, {}, run, {})
+            self.assertTrue(setup_runtime.component_status(component)["installed"])
+            launch = self.helper.prepare()
+        self.assertEqual(Path(launch["executable"]), self.exe)
+        self.assertEqual(Path(launch["environment"]["BUN_INSTALL"]), self.bun)
+        self.assertEqual(
+            Path(launch["environment"]["BUN_INSTALL_GLOBAL_DIR"]),
+            self.bun / "install/global",
+        )
+        self.assertEqual(
+            {p.relative_to(global_root): p.read_bytes()
+             for p in global_root.rglob("*") if p.is_file()},
+            global_files,
+        )
+        self.helper.release(launch["launch_id"])
 
     def test_selected_workspace_is_actual_cwd_with_only_project_guidance_added(self):
         workspace = self.root / "selected"
@@ -550,8 +585,11 @@ class NativeOmpTests(unittest.TestCase):
         path.write_bytes(original)
         alias = self.root / "linked-bun"
         alias.symlink_to(self.bun, target_is_directory=True)
-        with self.assertRaises(ValueError):
-            omp.OmpTui({}, root=self.root / "other-owned", executable=alias / "bin/omp.exe")
+        with (
+            patch.object(omp, "managed_runtime_root", return_value=alias),
+            self.assertRaises(ValueError),
+        ):
+            omp.OmpTui({}, root=self.root / "other-owned")
 
     
 
@@ -572,7 +610,7 @@ class NativeOmpTests(unittest.TestCase):
         except OSError as error:
             self.skipTest("Symlink unavailable: " + str(error))
         with self.assertRaises(ValueError):
-            omp.OmpTui({}, root=linked, executable=self.exe)
+            omp.OmpTui({}, root=linked)
 
     def test_native_protocol_is_closed_and_release_does_not_wait_for_report_compile(self):
         import hwp_native_host as native

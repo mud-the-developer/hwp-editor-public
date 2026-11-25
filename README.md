@@ -15,11 +15,13 @@ OMP는 기본 도구와 셸을 사용자 계정 권한으로 실행합니다. �
 
 ## 실행과 개발
 
-공개판 제작 버전은 `1.0.0-rc.3`입니다. [GitHub Releases](https://github.com/mud-the-developer/hwp-editor-public/releases)에서 공개된 키트와 같은 버전의 대응 소스를 확인하세요. 다른 소스의 EXE는 이 공개판 빌드가 아니며 사전 릴리스는 정식 배포·코드 서명·다른 PC 검증을 뜻하지 않습니다.
+공개판 제작 버전은 `1.0.0-rc.4`입니다. [GitHub Releases](https://github.com/mud-the-developer/hwp-editor-public/releases)에서 공개된 키트와 같은 버전의 대응 소스를 확인하세요. 다른 소스의 EXE는 이 공개판 빌드가 아니며 사전 릴리스는 정식 배포·코드 서명·다른 PC 검증을 뜻하지 않습니다.
 
 공개 Windows 키트는 **Microsoft Visual C++ v14 x64 런타임(14.51.36247.0 이상)**을 동봉하지 않습니다. 없거나 오래된 경우 [Microsoft 공식 배포처](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)에서 x64를 먼저 설치한 뒤 `Install-HWPReview.cmd`를 실행하세요.
 
-Windows x64 패키지는 Python을 포함합니다. 외부 **.NET 10 Desktop Runtime x64, WebView2 Runtime, Bun 1.4.4/OMP 18.15.0, PowerShell 7, Propo 글꼴**은 호환 설치를 유지하고 누락분만 필수 도구 준비 창에서 확인·설치합니다. 약관·UAC·로그인은 사람이 직접 처리합니다. 한글 본체·계정·개발 SDK는 설치하지 않습니다.
+Windows x64 패키지는 Python을 포함합니다. 외부 **.NET 10 Desktop Runtime x64, WebView2 Runtime, PowerShell 7, Propo 글꼴**은 호환 설치를 유지하고 누락분만 필수 도구 준비 창에서 확인·설치합니다. 약관·UAC·로그인은 사람이 직접 처리합니다. 한글 본체·계정·개발 SDK는 설치하지 않습니다.
+
+이 소스로 빌드한 앱은 `%LOCALAPPDATA%\HWPReview\Dependencies\Bun-1.4.4-OMP-18.15.0`의 Bun·OMP만 사용합니다. 없으면 필수 도구 준비를 통해 그 경로에만 설치하며, 사용자 `.bun`은 재사용하거나 변경하지 않습니다. 이미 게시된 `rc.3` 설치 ZIP에는 이 변경이 반영되지 않았습니다.
 
 호환되는 32비트 한글이 있으면 **한글 자동화 보안모듈**도 같은 준비 과정에 연결합니다. 파일 접근 확인 생략과 이용 조건을 확인하고 동의하면 [한컴 공식 안내](https://developer.hancom.com/hwpautomation)가 제공하는 고정 HTTPS ZIP을 검증해 현재 사용자에게만 등록합니다. 기존 정상 등록은 유지하고 불일치·손상은 덮어쓰지 않습니다. 한글이 없거나 비호환이면 모듈은 준비하지 않으며 HWPX 기능은 계속 사용할 수 있습니다. 상업적 한글 자동화 연동에는 별도 한컴 승인·라이선스가 필요합니다.
 
