@@ -1,0 +1,168 @@
+---
+title: Windows 설치 및 소스 실행
+description: 공개 소스로 실행하는 방법, Windows 설치 후보의 상태와 패키지 검증 절차
+---
+
+<Callout type="warn" title="공개 설치 ZIP은 아직 게시하지 않았습니다">
+  `v1.0.0-rc.3` 후보는 한글 저장본의 재개방 검사에서 읽기 순서 변경이 감지되어 게시를 보류했습니다. 아래 **소스에서 실행**으로 시작할 수 있습니다. 후보의 검증 범위는 [라이선스 및 검증 경계](/docs/developer/licensing-and-boundaries)에 기록했습니다.
+</Callout>
+
+## 소스에서 실행
+
+Windows x64에 Git과 [Python 3.11 이상](https://www.python.org/downloads/windows/)을 설치한 뒤 PowerShell에서 실행합니다.
+
+```powershell
+git clone https://github.com/mud-the-developer/hwp-editor-public.git
+cd hwp-editor-public
+.\start-desktop.cmd
+```
+
+`start-desktop.cmd`는 `.venv`와 소스 UI가 없을 때만 준비합니다. 처음에는 고정 의존성과 .NET 개발 도구를 받기 위해 네트워크가 필요할 수 있습니다. 약관·관리자 승인·OMP 로그인은 직접 확인하세요. 앱이 열리면 [빠른 시작](/docs/guide/quick-start)에서 작업 폴더를 여는 방법을 확인할 수 있습니다.
+
+<Callout type="info" title="설치기가 절대 건드리지 않는 항목">
+  - 기존 `.hwpx` / `.hwp` 기본 연결 프로그램(한글 등)
+  - 시스템 전역 `PATH` 환경 변수
+  - 사용자의 기존 한글 문서 및 작업 폴더
+  - 기존 OMP / AI 도구 인증 설정 및 공유 런타임
+</Callout>
+
+## 키트 게시 후 확인할 파일
+
+다음은 **향후 [공개 릴리스 목록](https://github.com/mud-the-developer/hwp-editor-public/releases)에 Windows 키트가 게시된 경우에만** 적용되는 절차입니다. 아래 `<version>`은 실제 배포 버전으로 바꾸세요.
+
+| 파일명 | 용도 |
+| --- | --- |
+| `HWPReview-win-x64-<version>.zip` | Windows x64 설치 키트: 앱, 설치·점검·제거 스크립트, 고지 |
+| `HWPReview-source-<version>.zip` | 이 버전의 정확한 앱 빌드 입력 |
+| `HWPReview-corresponding-source-<version>.zip` | 앱 빌드 입력, 상류 소스·출처 자료, 빌드 안내 |
+| `SHA256SUMS.txt` | 같은 릴리스에서 배포한 파일들의 SHA-256 체크섬 |
+
+GitHub가 자동 생성하는 `Source code` ZIP은 설치 키트도, 해당 바이너리의 대응 소스 묶음도 아닙니다.
+
+## 공개 키트가 게시된 뒤의 설치 절차
+
+<Steps>
+  <Step>
+    ### 설치 킷 다운로드 및 SHA-256 검증
+
+    같은 릴리스에서 Windows ZIP과 `SHA256SUMS.txt`를 내려받습니다. ZIP을 저장한 폴더에서 PowerShell을 열어 SHA-256을 계산하세요.
+
+    ```powershell
+    Get-FileHash '.\HWPReview-win-x64-<version>.zip' -Algorithm SHA256
+    ```
+
+    내려받은 `SHA256SUMS.txt`에서 파일명이 같은 줄을 찾아 출력의 `Hash`와 정확히 일치하는지 확인하세요(대소문자 무관). 소스 ZIP도 내려받았다면 명령의 파일명을 바꿔 각각 비교하세요.
+
+    체크섬은 파일 일치 여부만 확인합니다. 코드 서명 여부와 배포처도 별도로 확인하고, 출처가 불명확하거나 해시가 다르면 실행하지 마세요.
+  </Step>
+
+  <Step>
+    ### Microsoft Visual C++ v14 런타임 먼저 설치
+
+    앱이나 설치기를 실행하기 전에 Microsoft Visual C++ v14 재배포 가능 패키지 **x64 `14.51.36247.0` 이상**을 준비하세요. 이미 조건을 충족하면 다시 설치하지 않아도 됩니다. 없거나 버전이 낮으면 [Microsoft 공식 x64 설치기(`vc_redist.x64.exe`)](https://aka.ms/vc14/vc_redist.x64.exe)를 사용자가 직접 내려받아 실행하세요. 자세한 내용은 [Microsoft 공식 안내](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)를 참고하세요.
+
+    이 런타임의 DLL과 설치기는 ZIP에 포함되지 않습니다. HWP Editor 설치기와 필수 도구 준비 창은 이 런타임을 자동으로 다운로드하거나 설치하지 않습니다.
+  </Step>
+
+  <Step>
+    ### 임시 폴더에 압축 해제
+
+    실제로 다운로드한 키트의 ZIP을 새 로컬 폴더에 모두 풉니다.
+
+    <Callout type="warn" title="ZIP 내부에서 바로 실행하지 마세요">
+      Windows 탐색기에서 압축을 풀지 않고 ZIP 안의 `Install-HWPReview.cmd`를 더블클릭하면 동반 스크립트와 앱 파일을 찾지 못해 설치가 실패합니다. 반드시 **모두 압축 풀기** 후 실행하세요.
+    </Callout>
+
+    압축을 풀면 아래와 같은 구성이 나타납니다.
+
+    <Files>
+      <Folder name="HWPReview-win-x64" defaultOpen>
+        <File name="Install-HWPReview.cmd" />
+        <File name="Install-HWPReview.ps1" />
+        <File name="Uninstall-HWPReview.ps1" />
+        <File name="Setup-Requirements.cmd" />
+        <File name="README.txt" />
+        <File name="사용법.txt" />
+        <File name="AI-INSTALL.md" />
+        <File name="LICENSE" />
+        <File name="HWPReview.exe" />
+        <File name="INSTALL-MANIFEST.json" />
+        <File name="BUILD.json" />
+        <File name="HWPReview-source-<version>.zip" />
+        <File name="SHA256SUMS.txt" />
+        <Folder name="licenses" />
+      </Folder>
+    </Files>
+
+    ZIP 안의 `SHA256SUMS.txt`는 압축을 푼 키트의 구성 파일용입니다. Windows ZIP 자체는 앞 단계에서 같은 릴리스에 별도 첨부된 `SHA256SUMS.txt`와 비교합니다.
+  </Step>
+
+  <Step>
+    ### `Install-HWPReview.cmd` 실행
+
+    압축을 푼 폴더에서 **`Install-HWPReview.cmd`**를 더블클릭하거나 PowerShell에서 실행합니다.
+
+    <Tabs items={['탐색기 더블클릭', 'PowerShell 명령']}>
+      <Tab value="탐색기 더블클릭">
+        `Install-HWPReview.cmd`를 더블클릭하면 현재 사용자용 설치가 시작됩니다. SmartScreen 또는 조직 보안 정책이 실행을 차단하면 보호 기능을 끄지 말고 출처를 확인하거나 관리자에게 문의하세요.
+      </Tab>
+      <Tab value="PowerShell 명령">
+        ```powershell
+        .\Install-HWPReview.cmd
+        ```
+        설치 전에 압축을 푼 키트의 무결성과 대상 경로의 충돌만 확인하려면 아래 명령을 먼저 실행하세요. 이 확인은 EXE를 실행하거나 필수 도구의 설치 여부를 검사하지 않습니다.
+        ```powershell
+        powershell -NoProfile -ExecutionPolicy Bypass -File .\Install-HWPReview.ps1 -Operation Check
+        ```
+      </Tab>
+    </Tabs>
+
+    설치가 수행하는 작업:
+    1. 키트의 목록과 해시, 대상 경로의 충돌 여부를 확인합니다.
+    2. 처음 설치할 때는 검증한 `HWPReview.exe`로 필수 도구를 점검하고 누락 항목만 준비합니다.
+    3. 필수 항목이 준비되면 `%LOCALAPPDATA%\Programs\HWPReview`에 파일을 복사합니다.
+    4. 현재 사용자용 시작 메뉴 **HWP Editor** 바로가기, Windows 제거 항목, 소유권 영수증을 만듭니다.
+  </Step>
+
+  <Step>
+    ### 필수 외부 도구 5종 설치 확인
+
+    현재 PC에 `.NET 10 Desktop Runtime`, `WebView2`, `Bun/OMP`, `PowerShell 7`, `D2Coding Nerd Font` 중 빠진 항목이 있으면 설치 안내가 이어집니다.
+
+    - 이미 호환 버전이 설치되어 있으면 **재설치하지 않고 그대로 유지**합니다.
+    - .NET·PowerShell 등 외부 설치기의 약관과 UAC(사용자 계정 컨트롤) 창은 표시될 때 직접 확인합니다.
+    - 설치하지 않고 상태만 보려면 [`--check-requirements` CLI 점검](/docs/installation/prerequisites#필수-도구-상태-점검-및-재설치-방법)을 사용하세요. 누락 항목은 `Setup-Requirements.cmd` 또는 앱 상단 `… → 필수 도구 상태`에서 준비합니다.
+
+    호환되는 x86 한글이 설치된 경우에만 별도의 한글 자동화 보안모듈 안내가 표시될 수 있습니다. 준비 방식과 이용 조건은 [필수 외부 도구 5종](/docs/installation/prerequisites)에서 확인하세요.
+  </Step>
+
+  <Step>
+    ### 첫 실행 확인
+
+    설치가 끝나면 시작 메뉴에서 **HWP Editor**를 검색해 실행하거나 아래 경로의 실행 파일을 직접 여세요.
+
+    ```text
+    %LOCALAPPDATA%\Programs\HWPReview\HWPReview.exe
+    ```
+
+    창이 열리면 왼쪽에 HWPX 미리보기 안내, 오른쪽에 OMP 터미널 패널이 표시됩니다. 이제 [5분 빠른 시작](/docs/guide/quick-start)으로 넘어가 작업 폴더를 열어보세요.
+  </Step>
+</Steps>
+
+## 설치 후 폴더 및 데이터 위치
+
+| 경로 | 설명 |
+| --- | --- |
+| `%LOCALAPPDATA%\Programs\HWPReview` | `HWPReview.exe`와 런타임 자산, `Uninstall-HWPReview.ps1`, `Setup-Requirements.cmd` |
+| `%LOCALAPPDATA%\HWPReview\Dependencies\Bun-1.4.4-OMP-18.15.0` | 기존 `%USERPROFILE%\.bun`에 정확한 버전이 없을 때 격리 설치되는 Bun/OMP 경로 |
+| `%LOCALAPPDATA%\HWPReview\InstallRuns` | 설치·제거 실행 로그 및 결과 JSON |
+| `%LOCALAPPDATA%\HwpReview\SetupRuns` | 필수 외부 도구 점검·설치 실행 로그 |
+| `<작업폴더>\.hwpreview\` | 문서별 최초 불변 원본 백업(`originals/`) 및 체크포인트 이력(`history/`) |
+
+## 새 버전으로 업데이트하기
+
+설치기는 **다른 버전을 기존 설치 위에 덮어쓰지 않습니다.** 동일 키트가 정확히 설치돼 있으면 `already_installed`, 다른 버전이나 충돌이면 종료 코드 `3`으로 끝납니다.
+
+1. HWP Editor와 앱 안의 OMP 세션을 정상 종료합니다.
+2. 문서와 `.hwpreview` 백업을 확인한 뒤 [기존 버전을 제거](/docs/installation/uninstall)합니다. 변경 파일이나 충돌이 남으면 강제로 지우지 말고 제거 결과를 확인합니다.
+3. 새 버전의 ZIP을 새 로컬 폴더에 풀고 위의 해시 확인 및 설치 절차를 따릅니다. 정상 제거는 작업 문서와 `.hwpreview` 이력을 삭제하지 않습니다.

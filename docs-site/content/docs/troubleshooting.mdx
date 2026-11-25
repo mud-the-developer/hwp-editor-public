@@ -1,0 +1,94 @@
+---
+title: 문제 해결 & FAQ
+description: 설치 오류, 종료 코드, 실시간 미리보기 미갱신, OMP 터미널 시작 실패, 폰트 깨짐 등 자주 발생하는 문제 해결 방법
+---
+
+문제 발생 시 로그 파일이나 종료 코드를 먼저 확인하면 원인을 빠르게 특정할 수 있습니다.
+
+## 증상별 빠른 해결 가이드
+
+<Accordions>
+  <Accordion title="Install-HWPReview.cmd 실행 시 파일을 찾지 못하거나 바로 꺼집니다">
+    ZIP 압축을 풀지 않고 탐색기 안(ZIP 미리보기 창)에서 `Install-HWPReview.cmd`를 직접 실행했을 가능성이 높습니다.
+
+    1. ZIP 파일에서 우클릭 → **모두 압축 풀기**로 새 폴더에 완전히 풉니다.
+    2. 압축이 풀린 폴더 안에서 `Install-HWPReview.cmd`를 다시 실행합니다.
+    3. 자세한 메시지를 보려면 PowerShell에서 직접 실행하세요.
+       ```powershell
+       .\Install-HWPReview.cmd
+       ```
+  </Accordion>
+
+  <Accordion title="설치기 또는 HWPReview.exe 실행 시 VCRUNTIME·MSVCP DLL 오류가 표시됩니다">
+    Windows **설정 → 앱 → 설치된 앱**에서 Microsoft Visual C++ 재배포 가능 패키지의 x64 버전이 `14.51.36247.0` 이상인지 확인하세요. 없거나 버전이 낮으면 [Microsoft 공식 x64 설치기](https://aka.ms/vc14/vc_redist.x64.exe)를 사용자가 직접 실행하세요. x86 패키지나 개별 DLL 다운로드로 대체하지 마세요. 이 런타임은 앱 ZIP에 없으며, 필수 도구 준비 창에서 자동으로 다운로드하거나 설치하지 않습니다.
+  </Accordion>
+
+  <Accordion title="제거 중 종료 코드 4 (앱 실행 중)가 발생합니다">
+    제거기가 실행 중인 `HWPReview.exe`를 감지하면 중단합니다. HWP Editor와 앱 안의 OMP를 정상 종료한 뒤 상태를 확인하고, 작업 관리자에서 강제 종료해 우회하지 마세요.
+  </Accordion>
+
+  <Accordion title="설치·제거 중 종료 코드 3 (안전하지 않은 경로 / 충돌 / 파일 보존)이 발생합니다">
+    `%LOCALAPPDATA%\Programs\HWPReview` 폴더 안에 설치 영수증(`hwp-user-install-receipt-v2`)과 맞지 않는 알 수 없는 파일이나 충돌이 감지되면, 사용자 데이터 손실을 막기 위해 작업을 중단합니다.
+
+    1. `%LOCALAPPDATA%\HWPReview\InstallRuns`의 최신 로그와 JSON 파일을 확인합니다.
+    2. `detail`과 `retained`로 충돌 원인을 확인합니다. 다른 버전이 설치돼 있다면 [기존 버전 제거 절차](/docs/installation/uninstall)를 따릅니다.
+    3. 해결 후에는 설치 폴더가 아닌 **압축을 푼 키트 폴더**에서 `-Operation Check`로 다시 확인합니다.
+  </Accordion>
+
+  <Accordion title="한글에서 Ctrl+S로 저장했는데 미리보기가 자동으로 갱신되지 않습니다">
+    다음 항목을 순서대로 확인해 주세요.
+
+    1. **파일 형식 확인**: `.hwp`가 아니라 **`.hwpx`** 파일인지 확인합니다.
+    2. **같은 파일인지 확인**: 한글의 **파일 → 열기**에서 HWP Editor의 활성 작업 `.hwpx`를 열었는지 확인합니다. `한글에서 열기` 버튼은 Windows 기본 앱을 사용하므로 다른 편집기가 열릴 수도 있습니다.
+    3. **보호 경로인지 확인**: `example/`이나 `baseline.hwpx`처럼 [보호 목록](/docs/guide/live-sync#보호-경로-직접-덮어쓰기-차단)에 있는 파일은 작업 문서로 열 수 없습니다. 별도 작업 폴더에 `report-edit.hwpx` 같은 이름으로 복사한 뒤 여세요.
+    4. **잠금 시간 초과 또는 손상 ZIP**: 한글이나 백신이 파일을 1.5초 이상 오래 잠그면 자동 재시도(12회×120ms) 후 보류될 수 있습니다. 상단 바의 **`↻ 새로고침`**(<kbd>F5</kbd> / <kbd>Ctrl</kbd>+<kbd>R</kbd>)을 눌러 수동으로 갱신하세요.
+  </Accordion>
+
+  <Accordion title="우측 OMP 터미널이 시작되지 않거나 필수 도구 부족 안내가 뜹니다">
+    `Bun 1.4.4 / OMP 18.15.0`, `PowerShell 7.6.9`, `.NET 10`, `WebView2` 중 일부가 누락되었을 수 있습니다.
+
+    1. 설치 없이 누락 항목을 확인하려면 [필수 외부 도구의 CLI 점검](/docs/installation/prerequisites#필수-도구-상태-점검-및-재설치-방법)을 사용합니다.
+    2. 누락 항목을 설치하려면 앱 상단 `… → 필수 도구 상태` 또는 `Setup-Requirements.cmd`로 준비 창을 엽니다. PowerShell 7 또는 글꼴만 누락된 경우 창에서 준비가 자동으로 시작됩니다.
+    3. 세부 오류는 `%LOCALAPPDATA%\HwpReview\SetupRuns`의 최신 로그에서 확인할 수 있습니다.
+  </Accordion>
+
+  <Accordion title="OMP 터미널에서 아이콘(□)이나 한글 폭이 깨져 보입니다">
+    필수 도구 5번인 **`D2Coding Nerd Font Propo` (`3.5.1`)**가 설치되지 않았거나 설치 직후 앱을 재시작하지 않았을 때 발생할 수 있습니다.
+
+    1. [CLI 점검](/docs/installation/prerequisites#필수-도구-상태-점검-및-재설치-방법)으로 `D2KodingLigature Nerd Font Propo` (Regular/Bold) 상태를 확인하세요. 글꼴이 없다면 `Setup-Requirements.cmd`로 준비 창을 엽니다.
+    2. 글꼴 설치가 완료되었다면 **HWP Editor를 완전히 종료했다가 다시 실행**하세요.
+  </Accordion>
+
+  <Accordion title="내장 미리보기와 실제 한글(Hancom)의 쪽넘김·서식이 조금 다릅니다">
+    내장 미리보기는 로컬 `@rhwp/core 0.8.7` WASM 렌더러를 사용하므로, 시스템 글꼴 대체나 복잡한 표·다단·도형에서 한글과 미세한 차이가 생길 수 있습니다.
+
+    - 내장 미리보기는 편집 중 구조와 내용을 확인하는 데 사용하세요. 최종 인쇄·제출 전에는 내보낸 `.hwpx`를 **한글(Hancom)의 파일 → 열기**로 직접 열고 인쇄 미리보기를 확인하세요.
+  </Accordion>
+
+  <Accordion title="문서 미리보기에서 문단을 더블클릭했는데 OMP 입력창에 안 들어갑니다">
+    1. 우측 패널의 **OMP 세션이 실행 중**인지 확인하세요. OMP가 중지된 상태에서는 입력창 대신 **Windows 클립보드**로 복사됩니다.
+    2. OMP가 실행 중인데도 반응이 없으면 `Ctrl+V`로 클립보드 내용을 붙여넣거나, 상단 **`… → OMP 시작 / 다시 시작`**으로 세션을 재연결해 보세요.
+  </Accordion>
+</Accordions>
+
+## 진단 정보 수집 명령 (이슈 제보 시 유용)
+
+문제를 제보하거나 원인을 분석할 때 아래 명령으로 상태 리포트를 수집할 수 있습니다. (문서 내용이나 개인 경로·인증 정보는 공유 전 반드시 마스킹하세요.)
+
+```powershell
+# 1) 이 명령은 압축을 푼 설치 키트 폴더에서 실행합니다.
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Install-HWPReview.ps1 -Operation Check
+
+# 2) 설치된 앱에서 필수 도구 상태만 조회합니다.
+$report = Join-Path $env:TEMP "hwpreview-req-$([guid]::NewGuid()).json"
+$process = Start-Process -FilePath "$env:LOCALAPPDATA\Programs\HWPReview\HWPReview.exe" `
+  -ArgumentList '--check-requirements', ('"{0}"' -f $report) -Wait -PassThru
+$process.ExitCode
+if (Test-Path -LiteralPath $report) { Get-Content -LiteralPath $report -Raw }
+```
+
+## 로그 폴더 요약
+
+- 설치/제거 로그: `%LOCALAPPDATA%\HWPReview\InstallRuns`
+- 필수 도구 점검/설치 로그: `%LOCALAPPDATA%\HwpReview\SetupRuns`
+- 전체 종료 코드 표: [제거 · 로그 · 종료 코드](/docs/installation/uninstall)

@@ -1,0 +1,92 @@
+---
+title: 소스 빌드 및 검증
+description: 개발자용 소스 구성, 오프라인 네이티브 WPF 빌드(scripts/build_native.py), 정적·단위 검증 명령 안내
+---
+
+소스를 직접 수정해 Windows 네이티브 WPF 앱과 설치 킷을 빌드·검증하는 개발자를 위한 안내입니다.
+
+## 저장소 주요 디렉터리 구성
+
+<Files>
+  <Folder name="hwp-editor-public" defaultOpen>
+    <Folder name="native">
+      <Folder name="HWPReview.Native">
+        <File name="MainWindow.cs" />
+        <File name="HwpxDocumentPane.cs" />
+        <File name="HwpxLiveWatcher.cs" />
+        <File name="OmpTerminalPane.cs" />
+        <File name="OmpSessionBridge.cs" />
+        <File name="Styles.xaml" />
+      </Folder>
+    </Folder>
+    <Folder name="scripts">
+      <File name="build_native.py" />
+      <File name="hwp_native_host.py" />
+      <File name="hwp_workspace.py" />
+      <File name="hwp_omp_tui.py" />
+      <File name="lint.mjs" />
+      <File name="check.mjs" />
+    </Folder>
+    <Folder name="packaging">
+      <File name="windows-dependencies.json" />
+      <File name="AI-INSTALL.md" />
+    </Folder>
+    <Folder name="docs-site">
+      <File name="package.json" />
+      <File name="next.config.mjs" />
+    </Folder>
+    <Folder name="tests" />
+  </Folder>
+</Files>
+
+## 개발 환경 요구 사항
+
+- **Windows 10/11 x64**
+- **.NET 10 SDK**와 준비된 WebView2 SDK 파일 (오프라인 WPF 빌드)
+- **Python** 및 `requirements-dev.txt`를 설치한 `.venv` (저장소 CI는 Python 3.11 사용)
+- **Node.js 24+** (`npm run lint`, `npm run check`, `docs-site/` 문서 사이트 빌드)
+
+## 검증 명령어
+
+<Tabs items={['정적·단위 전체 게이트', 'Python 테스트', '문서 사이트 빌드']}>
+  <Tab value="정적·단위 전체 게이트">
+    ```powershell
+    node scripts/lint.mjs
+    npm run check
+    ```
+    <Callout type="info" title="npm run check의 검증 범위">
+      `npm run check`는 합성·모의(synthetic/mocked) 데이터를 사용하는 로컬 회귀 게이트입니다. 실제 한글(Hancom) 연동이나 타 PC 실환경 검증을 자동으로 대체하지 않습니다.
+    </Callout>
+  </Tab>
+
+  <Tab value="Python 테스트">
+    ```powershell
+    .venv\Scripts\python.exe -m unittest discover -s tests
+    ```
+  </Tab>
+
+  <Tab value="문서 사이트 빌드">
+    ```powershell
+    cd docs-site
+    npm ci
+    npm run build
+    ```
+    GitHub Pages 워크플로에서는 `configure-pages`의 `base_path` 출력을 사용합니다. 공개 프로젝트의 서브경로(`/hwp-editor-public`)를 로컬에서 재현하려면:
+    ```powershell
+    $env:NEXT_PUBLIC_BASE_PATH = "/hwp-editor-public"
+    npm run build
+    ```
+  </Tab>
+</Tabs>
+
+## 오프라인 네이티브 WPF 빌드
+
+저장소 루트에서 `--output`으로 **아직 존재하지 않는 출력 폴더**를 지정합니다. `--register-source`는 현재 소스와 정확히 일치하는 검증된 빌드만 개발 실행에 등록합니다.
+
+```powershell
+.\.venv\Scripts\python.exe -X utf8 scripts\build_native.py --output build\native-local\native-ui --register-source
+.\start-desktop.cmd
+```
+
+- 기존 빌드 폴더나 `example/`, `work/*/baseline.*`, 이전 영수증을 덮어쓰지 않습니다.
+- 바이트 해시는 엄격히 바인딩되므로 소스가 변경되면 이전 후보 EXE와 섞지 않고 새 후보를 빌드해야 합니다.

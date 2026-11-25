@@ -1,0 +1,68 @@
+---
+title: 시작하기
+description: Windows용 HWP Editor(HWPReview.exe) 개요, 시스템 요구 사항 및 문서 안내
+---
+
+**HWP Editor**(`HWPReview.exe`)는 Windows 10/11(x64) 환경에서 `.hwpx` 문서를 로컬에서 실시간으로 미리보면서 **한글(Hancom)**과 **oh-my-pi(OMP)** 터미널을 함께 사용하는 네이티브 WPF 데스크톱 앱입니다.
+
+<Callout type="info" title="공개 소스 사용 가능 · Windows ZIP 게시 보류">
+  2패널 HWPX 미리보기, OMP 터미널, 별도 구형 HWP 검토는 [공개 소스에서 실행](/docs/installation#소스에서-실행)할 수 있습니다. `v1.0.0-rc.3` Windows 후보는 저장본 재개방 검사에서 차단되어 배포하지 않았습니다.
+</Callout>
+
+## HWP Editor가 해결하는 문제
+
+한글 문서를 AI 에이전트나 자동화 도구로 다듬을 때 흔히 겪는 불편을 하나의 데스크톱 창으로 해결합니다.
+
+- **화면 전환 없는 실시간 확인**: 왼쪽(58%)에서 `.hwpx` 문서를 로컬 WASM 엔진(`@rhwp/core 0.8.7`)으로 바로 렌더링하고, 오른쪽(42%)에서 OMP 터미널을 동시에 사용합니다.
+- **한글과 OMP 동시 협업(안 A)**: 작업 폴더의 활성 `.hwpx` 파일을 한글에서 열어 `Ctrl+S`로 저장하거나 OMP가 직접 수정하면, 파일 잠금 해제와 XML 무결성 검증을 거쳐 쪽·스크롤·배율을 유지한 채 미리보기가 자동 갱신됩니다.
+- **되돌릴 수 있는 안전한 편집**: 문서를 처음 열 때 `.hwpreview/originals/<sha256>.hwpx`에 원본을 1회 불변 백업하고, 이후 변경마다 `.hwpreview/history/`에 체크포인트를 누적합니다.
+- **간편한 문단 참조**: 미리보기에서 원하는 문단을 더블클릭하면 파일명·쪽·구역·문단 번호와 발췌 문구가 OMP 터미널 입력창에 즉시 전달됩니다.
+
+## 시스템 요구 사항
+
+| 항목 | 최소 / 권장 사양 | 비고 |
+| --- | --- | --- |
+| 운영체제 | Windows 10 / Windows 11 (64비트, x64) | ARM64·macOS·Linux 미지원 |
+| 선행 런타임 | Microsoft Visual C++ v14 x64 `14.51.36247.0` 이상 | [Microsoft 공식 x64 설치기](https://aka.ms/vc14/vc_redist.x64.exe)로 사용자가 직접 준비 |
+| 필수 외부 도구 | `.NET 10 Desktop Runtime`, `WebView2`, `Bun/OMP`, `PowerShell 7`, `D2Coding Nerd Font` | 설치 시 미설치 항목만 자동 확인·설치 가능 |
+| 한글(Hancom) | 선택 사항(권장) | `.hwpx` 직접 편집과 최종 인쇄·제출 전 확인에 사용. **한글에서 열기**는 Windows 기본 앱으로 실행 |
+| 네트워크 | 최초 필수 도구 설치 및 OMP 모델 호출 시 필요 | 내장 `.hwpx` 로컬 미리보기 자체는 오프라인 동작 |
+
+<Callout type="warn" title="지원 파일 형식 안내">
+  기본 창의 실시간 미리보기·감시·백업은 **`.hwpx`** 전용입니다. 구형 **`.hwp`**를 그대로 검토하려면 [기존 HWP 도구](/docs/guide/interface#기존-hwp-검토)를 사용하세요. 기본 창에서 편집하려면 한글에서 HWPX로 변환한 뒤 작업 폴더에 넣으세요.
+</Callout>
+
+## 문서 안내
+
+<Cards>
+  <Card
+    title="Windows 패키지 설치"
+    description="공개 소스에서 지금 실행하는 방법과 Windows 키트 게시 후의 설치 절차"
+    href="/docs/installation"
+  />
+  <Card
+    title="필수 외부 도구 5종"
+    description=".NET 10, WebView2, Bun/OMP, PowerShell 7, D2Coding Nerd Font 상세 구성과 점검"
+    href="/docs/installation/prerequisites"
+  />
+  <Card
+    title="5분 빠른 시작"
+    description="작업 폴더 열기, 한글/OMP 실시간 동기화, 체크포인트 복원, 내보내기 실전 흐름"
+    href="/docs/guide/quick-start"
+  />
+  <Card
+    title="화면 구성 및 단축키"
+    description="2패널 레이아웃, 슬림 상단 바, Ctrl+B 서랍, 오버플로 메뉴와 전체 단축키"
+    href="/docs/guide/interface"
+  />
+  <Card
+    title="한글·OMP 실시간 동기화"
+    description="불변 원본 백업, 보호 경로 차단, 400ms 감시 파이프라인 및 체크포인트 복원 원리"
+    href="/docs/guide/live-sync"
+  />
+  <Card
+    title="문제 해결 & FAQ"
+    description="설치 종료 코드, 미리보기 미갱신, OMP 시작 실패, 폰트 깨짐 등 증상별 해결책"
+    href="/docs/troubleshooting"
+  />
+</Cards>

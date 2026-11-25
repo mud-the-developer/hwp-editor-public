@@ -1,0 +1,10 @@
+{
+  "title": "설치 가이드",
+  "defaultOpen": true,
+  "pages": [
+    "index",
+    "prerequisites",
+    "ai-install",
+    "uninstall"
+  ]
+}

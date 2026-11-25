@@ -1,0 +1,11 @@
+{
+  "title": "사용 가이드",
+  "defaultOpen": true,
+  "pages": [
+    "quick-start",
+    "interface",
+    "live-sync",
+    "omp-workflow",
+    "preview-and-export"
+  ]
+}

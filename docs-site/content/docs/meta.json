@@ -1,0 +1,13 @@
+{
+  "title": "HWP Editor 문서",
+  "pages": [
+    "index",
+    "---설치 및 환경 구성---",
+    "installation",
+    "---사용법---",
+    "guide",
+    "---지원 및 개발---",
+    "troubleshooting",
+    "developer"
+  ]
+}

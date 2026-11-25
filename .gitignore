@@ -46,3 +46,10 @@ auth.json
 *.log
 .DS_Store
 Thumbs.db
+
+# Generated Fumadocs/Next.js output
+/docs-site/.next/
+/docs-site/.source/
+/docs-site/out/
+/docs-site/next-env.d.ts
+/docs-site/*.tsbuildinfo
