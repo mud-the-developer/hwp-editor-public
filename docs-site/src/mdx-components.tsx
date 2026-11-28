@@ -6,6 +6,7 @@ import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { File, Files, Folder } from 'fumadocs-ui/components/files';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import type { MDXComponents } from 'mdx/types';
+import { InstallerHashCommand, ReleaseDownloads, ReleaseLink } from '@/components/release-downloads';
 
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
@@ -22,6 +23,9 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Folder,
     Accordion,
     Accordions,
+    ReleaseLink,
+    ReleaseDownloads,
+    InstallerHashCommand,
     ...components,
   };
 }

@@ -15,7 +15,7 @@ OMP는 기본 도구와 셸을 사용자 계정 권한으로 실행합니다. �
 
 ## 실행과 개발
 
-공개판 제작 버전은 `1.0.0-rc.4`입니다. [GitHub Releases](https://github.com/mud-the-developer/hwp-editor-public/releases)에서 공개된 키트와 같은 버전의 대응 소스를 확인하세요. 다른 소스의 EXE는 이 공개판 빌드가 아니며 사전 릴리스는 정식 배포·코드 서명·다른 PC 검증을 뜻하지 않습니다.
+공개 설치 키트는 [GitHub Releases](https://github.com/mud-the-developer/hwp-editor-public/releases)에서 받으세요. 자동 사전 릴리스 태그 끝의 12자리는 제작 커밋입니다. 같은 태그의 Windows ZIP·대응 소스·체크섬을 함께 사용하세요. 공개 `main`이 설치본보다 앞설 수 있습니다.
 
 공개 Windows 키트는 **Microsoft Visual C++ v14 x64 런타임(14.51.36247.0 이상)**을 동봉하지 않습니다. 없거나 오래된 경우 [Microsoft 공식 배포처](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist)에서 x64를 먼저 설치한 뒤 `Install-HWPReview.cmd`를 실행하세요.
 
@@ -34,6 +34,8 @@ Windows x64 패키지는 Python을 포함합니다. 외부 **.NET 10 Desktop Run
 공개 소스를 실행해 보세요. 설치나 실행 중 문제를 발견하면 사용한 앱·Windows 버전과 재현 방법을 간단히 적어 수정안을 [Pull Request(PR)](https://github.com/mud-the-developer/hwp-editor-public/pulls)로 올려 주세요. 실제 문서나 인증 정보는 첨부하지 마세요.
 
 개발 검사는 `npm run check`입니다. 소스·합성 검사는 실제 모델·한글·배포 EXE·다른 PC 검증과 별개입니다.
+
+유지관리자는 [자동 배포 설정과 중단 시 확인 방법](docs/releases.md#자동-사전-릴리스)을 참조하세요. 새 `main` 빌드가 설치·실행 또는 동일 EXE 한글 검증을 통과하지 않으면 새 릴리스와 설치 안내를 게시하지 않습니다.
 
 ## 범위와 문서
 

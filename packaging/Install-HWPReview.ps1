@@ -729,6 +729,7 @@ try {
                 $result.detail = '파일/경로/충돌만 확인했습니다. 필수 항목 설치 상태는 실행하지 않았습니다.'
             } else {
                 if (-not (Requirements-Check 'requirements-before')) {
+                    if ($env:HWP_REVIEW_REQUIRE_PREPARED -eq '1') { Stop-Install 5 '준비된 환경 전용 검사에서 필수 항목이 달라졌습니다. 설치·복구하지 않습니다.' }
                     $setupCode = Run-Exe '--setup-requirements' 'setup-requirements'
                     if ($setupCode -eq 1602 -or $setupCode -eq 3010) { Stop-Install $setupCode '필수 항목 준비가 취소되었거나 재부팅이 필요합니다. 로그를 보존하고 중단합니다.' }
                     if ($setupCode -ne 0) { Stop-Install 5 '필수 항목 준비가 실패/취소되었거나 재부팅이 필요합니다. 자동 재시도하지 않습니다.' }

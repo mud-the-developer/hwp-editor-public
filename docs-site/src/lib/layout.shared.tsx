@@ -1,8 +1,6 @@
 import type { BaseLayoutProps } from 'fumadocs-ui/layouts/shared';
 
-export const REPO_URL = 'https://github.com/mud-the-developer/hwp-editor-public';
-export const LATEST_TAG = 'v1.0.0-rc.4';
-export const RELEASES_URL = `${REPO_URL}/releases`;
+import { release, repository } from './release';
 
 export function baseOptions(): BaseLayoutProps {
   return {
@@ -34,12 +32,12 @@ export function baseOptions(): BaseLayoutProps {
           </svg>
           <span>HWP Editor</span>
           <span className="rounded-full border border-fd-border bg-fd-muted px-2 py-0.5 text-[11px] font-medium text-fd-muted-foreground">
-            {LATEST_TAG}
+            {release.label}
           </span>
         </span>
       ),
     },
-    githubUrl: REPO_URL,
+    githubUrl: repository,
     links: [
       {
         text: '설치 가이드',
@@ -57,8 +55,8 @@ export function baseOptions(): BaseLayoutProps {
         active: 'url',
       },
       {
-        text: 'Releases',
-        url: RELEASES_URL,
+        text: '릴리스',
+        url: release.url,
         external: true,
       },
     ],

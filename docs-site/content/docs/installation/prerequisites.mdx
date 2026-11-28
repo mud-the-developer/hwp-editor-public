@@ -15,13 +15,15 @@ HWP Editor는 앱 본체 외에 **5종의 고정 버전(pinned) 외부 도구**�
   이미 호환되는 설치가 있으면 기존 구성을 유지합니다. Bun·OMP는 HWP Editor가 관리하는 버전별 앱 전용 런타임만 인정합니다.
 </Callout>
 
-## 필수 도구 5종 명세 (`windows-dependencies.json` 기준)
+## 필수 도구 5종 명세
+
+설치한 릴리스의 정확한 버전과 다운로드 출처는 같은 릴리스의 앱 소스에 있는 `windows-dependencies.json`을 기준으로 확인하세요.
 
 | 번호 | 도구 | 고정 버전 | 설치 방식 / 범위 | 권한(UAC) | 역할 |
 | --- | --- | --- | --- | --- | --- |
 | 1 | **.NET 10 Desktop Runtime (x64)** | `10.0.14` | Microsoft 공식 WindowsDesktop 런타임 | 필요 (UAC) | WPF 네이티브 앱(`HWPReview.exe`) 실행 |
 | 2 | **Microsoft Edge WebView2 Runtime** | `156.0.4314.58` (Evergreen) | 고정 버전의 Microsoft Evergreen 설치기 | 환경에 따라 필요 | 내장 `.hwpx` 라이브 미리보기 및 `xterm.js` 렌더링 |
-| 3 | **Bun & oh-my-pi (OMP)** | `Bun 1.4.4` / `OMP 18.15.0` | 앱 전용 버전별 경로에서만 재사용 또는 신규 설치 | 불필요 (사용자) | 우측 패널 OMP TUI 및 AI 문서 작업 실행 |
+| 3 | **Bun & oh-my-pi (OMP)** | 설치 키트에서 지정한 조합 | 앱 전용 버전별 경로에서만 재사용 또는 신규 설치 | 불필요 (사용자) | 우측 패널 OMP TUI 및 AI 문서 작업 실행 |
 | 4 | **PowerShell 7 (x64)** | `7.6.9` | Microsoft 공식 MSI (대화형 설치) | 필요 (UAC) | OMP 도구 실행 및 현대적 UTF-8 Windows 셸 환경 |
 | 5 | **D2Coding Nerd Font Propo** | `3.5.1` (`D2KodingLigature Nerd Font Propo`) | 사용자 글꼴 폴더(Regular / Bold) | 불필요 (사용자) | OMP TUI의 한글·고정폭 정렬 및 Nerd Font 아이콘 표시 |
 
@@ -35,13 +37,9 @@ HWP Editor는 앱 본체 외에 **5종의 고정 버전(pinned) 외부 도구**�
 - Windows 11에는 대부분 기본 포함되어 있으며, 이미 설치된 경우 자동으로 건너뜁니다.
 - 누락되면 고정 Microsoft Evergreen 설치기를 확인합니다. 원문 약관과 SmartScreen 정보 전송·자동 업데이트 안내를 읽고, 설치 범위는 Microsoft 공유 Updater의 판단을 따릅니다.
 
-### 3. Bun `1.4.4` & oh-my-pi (`OMP`) `18.15.0`
+### 3. Bun & oh-my-pi (`OMP`)
 - 기존 앱 전용 런타임이 있으면 먼저 검증합니다. 해당 설치가 손상됐거나 일부만 남았으면 다른 경로로 우회하지 않습니다.
-- 사용자 `%USERPROFILE%\.bun`은 읽어 대체하지 않습니다. 앱 전용 런타임이 없으면 준비 창에서 고지를 확인한 뒤 아래 경로에만 공식 패키지를 새로 설치합니다. 사용자 설치·설정·인증과 전역 `PATH`는 그대로 둡니다.
-  ```text
-  %LOCALAPPDATA%\HWPReview\Dependencies\Bun-1.4.4-OMP-18.15.0
-  ```
-- 공개 `rc.4`는 OMP 18.15.0의 21개 런타임 파일을 검사합니다. 이후 개발 소스는 이 경로를 덮어쓰지 않고 `Bun-1.4.4-OMP-19.2.1`에 설치해 28개 파일을 검사합니다. 두 버전 모두 패키지 설치 스크립트를 실행하지 않습니다.
+- 사용자 `%USERPROFILE%\.bun`은 대체 경로로 쓰지 않습니다. 앱 전용 런타임이 없으면 준비 창에서 고지를 확인한 뒤 `%LOCALAPPDATA%\HWPReview\Dependencies` 아래 버전별 폴더에 설치합니다. 사용자 설정·인증, 전역 `PATH`는 변경하지 않으며 패키지 설치 스크립트도 실행하지 않습니다.
 
 ### 4. PowerShell 7 (`7.6.9` x64 MSI)
 - Windows 기본 내장 PowerShell 5.1(`powershell.exe`)을 제거하거나 덮어쓰지 않습니다.

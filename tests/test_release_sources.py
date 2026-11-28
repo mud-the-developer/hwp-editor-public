@@ -125,6 +125,75 @@ class ReleaseSourcesTests(unittest.TestCase):
         with zipfile.ZipFile(self.root / "pins.zip") as archive:
             release._check_snapshot_pins(archive, release._pins(release._load_index()))
 
+    def prepare_public_fixture(self):
+        import prepare_public_release as public
+
+        index = self.snapshot / "packaging" / release.INDEX.name
+        index.write_bytes(release._json_bytes(self.index))
+        self.candidate_build({"private_receipt": {"machine": str(self.root)}})
+        build = json.loads((self.candidate / "BUILD.json").read_bytes())
+        dist = self.root / "prepared"
+        with patch.object(public, "validate", return_value=(self.candidate, build)):
+            public.prepare(self.candidate, dist, COMMIT.lower(), release.PUBLIC_REPOSITORY)
+        return dist, build, index
+
+    def test_public_stage_uses_only_the_installed_transport_and_all_evidence(self):
+        import build_exe
+        import prepare_public_release as public
+        import shutil
+
+        dist, build, index = self.prepare_public_fixture()
+        installer = dist / "installer" / WINDOWS
+        evidence = [self.root / name for name in ("schema1", "schema3", "schema4")]
+        digest = build["executable_sha256"]
+
+        def notice_fixture(root, target, pinned, *, app_version):
+            shutil.copytree(self.legal, target)
+
+        with (patch.object(build_exe, "validate_checked_candidate", return_value=(self.candidate, None, digest)) as native,
+              patch.object(public, "validate", return_value=(self.candidate, build)) as binding,
+              patch.object(build_exe.license_bundle, "write_licenses", side_effect=notice_fixture),
+              patch.object(release, "INDEX", index)):
+            manifest = release.stage_public_assets(self.candidate, dist, self.upstream, self.output,
+                                                   commit=COMMIT.lower(), kit_sha256=source.sha256(installer),
+                                                   exe_sha256=digest, native_evidence=evidence[0],
+                                                   layout_evidence=evidence[1], fill_evidence=evidence[2])
+        native.assert_called_once_with(self.candidate, *evidence)
+        binding.assert_called_once_with(self.candidate, COMMIT.lower(), release.PUBLIC_REPOSITORY)
+        self.assertEqual((self.output / WINDOWS).read_bytes(), installer.read_bytes())
+        with zipfile.ZipFile(self.output / WINDOWS) as transport:
+            self.assertNotIn(b"private_receipt", transport.read("BUILD.json"))
+        self.assertNotEqual(source.sha256(installer), source.sha256(self.candidate / WINDOWS))
+        self.assertEqual(set(manifest["assets"]), {WINDOWS, APP, KIT, release.MATERIALS})
+        self.assertEqual(set(self.file_hashes(self.output)), set(manifest["assets"]) | {release.MANIFEST, release.SUMS})
+        self.assertNotIn(str(self.root), json.dumps(manifest))
+        self.assertEqual(manifest["qualification"]["native_evidence_schemas"], [1, 3, 4])
+
+    def test_public_distribution_rejects_swapped_candidate_input_commit_and_transport(self):
+        dist, build, _ = self.prepare_public_fixture()
+        kit = source.sha256(dist / "installer" / WINDOWS)
+        exe = build["executable_sha256"]
+
+        def check(commit=COMMIT.lower(), kit=kit, exe=exe):
+            return release._distribution(self.candidate, dist, build, commit, kit, exe)
+
+        for args in ({"commit": "a" * 40}, {"kit": source.sha256(self.candidate / WINDOWS)}, {"exe": "0" * 64}):
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                check(**args)
+        (self.candidate / "licenses" / "TOY-NOTICE.txt").write_bytes(b"swapped candidate")
+        with self.assertRaisesRegex(ValueError, "checked candidate"):
+            check()
+
+    def test_public_rejects_private_transport_metadata_even_with_new_checksums(self):
+        dist, build, _ = self.prepare_public_fixture()
+        transport = dist / "installer" / WINDOWS
+        with zipfile.ZipFile(transport, "a") as archive:
+            archive.comment = b"private install receipt"
+        digest = source.sha256(transport)
+        (transport.parent / (WINDOWS + ".sha256")).write_bytes(f"{digest}  {WINDOWS}\n".encode())
+        with self.assertRaisesRegex(ValueError, "ZIP envelope"):
+            release._distribution(self.candidate, dist, build, COMMIT.lower(), digest, build["executable_sha256"])
+
     def test_exact_deterministic_closed_output_without_private_paths(self):
         self.candidate_build()
         before = self.file_hashes(self.candidate)

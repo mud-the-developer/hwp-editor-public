@@ -1,0 +1,15 @@
+{
+  "historical": true,
+  "tag": "v1.0.0-rc.4",
+  "commit": "fb25553a3f046f2f1073f5f7d838d9eb32c31fa9",
+  "version": "1.0.0-rc.4",
+  "assets": {
+    "HWPReview-corresponding-source-1.0.0-rc.4.zip": { "bytes": 274604272, "sha256": "9521b48185fdd2260fd39430c6b86534e5bbe29850e1cc34b3f3dd0288c75596" },
+    "HWPReview-source-1.0.0-rc.4.zip": { "bytes": 5868478, "sha256": "c73bfc3c479b28e4ced65a3f14dedf2beff7a76e3baef8626335fd6c22613345" },
+    "HWPReview-win-x64-1.0.0-rc.4.zip": { "bytes": 44792923, "sha256": "7bfd3ac56fa5a2c5e314c8ae656f126ab253a39f8705e2217db50bd5f5512f6e" },
+    "RELEASE-MANIFEST.json": { "bytes": 1584, "sha256": "021b510bc51c4d04ac195797c250abd17fbc07af5e0fc47eadd098dbeed373c4" },
+    "SHA256SUMS.txt": { "bytes": 484, "sha256": "b1f74ad9a05544731b336df5019160e5e43104474ed0b3f2a94c1452ef873922" },
+    "SOURCE-MATERIALS.txt": { "bytes": 2493, "sha256": "24bf00280d5158fda56566a16522b96401c0b1f01b9a747eac81974634ac14b8" }
+  },
+  "executable": { "bytes": 38838748, "sha256": "29209dbf971d2300c6abcac593b511f9766fbc7252bfc109f958be7525e1cdc8" }
+}

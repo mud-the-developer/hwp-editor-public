@@ -9,6 +9,7 @@ import shutil
 import stat
 import sys
 import tarfile
+import tempfile
 from urllib.parse import unquote, urlsplit
 import zipfile
 
@@ -19,6 +20,7 @@ INDEX = Path(__file__).resolve().parents[1] / "packaging/upstream-source-index.j
 MATERIALS = "SOURCE-MATERIALS.txt"
 MANIFEST = "RELEASE-MANIFEST.json"
 SUMS = "SHA256SUMS.txt"
+PUBLIC_REPOSITORY = "https://github.com/mud-the-developer/hwp-editor-public"
 HEX = re.compile(r"[0-9a-f]{64}")
 VERSION = re.compile(r"[0-9]+\.[0-9]+\.[0-9]+(?:-[A-Za-z0-9.-]+)?")
 DEVICE = re.compile(r"(?i:CON|PRN|AUX|NUL|COM[0-9¹²³]|LPT[0-9¹²³])")
@@ -318,25 +320,9 @@ def _verify_kit(target, files, metadata, app_record, pins):
             _fail("대응 소스 ZIP 안내 또는 인덱스가 변경되었습니다.")
 
 
-def stage_release(candidate, upstream, output, *, commit):
-    """Stage exact local bytes; commit is caller-reviewed provenance, not verified here."""
-    if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", commit):
-        _fail("검토한 전체 Git 커밋 해시(16진수 40자리)가 필요합니다.")
-    candidate, upstream = _directory(candidate), _directory(upstream)
-    if candidate.name != "checked-release":
-        _fail("정확한 checked-release 디렉터리를 지정하십시오.")
-    output = Path(output).absolute()
-    directory = _directory(output.parent)
-    output = directory / _name(output.name)
-    if output.is_relative_to(candidate) or output.is_relative_to(upstream):
-        _fail("출력 폴더는 후보 및 상류 자료 폴더 밖에 있어야 합니다.")
-    for path in candidate.iterdir():
-        if path.name == "licenses":
-            _directory(path)
-        else:
-            regular(path)
-
-    index = _load_index()
+def _upstream_inputs(upstream, *, index=None):
+    if index is None:
+        index = _load_index()
     pins = _pins(index)
     observed = [path.name for path in upstream.iterdir()]
     _names(observed)
@@ -346,6 +332,45 @@ def stage_release(candidate, upstream, output, *, commit):
         if _record(upstream / name) != {key: record[key] for key in ("bytes", "sha256")}:
             _fail(f"상류 자료 크기 또는 SHA-256 불일치: {name}")
 
+    return index, pins
+
+
+def _exact_snapshot(app, inputs, version, pins, *, public=False):
+    verify_source_archive(regular(app), inputs, version=version)
+    with zipfile.ZipFile(regular(app)) as archive:
+        _zip_names(archive)
+        source_manifest = _object(archive.read("SOURCE-MANIFEST.json"))
+        if set(source_manifest) != {"kind", "version", "inputs_sha256", "provenance"}:
+            _fail("앱 스냅샷 매니페스트에 예상하지 않은 필드가 있습니다.")
+        _private_check(source_manifest)
+        instructions = archive.read("BUILD-SOURCE.txt")
+        _private_check(instructions.decode("utf-8"))
+        if public:
+            _plain_archive(archive)
+            if (source_manifest["provenance"] != "hash-pinned build input snapshot, not a published Git commit"
+                    or hashlib.sha256(instructions).hexdigest() !=
+                    "05ade961df723f1c6634bb2405dba8e0206c6be78275651c70ae4f88e5849921"
+                    or archive.read("SOURCE-MANIFEST.json") != _json_bytes(source_manifest).rstrip(b"\n")):
+                _fail("Unexpected public build-source metadata")
+        _check_snapshot_pins(archive, pins)
+
+
+def stage_release(candidate, upstream, output, *, commit):
+    """Stage exact local bytes; commit is caller-reviewed provenance, not verified here."""
+    if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-fA-F]{40}", commit):
+        _fail("검토한 전체 Git 커밋 해시(16진수 40자리)가 필요합니다.")
+    candidate, upstream = _directory(candidate), _directory(upstream)
+    if candidate.name != "checked-release":
+        _fail("정확한 checked-release 디렉터리를 지정하십시오.")
+    output = _directory(Path(output).absolute().parent) / _name(Path(output).name)
+    if output.is_relative_to(candidate) or output.is_relative_to(upstream):
+        _fail("출력 폴더는 후보 및 상류 자료 폴더 밖에 있어야 합니다.")
+    for path in candidate.iterdir():
+        if path.name == "licenses":
+            _directory(path)
+        else:
+            regular(path)
+    index, pins = _upstream_inputs(upstream)
     build_path = regular(candidate / "BUILD.json")
     build_bytes = build_path.read_bytes()
     build = _object(build_bytes)
@@ -375,32 +400,12 @@ def stage_release(candidate, upstream, output, *, commit):
     inputs = build["input_sha256"]
     if not all(isinstance(value, str) and HEX.fullmatch(value) for value in inputs.values()):
         _fail("잘못된 앱 스냅샷 해시입니다.")
-    verify_source_archive(regular(candidate / app), inputs, version=version)
-    with zipfile.ZipFile(regular(candidate / app)) as archive:
-        _zip_names(archive)
-        source_manifest = _object(archive.read("SOURCE-MANIFEST.json"))
-        if set(source_manifest) != {"kind", "version", "inputs_sha256", "provenance"}:
-            _fail("앱 스냅샷 매니페스트에 예상하지 않은 필드가 있습니다.")
-        _private_check(source_manifest)
-        _private_check(archive.read("BUILD-SOURCE.txt").decode("utf-8"))
-        _check_snapshot_pins(archive, pins)
+    _exact_snapshot(candidate / app, inputs, version, pins)
     app_record = payload["files"][app]
-
     output.mkdir(exist_ok=False)
     _copy(candidate / windows, output / windows, transport)
     _copy(candidate / app, output / app, app_record)
-    materials = _materials(app, corresponding)
-    pywin = next(pin for pin in pins.values() if pin["component"] == "pywin32")
-    curated = output / f"pywin32-{pywin['version']}-source.zip"
-    _pywin32_sources(upstream / pywin["filename"], curated, pywin)
-    delivered = {name: pin for name, pin in pins.items() if pin["component"] not in {"webview2", "pywin32"}}
-    sources = {name: upstream / name for name in delivered}
-    delivered[curated.name] = _record(curated)
-    sources[curated.name] = curated
-    files, metadata = _source_kit(output / corresponding, output / app, sources, _json_bytes(index), materials)
-    _verify_kit(output / corresponding, files, metadata, app_record, delivered)
-    curated.unlink()  # The verified copy remains inside the corresponding-source ZIP.
-    _write(output / MATERIALS, materials)
+    _corresponding(output, upstream, index, pins, app, corresponding, app_record)
     manifest = {
         "contract": "hwp-local-release-materials-v1",
         "version": version,
@@ -409,6 +414,30 @@ def stage_release(candidate, upstream, output, *, commit):
         "assets": {name: _record(output / name) for name in (windows, app, corresponding, MATERIALS)},
         "verification": "local candidate payload, exact app snapshot and pinned source copies only",
     }
+    return _finish(output, manifest)
+
+
+def _corresponding(output, upstream, index, pins, app, corresponding, app_record):
+    materials = _materials(app, corresponding)
+    pywin = next(pin for pin in pins.values() if pin["component"] == "pywin32")
+    curated = output / f"pywin32-{pywin['version']}-source.zip"
+    # Unlike the unchanged upstream copies, the derivative cannot be checked against the
+    # original pin after transformation. Consume a private digest-checked snapshot.
+    with tempfile.TemporaryDirectory() as temp:
+        original = Path(temp) / pywin["filename"]
+        _copy(upstream / pywin["filename"], original, {k: pywin[k] for k in ("bytes", "sha256")})
+        _pywin32_sources(original, curated, pywin)
+    delivered = {name: pin for name, pin in pins.items() if pin["component"] not in {"webview2", "pywin32"}}
+    sources = {name: upstream / name for name in delivered}
+    delivered[curated.name] = _record(curated)
+    sources[curated.name] = curated
+    files, metadata = _source_kit(output / corresponding, output / app, sources, _json_bytes(index), materials)
+    _verify_kit(output / corresponding, files, metadata, app_record, delivered)
+    curated.unlink()  # The verified copy remains inside the corresponding-source ZIP.
+    _write(output / MATERIALS, materials)
+
+
+def _finish(output, manifest):
     _write(output / MANIFEST, _json_bytes(manifest))
     inventory = {**manifest["assets"], MANIFEST: _record(output / MANIFEST)}
     _write(output / SUMS, "".join(f"{inventory[name]['sha256']}  {name}\n" for name in sorted(inventory)).encode("utf-8"))
@@ -419,15 +448,145 @@ def stage_release(candidate, upstream, output, *, commit):
     return manifest
 
 
+def _plain_archive(archive):
+    """The two public ZIP writers emit contiguous plain ZIP32, with no opaque metadata."""
+    stream = archive.fp
+    position = central_size = 0
+    for item in archive.infolist():
+        if (item.header_offset != position or item.extra or item.comment
+                or item.flag_bits & ~0x800 or item.compress_type != zipfile.ZIP_DEFLATED):
+            _fail("Unexpected public ZIP metadata")
+        header = item.FileHeader(False)
+        stream.seek(position)
+        if stream.read(len(header)) != header:
+            _fail("Unexpected local ZIP header")
+        position += len(header) + item.compress_size
+        central_size += 46 + len(item.filename.encode("utf-8"))
+    if (position != archive.start_dir or archive.comment
+            or stream.seek(0, 2) != position + central_size + 22):
+        _fail("Unexpected public ZIP envelope")
+
+
+def _distribution(candidate, root, build, commit, kit_sha256, exe_sha256):
+    import hwp_install_bundle as bundle
+
+    version = build["version"]
+    payload = _directory(root / "installer")
+    if {path.name for path in root.iterdir()} != {"installer", MANIFEST, SUMS}:
+        _fail("Unexpected distribution members")
+    checked = verify_payload(payload, version=version)
+    files = checked["files"]
+    sanitized = {key: build[key] for key in ("version", "executable_sha256", "source_archive", "licenses_sha256")}
+    sanitized.update(input_sha256={key: build["input_sha256"][key] for key in bundle.ROOT_INPUTS.values()},
+                     redistribution_ready=False, code_signed=False)
+    if regular(payload / "BUILD.json").read_bytes() != _json_bytes(sanitized):
+        _fail("Distribution build is not the exact public projection")
+    for name, record in files.items():
+        if name != "BUILD.json" and _record(candidate / name) != record:
+            _fail("Distribution differs from the checked candidate")
+    if (set(checked) != {"contract", "version", "architecture", "files", "redistribution_ready", "code_signed"}
+            or regular(payload / bundle.MANIFEST).read_bytes() != _json_bytes(checked)):
+        _fail("Unexpected public installer manifest")
+    windows = f"HWPReview-win-x64-{version}.zip"
+    app = build["source_archive"]["file"]
+    transport = _record(payload / windows)
+    if transport["sha256"] != kit_sha256 or files["HWPReview.exe"]["sha256"] != exe_sha256:
+        _fail("Distribution differs from supplied installed transport or executable digest")
+    with zipfile.ZipFile(regular(payload / windows)) as archive:
+        _zip_names(archive)
+        _plain_archive(archive)
+    members = sorted([*files, bundle.MANIFEST])
+    expected_sums = "".join(sha256(payload / name) + "  " + name + "\n" for name in members).encode()
+    if regular(payload / SUMS).read_bytes() != expected_sums:
+        _fail("Unexpected public installer checksums")
+    expected_manifest = {
+        "contract": "hwp-public-distribution-v1", "commit": commit, "repository": PUBLIC_REPOSITORY,
+        "version": version, "code_signed": False, "redistribution_ready": False, "other_pc_tested": False,
+        "tested": ["closed payload hashes", "exact source archive", "Git commit build-input bytes",
+                   "external Visual C++ component exclusion in the CArchive and payload"],
+        "unqualified": ["other-PC execution", "Native layout certification", "legal source-delivery clearance",
+                        "code signing"],
+        "artifacts": {"HWPReview.exe": files["HWPReview.exe"], app: files[app], windows: transport},
+    }
+    if regular(root / MANIFEST).read_bytes() != _json_bytes(expected_manifest):
+        _fail("Distribution release manifest differs")
+    paths = sorted([root / MANIFEST, *(payload / name for name in [*members, windows, windows + ".sha256", SUMS])])
+    if regular(root / SUMS).read_bytes() != "".join(
+            sha256(path) + "  " + path.relative_to(root).as_posix() + "\n" for path in paths).encode():
+        _fail("Distribution checksum inventory differs")
+    return expected_manifest["artifacts"]
+
+
+def stage_public_assets(candidate, distribution, upstream, output, *, commit, kit_sha256, exe_sha256,
+                        native_evidence, layout_evidence, fill_evidence):
+    """Stage the existing sanitized transport, never the candidate's private installer."""
+    import build_exe
+    import prepare_public_release as public
+
+    candidate, distribution, upstream = map(_directory, (candidate, distribution, upstream))
+    output = _directory(Path(output).absolute().parent) / _name(Path(output).name)
+    if any(output.is_relative_to(root) for root in (candidate, distribution, upstream, public.ROOT)):
+        _fail("Public output must be separate from inputs and source")
+    if output.exists() or output.is_symlink():
+        raise FileExistsError("Public output must be fresh")
+    if not all(isinstance(value, str) and HEX.fullmatch(value) for value in (kit_sha256, exe_sha256)):
+        _fail("Exact transport and executable SHA-256 digests are required")
+    checked, _, digest = build_exe.validate_checked_candidate(candidate, native_evidence, layout_evidence, fill_evidence)
+    if checked != candidate or digest != exe_sha256:
+        _fail("Native evidence candidate differs from supplied executable")
+    candidate, build = public.validate(candidate, commit, PUBLIC_REPOSITORY)
+    version = build["version"]
+    # Recreate the original closed notice set from this build environment. A self-consistent
+    # candidate could otherwise hide private data in a spurious 'license' or generated index.
+    with tempfile.TemporaryDirectory() as temp:
+        notices = Path(temp) / "licenses"
+        build_exe.license_bundle.write_licenses(public.ROOT, notices, build_exe.LEGAL_FILES, app_version=version)
+        if {p.name: sha256(regular(p)) for p in notices.iterdir()} != build["licenses_sha256"]:
+            _fail("Candidate notices are not the original public notices")
+    records = _distribution(candidate, distribution, build, commit, kit_sha256, exe_sha256)
+    app = build["source_archive"]["file"]
+    windows = f"HWPReview-win-x64-{version}.zip"
+    corresponding = f"HWPReview-corresponding-source-{version}.zip"
+    index_bytes = regular(INDEX).read_bytes()
+    if hashlib.sha256(index_bytes).hexdigest() != build["input_sha256"]["packaging/upstream-source-index.json"]:
+        _fail("Source-material pins differ from exact build input")
+    index, pins = _upstream_inputs(upstream, index=_object(index_bytes))
+    payload = distribution / "installer"
+    _exact_snapshot(payload / app, build["input_sha256"], version, pins, public=True)
+    output.mkdir()
+    for name in (windows, app):
+        _copy(payload / name, output / name, records[name])
+    _corresponding(output, upstream, index, pins, app, corresponding, records[app])
+    return _finish(output, {
+        "contract": "hwp-public-release-v1", "commit": commit, "version": version, "repository": PUBLIC_REPOSITORY,
+        "executable": records["HWPReview.exe"],
+        "assets": {name: _record(output / name) for name in (windows, app, corresponding, MATERIALS)},
+        "qualification": {"native_evidence_schemas": [1, 3, 4], "other_pc_tested": False, "code_signed": False,
+                          "redistribution_ready": False, "hancom_layout_certified": False},
+    })
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description="검사된 후보와 고정 대응 소스를 새 로컬 폴더에 준비합니다.")
     parser.add_argument("--candidate", type=Path, required=True, help="정확한 checked-release 폴더")
     parser.add_argument("--upstream", type=Path, required=True, help="상류 자료 21개만 포함한 폴더")
     parser.add_argument("--output", type=Path, required=True, help="존재하지 않는 출력 폴더")
     parser.add_argument("--commit", required=True, help="이미 검토한 전체 커밋 해시(출처 기록용)")
+    parser.add_argument("--distribution", type=Path)
+    parser.add_argument("--kit-sha256")
+    parser.add_argument("--exe-sha256")
+    for name in ("native-evidence", "layout-evidence", "fill-evidence"):
+        parser.add_argument("--" + name, type=Path)
     args = parser.parse_args(argv)
     try:
-        stage_release(args.candidate, args.upstream, args.output, commit=args.commit)
+        options = {key: getattr(args, key) for key in
+                   ("distribution", "kit_sha256", "exe_sha256", "native_evidence", "layout_evidence", "fill_evidence")}
+        if any(value is not None for value in options.values()):
+            if any(value is None for value in options.values()):
+                parser.error("Public staging requires the distribution, both digests, and all three evidence files")
+            stage_public_assets(args.candidate, upstream=args.upstream, output=args.output, commit=args.commit, **options)
+        else:
+            stage_release(args.candidate, args.upstream, args.output, commit=args.commit)
     except (OSError, ValueError, TypeError, KeyError, zipfile.BadZipFile, RuntimeError) as exc:
         # Do not echo library errors containing local paths or arbitrary input values.
         reason = str(exc) if type(exc) is ValueError and re.match(r"[가-힣]", str(exc)) else "입력 또는 출력 검사에 실패했습니다."

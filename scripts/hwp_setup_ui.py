@@ -1,6 +1,7 @@
 """Required missing-only startup preparation; importing never starts setup."""
 
 from html.parser import HTMLParser
+import os
 from pathlib import Path
 import queue
 import sys
@@ -365,6 +366,9 @@ def ensure_ready(*, backend=setup) -> bool:
         if setup.statuses_ready(statuses):
             return True
     except Exception as error:
-        _show_preparation_error(error)
+        if os.environ.get("HWP_REVIEW_REQUIRE_PREPARED") != "1":
+            _show_preparation_error(error)
+        return False
+    if os.environ.get("HWP_REVIEW_REQUIRE_PREPARED") == "1":
         return False
     return run(backend=backend, manifest=manifest, statuses=statuses, autoclose=True) == 0

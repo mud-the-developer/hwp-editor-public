@@ -10,7 +10,8 @@ import {
   ShieldCheck,
   Terminal,
 } from 'lucide-react';
-import { baseOptions, LATEST_TAG, RELEASES_URL } from '@/lib/layout.shared';
+import { baseOptions } from '@/lib/layout.shared';
+import { release } from '@/lib/release';
 
 const FEATURES = [
   {
@@ -42,7 +43,7 @@ const FEATURES = [
 const QUICK_LINKS = [
   {
     title: 'Windows 패키지 설치',
-    description: '공개 소스로 실행하는 방법과 Windows 키트 공개 후의 단계별 설치 안내',
+    description: 'Windows 설치 키트 다운로드, 체크섬 확인 및 소스 실행 안내',
     href: '/docs/installation',
   },
   {
@@ -70,7 +71,7 @@ export default function HomePage() {
         <section className="flex flex-col items-start gap-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-fd-border bg-fd-muted/70 px-3.5 py-1 text-xs font-medium text-fd-muted-foreground">
             <span className="h-2 w-2 rounded-full bg-fd-primary" />
-            <span>Windows 10/11 x64 · {LATEST_TAG} 소스 · 설치 ZIP 게시 보류</span>
+            <span>Windows 10/11 x64 · {release.label}</span>
           </div>
 
           <h1 className="max-w-3xl text-4xl font-bold tracking-tight text-fd-foreground sm:text-5xl sm:leading-[1.15]">
@@ -104,12 +105,12 @@ export default function HomePage() {
               5분 빠른 시작
             </Link>
             <a
-              href={RELEASES_URL}
+              href={release.url}
               target="_blank"
               rel="noreferrer"
               className="inline-flex items-center gap-2 rounded-lg border border-fd-border px-4 py-2.5 text-sm font-medium text-fd-muted-foreground transition hover:bg-fd-muted hover:text-fd-foreground"
             >
-              GitHub Releases 목록
+              GitHub 릴리스에서 다운로드
             </a>
           </div>
         </section>
@@ -285,7 +286,7 @@ export default function HomePage() {
         {/* Honest Pre-release Notice */}
         <section className="rounded-xl border border-fd-border bg-fd-muted/40 p-5 text-sm text-fd-muted-foreground">
           <p className="font-semibold text-fd-foreground">
-            공개 후보의 검증 범위 ({LATEST_TAG})
+            검증 범위 ({release.label})
           </p>
           <p className="mt-1.5 leading-relaxed">
             본 앱은 Windows 10/11 x64용 <strong className="text-fd-foreground">AGPL-3.0-only</strong>{' '}

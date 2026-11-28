@@ -1,5 +1,5 @@
-HWP Editor 1.0.0-rc.4 — HWPX 보고서 작성·실시간 미리보기 Windows x64 설치 안내
-Windows Presentation Foundation (WPF) 한 창의 왼쪽 HWPX 라이브 미리보기 / 오른쪽 순수 oh-my-pi (OMP) 터미널 2패널과 기본 접힘 서랍(Ctrl+B)으로 작성합니다.
+HWP Editor — HWP·HWPX 실시간 미리보기 Windows x64 설치 안내
+Windows Presentation Foundation (WPF) 한 창의 왼쪽 HWP·HWPX 라이브 미리보기 / 오른쪽 oh-my-pi (OMP) 터미널과 기본 접힘 서랍(Ctrl+B)으로 작성합니다. HWP5는 읽기 전용입니다.
 실제 후보의 버전·EXE·소스·검증 범위는 동봉 manifest와 체크섬으로 확인하세요.
 처음 사용한다면 동봉된 사용법.txt를 먼저 읽으세요.
 기존 HWP 자동적용은 별도 고급 도구이며 이 HWPX v1의 검증 완료 기능이 아닙니다.
@@ -147,7 +147,7 @@ Windows Presentation Foundation (WPF) 한 창의 왼쪽 HWPX 라이브 미리보
 정확한 소스와 라이선스
 - HWP Editor는 AGPL-3.0-only입니다. LICENSE와 licenses/ 원문 고지를 확인하세요.
   비상업 전용이 아니며 조건을 지키는 상업 배포도 가능합니다. 수정·재배포 권리를 제한하지 않습니다.
-- 동봉 HWPReview-source-1.0.0-rc.4.zip은 정확한 allowlist 입력 snapshot입니다.
+- 같은 릴리스의 HWPReview-source-<버전>.zip은 정확한 allowlist 입력 snapshot입니다.
   SOURCE-MANIFEST.json과 동봉 체크섬의 hash를 검증하세요.
   Git 공개 태그/저장소 전체/Native proof로 간주하지 않습니다.
 - 공개 HWPReview-corresponding-source-<version>.zip에는 같은 앱 입력 ZIP, 상류 자료 20개와 출처 인덱스가 있습니다. 필요한 WebView2 SDK는 앱 ZIP에 포함되며 전체 NuGet은 출처 검증에만 사용합니다. pywin32의 AutoDuck·SWIG 사전 빌드 실행기는 전달하지 않습니다.

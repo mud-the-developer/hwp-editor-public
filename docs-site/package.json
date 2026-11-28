@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "mdx": "fumadocs-mdx",
-    "predev": "fumadocs-mdx",
+    "predev": "node scripts/release.mjs && fumadocs-mdx",
     "dev": "next dev",
-    "prebuild": "fumadocs-mdx",
+    "prebuild": "node scripts/release.mjs && fumadocs-mdx",
     "build": "next build",
     "start": "next start"
   },

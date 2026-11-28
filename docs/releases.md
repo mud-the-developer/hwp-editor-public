@@ -1,6 +1,35 @@
 # 릴리스와 공개 배포 세트
 
-대상 공개 소스는 <https://github.com/mud-the-developer/hwp-editor-public>입니다. 현재 소스 제작 버전은 `1.0.0-rc.4`이며 버전의 기준은 `scripts/hwp_resources.py`의 `APP_VERSION`입니다. 버전명·공개 저장소·초안 사전 릴리스는 정식 배포·서명·재배포 적합성·실행 검증의 증거가 아닙니다.
+대상 공개 소스는 <https://github.com/mud-the-developer/hwp-editor-public>입니다. 제품 버전의 기준은 `scripts/hwp_resources.py`의 `APP_VERSION`입니다. 태그는 같은 제품 버전의 빌드도 커밋별로 구분합니다.
+
+## 자동 사전 릴리스
+
+기준은 파일 저장이 아니라 공개 저장소의 **`main` 푸시**입니다. GitHub의 읽기 전용 `check.yml`이 두 테스트 묶음, 새 Windows EXE 빌드·자체시험, Fumadocs 미리보기 빌드를 검사합니다. PR 코드는 운영 PC에서 실행하지 않습니다. CI의 원시 EXE·`BUILD.json`·로컬 영수증도 공개 아티팩트로 보관하지 않습니다.
+
+**Windows 운영 PC에서 한 번 등록:** 대화형 Windows x64 계정에 승인된 앱 전용 OMP와 필수 프로그램, 고정 Python 빌드 의존성, .NET SDK 10.0.401, `git`, `gh`가 준비되어 있어야 합니다. `gh`는 공개 저장소의 Releases·Actions 작업이 가능한 기존 사용자 로그인을 사용합니다. 토큰을 파일이나 인수에 넣지 마세요. Git `origin`이 위 공개 HTTPS 주소인 검토된 로컬 `main`에서 실행합니다.
+
+```powershell
+$python = (Resolve-Path .\.venv\Scripts\python.exe).Path
+$homeDir = "$env:LOCALAPPDATA\HWPReviewDelivery"
+& $python scripts\release_host.py enable --home $homeDir --repo (Get-Location).Path `
+  --upstream 'D:\release-inputs\verified-sources' --wrappers 'D:\release-inputs\prepared-gen_py\3.14'
+```
+
+`--upstream`은 `packaging/upstream-source-index.json`의 21개 원본만 들어 있는 읽기 전용 자료 폴더입니다. `--wrappers`는 준비된 한글 COM wrapper 3개를 읽어 복사할 로컬 위치입니다. 둘 다 Git에 넣지 않습니다. 등록은 기존 경로를 덮어쓰지 않고 현재 사용자의 시작프로그램에 **HWPReview Public Delivery** 바로가기 하나를 추가합니다. 자격 증명을 저장하거나 공용 저장소용 self-hosted runner를 등록하지 않습니다.
+
+1. 로그인 중이면 3분 간격으로 성공한 `main` 푸시를 확인합니다. 로그인하지 않은 동안의 푸시도 다음 로그인에 확인합니다. 원격에서만 병합한 커밋은 운영용 로컬 `main`에서 검토·반영해야 진행합니다. 운영 PC의 작업 파일은 자동으로 pull·checkout하지 않습니다.
+2. 각 커밋을 새 폴더에서 빌드하고 공개용 ZIP을 먼저 정제합니다. **배포할 바로 그 ZIP**을 새 사용자 설치 경로에 설치해 WPF 화면, 합성 문서, 앱 전용 OMP, 정상 종료를 확인합니다. 기존 설치·바로가기·사용자 `.bun`은 바꾸지 않습니다. 필수 프로그램이 빠지면 설치 창을 누르지 않고 멈춥니다.
+3. 상태와 EXE의 SHA-256을 확인합니다. `awaiting_native`일 때만 해당 해시에 대해 새 무서명 합성 문서 시험을 허용할 수 있습니다. 한글 작업을 닫고, 배포할 대응 소스와 고지·권리 및 배포 범위를 검토한 뒤 운영자가 **그 한 번의 시험**을 시작합니다. 이전 승인이나 다른 빌드의 영수증은 쓸 수 없습니다.
+
+```powershell
+& $python "$homeDir\release_host.py" status --home $homeDir
+& $python "$homeDir\release_host.py" qualify --home $homeDir --commit <40자리-커밋> `
+  --new-unsigned-toys-for <64자리-EXE-SHA256> --reviewed-materials
+```
+
+4. 동일 EXE가 스키마 1·3·4의 저장·재개방 검증을 모두 통과하면 운영 PC가 **6개 파일만** 새 사전 릴리스 `v<제품버전>-build.<커밋앞12자리>`에 올립니다. 초안의 파일 해시를 대조한 뒤 공개하고, 비로그인 상태로 자산을 다시 읽어 해시가 맞아야 `docs.yml`을 요청합니다. Pages는 같은 커밋·태그·체크섬을 독립 검증하고 배포합니다. 기존 릴리스를 수정하거나 정식판으로 승격하지 않습니다.
+
+`stopped`이면 `$homeDir\<커밋앞12자리>\state.json`, `failure.log`, 해당 단계 로그를 확인하세요. 재실행·강제 종료·이력 삭제는 자동으로 하지 않습니다. `published` 이후의 실패는 이미 공개된 릴리스를 취소하지 않으며 이전 Pages를 유지합니다. Pages만 실패했고 그 커밋이 여전히 공개 `main`이면 `gh workflow run docs.yml --ref main -f tag=<게시된태그> -f commit=<전체커밋> --repo mud-the-developer/hwp-editor-public`으로 **같은 공개 파일**을 재검증할 수 있습니다. 로그인 시 자동 시작을 끄려면 Windows 시작프로그램에서 위 바로가기를 비활성화하세요.
 
 ## 정확한 소스에서 새로 제작
 

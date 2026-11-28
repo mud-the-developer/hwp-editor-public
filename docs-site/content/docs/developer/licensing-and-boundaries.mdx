@@ -10,7 +10,7 @@ HWP Editor는 오픈소스 라이선스와 제3자 소프트웨어 경계를 엄
 - **라이선스**: **`AGPL-3.0-only`** (`LICENSE` 파일 참고)
 - 배포 패키지에는 `LICENSE`와 `licenses/`의 제3자 원문 고지가 포함됩니다.
 - 상단 **… → 법적 고지**에서 프로젝트 라이선스와 대응 소스 안내를 읽을 수 있습니다. 동봉한 고지 원문은 `licenses/`를 확인하세요.
-- [공개 사전 릴리스 v1.0.0-rc.4](https://github.com/mud-the-developer/hwp-editor-public/releases/tag/v1.0.0-rc.4)에서 Windows 설치 ZIP과 `HWPReview-corresponding-source-1.0.0-rc.4.zip`을 같은 조건으로 받을 수 있습니다. [AGPL §6(d)·§10](https://www.gnu.org/licenses/agpl-3.0.html)의 소스 접근 및 수정·재배포 권리가 적용됩니다.
+- <ReleaseLink />에서 Windows 설치 ZIP과 같은 버전의 대응 소스를 함께 받을 수 있습니다. [AGPL §6(d)·§10](https://www.gnu.org/licenses/agpl-3.0.html)의 소스 접근 및 수정·재배포 권리가 적용됩니다.
 
 ## 배포 패키지에 포함되지 않는 항목
 
@@ -29,14 +29,20 @@ HWP Editor는 오픈소스 라이선스와 제3자 소프트웨어 경계를 엄
 | `xterm.js` | 우측 패널 ConPTY 터미널 뷰 | 앱 런타임 자산에 포함 |
 | `.NET 10 Desktop Runtime (10.0.14)` | WPF 실행 런타임 | 공식 배포처에서 별도 설치 |
 | `Edge WebView2 Runtime (156.0.4314.58)` | 임베디드 웹뷰 런타임 | 공식 Evergreen 부트스트래퍼로 별도 설치 |
-| `Bun 1.4.4` / `oh-my-pi (OMP) 18.15.0` | 터미널 AI 에이전트 런타임 | 버전별 앱 전용 설치만 재사용하고, 없으면 앱 전용 경로에 준비 |
+| `Bun` / `oh-my-pi (OMP)` | 터미널 AI 에이전트 런타임 | 설치 키트에서 고정한 버전의 앱 전용 설치만 재사용하고, 없으면 앱 전용 경로에 준비 |
 | `PowerShell 7.6.9` | Windows 셸 런타임 | 공식 MSI 대화형 설치 |
 | `D2Coding Nerd Font Propo (3.5.1)` | 터미널 한글·아이콘 글꼴 | 사용자 글꼴 폴더에 별도 설치 |
 | Microsoft Visual C++ v14 런타임 | Python과 내장 모듈의 Windows 런타임 | 공개 Windows 키트를 설치할 때 **x64 `14.51.36247.0` 이상**을 [Microsoft 공식 x64 설치기](https://aka.ms/vc14/vc_redist.x64.exe)로 별도 준비. 앱은 다운로드·설치하지 않습니다. |
 
 [한글 오토메이션](https://developer.hancom.com/hwpautomation)은 한컴의 개인 비상업적 이용 범위를 따라야 합니다. 상업적 이용에는 [한컴의 별도 승인과 라이선스](https://developer.hancom.com/support/buy-support/?category=3)가 필요합니다. 앱 자체의 AGPL은 한글 오토메이션이나 보안모듈의 사용권을 부여하지 않으며, 한컴의 이용 조건이 앱의 AGPL에 비상업 제한을 추가하는 것은 아닙니다.
 
-## 공개 사전 릴리스 `v1.0.0-rc.4` 검증 범위
+## 릴리스별 검증 범위
+
+<ReleaseLink />에 첨부된 `RELEASE-MANIFEST.json`에서 소스 커밋, EXE 해시와 검증 범위를 확인하세요. 한 PC에서의 결과는 다른 PC에서의 실행이나 실제 업무 문서의 쪽맞춤까지 보증하지 않습니다.
+
+### 과거 기록: `v1.0.0-rc.4`
+
+아래는 [해당 릴리스](https://github.com/mud-the-developer/hwp-editor-public/releases/tag/v1.0.0-rc.4)의 기록입니다. 다른 빌드의 검증 증거가 아닙니다.
 
 - 한 Windows x64 PC의 별도 빈 시험 경로에서 같은 준비 코드로 실제 Bun·OMP 신규 다운로드·설치, 런타임 21개 파일과 두 실행 파일의 버전을 확인했습니다. 이미 사용 중인 앱 전용 경로와 사용자 `.bun`은 그대로 뒀습니다.
 - 별도로 같은 PC에 공개 Windows 키트를 실제 설치했습니다. 앱 전용 OMP, 합성 HWPX 미리보기, 원본 백업과 정상 종료를 확인했습니다. 오프라인 WPF 빌드, EXE 자체시험 및 읽기 전용 점검도 통과했습니다.
