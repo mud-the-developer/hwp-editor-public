@@ -29,7 +29,9 @@ class NativeOmpTests(unittest.TestCase):
         metadata = {
             omp.CLI_ROOT: {"name": "@oh-my-pi/pi-coding-agent", "version": omp.VERSION,
                            "type": "module", "bin": {"omp": "dist/cli.js"},
-                           "dependencies": {"@oh-my-pi/pi-natives": omp.VERSION}},
+                           "dependencies": {"@oh-my-pi/pi-natives": omp.VERSION, "puppeteer-core": omp.PUPPETEER_VERSION}},
+            omp.PUPPETEER_ROOT: {"name": "puppeteer-core", "version": omp.PUPPETEER_VERSION, "type": "module",
+                                 "exports": {"./internal/*": {"import": "./lib/puppeteer/*", "require": "./lib/puppeteer/*"}}},
             omp.NATIVES_ROOT: {"name": "@oh-my-pi/pi-natives", "version": omp.VERSION,
                                "type": "module", "main": "./native/index.js",
                                "exports": {".": {"types": "./native/index.d.ts", "import": "./native/index.js",
@@ -49,6 +51,8 @@ class NativeOmpTests(unittest.TestCase):
         (self.bun / omp.CLI_ROOT / "CHANGELOG.md").write_text("SYNTHETIC", encoding="utf-8")
         for name in ("src", "scripts", "examples", "dist/types"):
             (self.bun / omp.CLI_ROOT / name).mkdir(parents=True, exist_ok=True)
+        (self.bun / omp.PUPPETEER_ROOT / "README.md").write_text("SYNTHETIC", encoding="utf-8")
+        (self.bun / omp.PUPPETEER_ROOT / "src").mkdir()
         for name in omp.NATIVE_TYPES:
             (self.bun / omp.NATIVES_ROOT / "native" / name).write_text("SYNTHETIC type only", encoding="utf-8")
         for name, value in (("LAUNCHER_SHA256", hashlib.sha256(self.exe.read_bytes()).hexdigest()),
@@ -131,6 +135,13 @@ class NativeOmpTests(unittest.TestCase):
             self.assertEqual(Path(second["environment"]["GEMINI_HOME"]), private_store)
             self.assertEqual(local_sentinel.read_bytes(), b"SYNTHETIC APP STATE")
         self.assertEqual(sentinel.read_bytes(), b"SYNTHETIC GLOBAL STATE")
+
+    def test_launch_pins_disk_loader_and_admitted_native_directory(self):
+        with patch.dict(os.environ, {"PI_COMPILED": "1", "PI_NATIVE_VARIANT": "modern", "PI_NATIVES_DIR": "foreign"}):
+            env = self.prepare()["environment"]
+        self.assertEqual(env["PI_COMPILED"], "")
+        self.assertEqual(env["PI_NATIVE_VARIANT"], "baseline")
+        self.assertEqual(Path(env["PI_NATIVES_DIR"]), self.root / "owned/home/.omp/natives")
 
     def test_corrupt_managed_runtime_is_preserved_without_global_fallback(self):
         damaged = self.bun / "bin/bun.exe"
@@ -380,7 +391,7 @@ class NativeOmpTests(unittest.TestCase):
                 finally:
                     path.write_bytes(raw)
         for root in (omp.CLI_ROOT, omp.CLI_ROOT + "/dist", omp.NATIVES_ROOT,
-                     omp.NATIVES_ROOT + "/native", omp.LEAF_ROOT):
+                     omp.NATIVES_ROOT + "/native", omp.LEAF_ROOT, omp.PUPPETEER_ROOT):
             with self.subTest(extra=root):
                 extra = self.bun / root / "unexpected-runtime.js"
                 extra.write_bytes(b"SYNTHETIC")
@@ -389,6 +400,15 @@ class NativeOmpTests(unittest.TestCase):
                         self.helper.prepare()
                 finally:
                     extra.unlink()
+        for name in ("lib/package.json", "lib/puppeteer/package.json", "lib/puppeteer/util/package.json",
+                     "lib/puppeteer/util/Function.ts", "lib/puppeteer/util/Function.tsx", "lib/puppeteer/util/Function.jsx"):
+            shadow = self.bun / omp.PUPPETEER_ROOT / name
+            shadow.write_bytes(b"SYNTHETIC")
+            try:
+                with self.assertRaises(ValueError):
+                    self.helper.prepare()
+            finally:
+                shadow.unlink()
         shadow = self.bun / "install/global/node_modules/@oh-my-pi/node_modules"
         shadow.mkdir()
         with self.assertRaises(ValueError):
@@ -426,6 +446,8 @@ class NativeOmpTests(unittest.TestCase):
             (omp.CLI_ROOT, "bin", {"omp": "dist/cli.js", "other": "dist/cli.js"}),
             (omp.CLI_ROOT, "dependencies", None),
             (omp.CLI_ROOT, "dependencies", {"@oh-my-pi/pi-natives": "other"}),
+            (omp.PUPPETEER_ROOT, "version", "25.2.0"),
+            (omp.PUPPETEER_ROOT, "exports", {"./internal/*": {"import": "./src/*"}}),
             (omp.NATIVES_ROOT, "name", "@other/natives"),
             (omp.NATIVES_ROOT, "version", "18.14.1"), (omp.NATIVES_ROOT, "main", "./other.js"),
             (omp.NATIVES_ROOT, "type", "commonjs"),

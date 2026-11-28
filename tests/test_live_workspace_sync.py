@@ -7,6 +7,7 @@ import io
 import os
 from pathlib import Path
 import secrets
+import struct
 import sys
 import tempfile
 import unittest
@@ -54,6 +55,33 @@ def _make_hwpx_with_section(section_xml: bytes) -> bytes:
     return buf.getvalue()
 
 
+def _hwp_header_fixture(flags=0, version=5):
+    """CFB v3 intake fixture, not a Hancom-rendered document."""
+    free, end, fat = 0xffffffff, 0xfffffffe, 0xfffffffd
+    header = bytearray(512)
+    header[:8] = bytes.fromhex("d0cf11e0a1b11ae1")
+    struct.pack_into("<HHHHH", header, 24, 62, 3, 0xfffe, 9, 6)
+    struct.pack_into("<9I", header, 40, 0, 1, 1, 0, 4096, 2, 1, end, 0)
+    struct.pack_into("<109I", header, 76, 0, *([free] * 108))
+    allocation = struct.pack("<128I", fat, 4, end, end, end, *([free] * 123))
+    directory = bytearray(1024)
+    streams = [("Root Entry", 5, free, free, 1, 3, 384),
+               ("BodyText", 1, 2, 3, 4, 0, 0), ("DocInfo", 2, free, free, free, 4, 4),
+               ("FileHeader", 2, free, free, free, 0, 256), ("Section0", 2, free, free, free, 5, 4)]
+    for i, (name, kind, left, right, child, start, size) in enumerate(streams):
+        off = i * 128
+        label = (name + "\0").encode("utf-16le")
+        directory[off:off+len(label)] = label
+        struct.pack_into("<HBBIII", directory, off+64, len(label), kind, 1, left, right, child)
+        struct.pack_into("<IQ", directory, off+116, start, size)
+    mini_fat = struct.pack("<128I", 1, 2, 3, end, end, end, *([free] * 122))
+    mini_stream = bytearray(512)
+    mini_stream[:17] = b"HWP Document File"
+    mini_stream[35] = version
+    struct.pack_into("<I", mini_stream, 36, flags)
+    return bytes(header + allocation + directory[:512] + mini_fat + mini_stream + directory[512:])
+
+
 class LiveWorkspaceSyncTests(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -67,9 +95,85 @@ class LiveWorkspaceSyncTests(unittest.TestCase):
     def tearDown(self):
         self._tmp.cleanup()
 
+    def test_only_transient_capture_lock_is_retried(self):
+        locked = PermissionError("sharing violation")
+        locked.winerror = 32
+        capture = projects._capture
+        attempts = []
+
+        def capture_after_unlock(path, limit):
+            if path == self.doc:
+                attempts.append(path)
+                if len(attempts) == 1:
+                    raise locked
+            return capture(path, limit)
+
+        with patch.object(projects, "_capture", side_effect=capture_after_unlock):
+            opened = workspace.open_live_document(self.root, self.doc)
+        self.assertEqual(attempts, [self.doc, self.doc])
+        self.assertEqual(Path(opened["file_path"]).read_bytes(), self.base_bytes)
+
+    def test_evicted_checkpoint_never_becomes_current_render_target(self):
+        with patch.object(workspace, "MAX_HISTORY_CHECKPOINTS", 1):
+            original = workspace.open_live_document(self.root, self.doc)
+            updated = _mutate_hwpx(self.base_bytes, "", "새 본문")
+            self.doc.write_bytes(updated)
+            changed = workspace.record_live_checkpoint(self.root, self.doc)
+            self.assertEqual(len(changed["checkpoints"]), 1)
+            self.assertNotEqual(original["file_path"], changed["file_path"])
+            self.assertEqual(Path(changed["file_path"]).read_bytes(), updated)
+            reopened = workspace.open_live_document(self.root, self.doc)
+            self.assertEqual(changed["file_path"], reopened["file_path"])
+            restored = workspace.restore_live_checkpoint(self.root, self.doc, "original")
+            self.assertEqual(Path(restored["file_path"]).read_bytes(), self.base_bytes)
+
+    def test_binary_snapshot_admission_is_read_only(self):
+        doc = self.root / "binary.HWP"
+        raw = _hwp_header_fixture()
+        doc.write_bytes(raw)
+        protected = self.root / "baseline.hwp"
+        protected.write_bytes(raw)
+        listed = {r["name"] for r in workspace.scan_workspace(self.root)["documents"]}
+        self.assertEqual(listed, {self.doc.name, doc.name})
+        opened = workspace.open_live_document(self.root, doc)
+        cp = workspace.record_live_checkpoint(self.root, doc)
+        self.assertFalse(cp["recorded"])
+        self.assertEqual(cp["file_path"], opened["file_path"])
+        self.assertEqual(cp["sha256"], hashlib.sha256(raw).hexdigest())
+        for path in (opened["file_path"], opened["original_path"]):
+            self.assertEqual(Path(path).suffix, ".hwp")
+            self.assertEqual(Path(path).read_bytes(), raw)
+        for operation, args in [(workspace.open_workspace_document, (doc,)),
+                                (workspace.restore_live_checkpoint, (doc, "original")),
+                                (workspace.export_live_document, (doc, self.root / "copy.hwpx")),
+                                (workspace.open_in_hancom, (doc,)),
+                                (workspace.open_live_document, (protected,))]:
+            with self.subTest(operation=operation), self.assertRaises(ValueError):
+                operation(self.root, *args)
+        for invalid in (b"wrong", _hwp_header_fixture(version=4), *(_hwp_header_fixture(1 << n) for n in (1, 2, 4, 7, 8))):
+            doc.write_bytes(invalid)
+            with self.assertRaises(ValueError):
+                workspace.record_live_checkpoint(self.root, doc)
+        self.assertEqual(Path(opened["file_path"]).read_bytes(), raw)
+
+    def test_tampered_snapshot_and_unsafe_packages_are_not_published(self):
+        opened = workspace.open_live_document(self.root, self.doc)
+        Path(opened["file_path"]).write_bytes(b"changed")
+        with self.assertRaises(ValueError):
+            workspace.record_live_checkpoint(self.root, self.doc)
+        for member in ("../unsafe.xml", "contents/SECTION0.xml", "META-INF/signatures.xml",
+                       "META-INF/encryption.xml", "ViewText/Section0"):
+            buf = io.BytesIO()
+            with zipfile.ZipFile(buf, "w") as archive:
+                archive.writestr("Contents/section0.xml", "<section/>")
+                archive.writestr(member, "extra")
+            self.doc.write_bytes(buf.getvalue())
+            with self.subTest(member=member), self.assertRaises(ValueError):
+                workspace.open_live_document(self.root, self.doc)
+
+
     def test_protected_path_guard(self):
         self.assertFalse(workspace.is_protected_live_path(self.doc, self.root))
-
         protected_dir = self.root / "example"
         protected_dir.mkdir()
         self.assertTrue(workspace.is_protected_live_path(protected_dir / "form.hwpx", self.root))
@@ -163,6 +267,7 @@ class LiveWorkspaceSyncTests(unittest.TestCase):
         self.assertEqual(restored_v1["sha256"], v1_sha)
         self.assertEqual(self.doc.read_bytes(), v1_bytes)
         reasons = [row["reason"] for row in restored_v1["checkpoints"]]
+        self.assertEqual(Path(restored_v1["file_path"]).read_bytes(), v1_bytes)
         self.assertIn("pre-restore", reasons)
         self.assertEqual(restored_v1["checkpoints"][-1]["reason"], "restore")
         self.assertTrue(any(row["sha256"] == v3_sha for row in restored_v1["checkpoints"]))

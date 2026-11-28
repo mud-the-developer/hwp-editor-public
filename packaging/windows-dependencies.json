@@ -101,12 +101,12 @@
     {
       "id": "omp_runtime",
       "name": "Bun / oh-my-pi",
-      "version": "1.4.4 / 18.15.0",
+      "version": "1.4.4 / 19.2.1",
       "kind": "bun_omp",
-      "url": "https://registry.npmjs.org/@oh-my-pi/pi-coding-agent/-/pi-coding-agent-18.15.0.tgz",
-      "size": 14978439,
-      "sha256": "c935c4dd3b7a88acffdcd698f2499df90f869534e9b43fba8885ed60739bf465",
-      "release_url": "https://github.com/can1357/oh-my-pi/releases/tag/v18.15.0",
+      "url": "https://registry.npmjs.org/@oh-my-pi/pi-coding-agent/-/pi-coding-agent-19.2.1.tgz",
+      "size": 20100641,
+      "sha256": "b80a4911e2bd1b6f91d1328de81d858e1c3a3a17106911013194bc1dda08a79e",
+      "release_url": "https://github.com/can1357/oh-my-pi/releases/tag/v19.2.1",
       "runtime_assets": [
         {
           "id": "bun",
@@ -116,25 +116,31 @@
         },
         {
           "id": "natives",
-          "url": "https://registry.npmjs.org/@oh-my-pi/pi-natives/-/pi-natives-18.15.0.tgz",
-          "size": 129772,
-          "sha256": "49eaf550b7660fc4f72ab234b532d1006a8380122a22c729019042620f8f5428"
+          "url": "https://registry.npmjs.org/@oh-my-pi/pi-natives/-/pi-natives-19.2.1.tgz",
+          "size": 148425,
+          "sha256": "af81d184f8869d4a257d484db99ee16c897fc81463e951355ef5561795f61da2"
         },
         {
           "id": "win32",
-          "url": "https://registry.npmjs.org/@oh-my-pi/pi-natives-win32-x64/-/pi-natives-win32-x64-18.15.0.tgz",
-          "size": 46414765,
-          "sha256": "1b110b2e1444338308a1a47ff840357ecb8d0d9da45e693904f38c9634590b6b"
+          "url": "https://registry.npmjs.org/@oh-my-pi/pi-natives-win32-x64/-/pi-natives-win32-x64-19.2.1.tgz",
+          "size": 57586734,
+          "sha256": "f1bbdbcdfcd73e71182c63f9750f2da8039591697e0548ba52c46f33c24317ee"
+        },
+        {
+          "id": "puppeteer",
+          "url": "https://registry.npmjs.org/puppeteer-core/-/puppeteer-core-25.3.0.tgz",
+          "size": 1118695,
+          "sha256": "a87ed4ec534445f1eef0c00b1d7146e7453786b45b8423e08b8714ea1c87373f"
         }
       ],
       "license_files": [
         "packaging/licenses/Bun-1.4.4-LICENSE.md",
-        "packaging/licenses/OMP-18.15.0-LICENSE.txt",
-        "packaging/licenses/OMP-18.15.0-THIRD-PARTY-NOTICES.txt",
-        "packaging/licenses/OMP-Natives-18.15.0-LICENSE.txt",
-        "packaging/licenses/OMP-Natives-18.15.0-THIRD-PARTY-NOTICES.txt",
-        "packaging/licenses/OMP-Win32-x64-18.15.0-LICENSE.txt",
-        "packaging/licenses/OMP-Win32-x64-18.15.0-THIRD-PARTY-NOTICES.txt"
+        "packaging/licenses/OMP-19.2.1-LICENSE.txt",
+        "packaging/licenses/OMP-19.2.1-THIRD-PARTY-NOTICES.txt",
+        "packaging/licenses/OMP-Natives-19.2.1-LICENSE.txt",
+        "packaging/licenses/OMP-Natives-19.2.1-THIRD-PARTY-NOTICES.txt",
+        "packaging/licenses/OMP-Win32-x64-19.2.1-LICENSE.txt",
+        "packaging/licenses/OMP-Win32-x64-19.2.1-THIRD-PARTY-NOTICES.txt"
       ]
     },
     {
@@ -175,12 +181,12 @@
     "packaging/licenses/DotNet-WindowsDesktop-10.0.14-LICENSE.txt": "ae48df11a335dc1a615f4f938b69cba73bcf4485c4f97af49b38efb0f216353b",
     "packaging/licenses/WebView2-Runtime-156.0.4314.58-EULA.html": "ce6fa83e57c338256e5cabe9e1eea83076c271b0fdb253408213eeb08859d7b6",
     "packaging/licenses/Bun-1.4.4-LICENSE.md": "362fe32c954ec829240bd7429c53d705eef08c6bfa45ffc2d02005f857cba4dd",
-    "packaging/licenses/OMP-18.15.0-LICENSE.txt": "16c45f9d667442781f03fa198914cc39abcaa48ec5ed8f644643e554ca2fbf63",
-    "packaging/licenses/OMP-18.15.0-THIRD-PARTY-NOTICES.txt": "c8bdf2c6601a5af7dc96bf6e9ad0f49c459402a7606943c9ed64c1d81760ecc2",
-    "packaging/licenses/OMP-Natives-18.15.0-LICENSE.txt": "90179611795093ae17d4a6bc6e06da450a8e54bbeb147a065b4127e1e4b407a7",
-    "packaging/licenses/OMP-Natives-18.15.0-THIRD-PARTY-NOTICES.txt": "a30f302aa403f7ecb1009caf8e565876b10d03782d420689e91ff0092b041ddf",
-    "packaging/licenses/OMP-Win32-x64-18.15.0-LICENSE.txt": "90179611795093ae17d4a6bc6e06da450a8e54bbeb147a065b4127e1e4b407a7",
-    "packaging/licenses/OMP-Win32-x64-18.15.0-THIRD-PARTY-NOTICES.txt": "a30f302aa403f7ecb1009caf8e565876b10d03782d420689e91ff0092b041ddf",
+    "packaging/licenses/OMP-19.2.1-LICENSE.txt": "16c45f9d667442781f03fa198914cc39abcaa48ec5ed8f644643e554ca2fbf63",
+    "packaging/licenses/OMP-19.2.1-THIRD-PARTY-NOTICES.txt": "c8bdf2c6601a5af7dc96bf6e9ad0f49c459402a7606943c9ed64c1d81760ecc2",
+    "packaging/licenses/OMP-Natives-19.2.1-LICENSE.txt": "90179611795093ae17d4a6bc6e06da450a8e54bbeb147a065b4127e1e4b407a7",
+    "packaging/licenses/OMP-Natives-19.2.1-THIRD-PARTY-NOTICES.txt": "52974f8e80c15a948ef4dd8e6d59c30fd42212b76b3035c46b9ad9088dfd53be",
+    "packaging/licenses/OMP-Win32-x64-19.2.1-LICENSE.txt": "90179611795093ae17d4a6bc6e06da450a8e54bbeb147a065b4127e1e4b407a7",
+    "packaging/licenses/OMP-Win32-x64-19.2.1-THIRD-PARTY-NOTICES.txt": "52974f8e80c15a948ef4dd8e6d59c30fd42212b76b3035c46b9ad9088dfd53be",
     "packaging/licenses/Hancom-Automation-Usage-Notice.txt": "1f965185c74e4f2aa232ee97037328e4d6eea3f875b16d5d3feb4fd06cfb35f8"
   }
 }

@@ -77,7 +77,7 @@ NATIVE_SOURCE_FILES = (
     "native/HWPReview.Native/ConPtySession.cs",
     "native/HWPReview.Native/OmpTerminalPane.cs",
     "native/HWPReview.Native/HwpxDocumentPane.cs",
-    "native/HWPReview.Native/HwpxLiveWatcher.cs",
+    "native/HWPReview.Native/WorkspaceDocumentWatcher.cs",
     "native/HWPReview.Native/OmpInstalledRuntime.cs",
     "native/HWPReview.Native/OmpSessionBridge.cs",
     "native/HWPReview.Native/Styles.xaml",

@@ -22,18 +22,20 @@ RUNTIME_ASSETS = {
         "release_url": "https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution",
     },
     "omp_runtime": {
-        "name": "Bun / oh-my-pi", "version": "1.4.4 / 18.15.0", "kind": "bun_omp",
-        "url": "https://registry.npmjs.org/@oh-my-pi/pi-coding-agent/-/pi-coding-agent-18.15.0.tgz",
-        "size": 14978439,
-        "sha256": "c935c4dd3b7a88acffdcd698f2499df90f869534e9b43fba8885ed60739bf465",
-        "release_url": "https://github.com/can1357/oh-my-pi/releases/tag/v18.15.0",
+        "name": "Bun / oh-my-pi", "version": "1.4.4 / 19.2.1", "kind": "bun_omp",
+        "url": "https://registry.npmjs.org/@oh-my-pi/pi-coding-agent/-/pi-coding-agent-19.2.1.tgz",
+        "size": 20100641,
+        "sha256": "b80a4911e2bd1b6f91d1328de81d858e1c3a3a17106911013194bc1dda08a79e",
+        "release_url": "https://github.com/can1357/oh-my-pi/releases/tag/v19.2.1",
         "runtime_assets": [
             {"id": "bun", "url": "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-windows-x64.zip",
              "size": 54731706, "sha256": "cd2c0fccc78f3ede1f50ca827a15f063eda13d4d150a3d0674f4f6e323d864a5"},
-            {"id": "natives", "url": "https://registry.npmjs.org/@oh-my-pi/pi-natives/-/pi-natives-18.15.0.tgz",
-             "size": 129772, "sha256": "49eaf550b7660fc4f72ab234b532d1006a8380122a22c729019042620f8f5428"},
-            {"id": "win32", "url": "https://registry.npmjs.org/@oh-my-pi/pi-natives-win32-x64/-/pi-natives-win32-x64-18.15.0.tgz",
-             "size": 46414765, "sha256": "1b110b2e1444338308a1a47ff840357ecb8d0d9da45e693904f38c9634590b6b"},
+            {"id": "natives", "url": "https://registry.npmjs.org/@oh-my-pi/pi-natives/-/pi-natives-19.2.1.tgz",
+             "size": 148425, "sha256": "af81d184f8869d4a257d484db99ee16c897fc81463e951355ef5561795f61da2"},
+            {"id": "win32", "url": "https://registry.npmjs.org/@oh-my-pi/pi-natives-win32-x64/-/pi-natives-win32-x64-19.2.1.tgz",
+             "size": 57586734, "sha256": "f1bbdbcdfcd73e71182c63f9750f2da8039591697e0548ba52c46f33c24317ee"},
+            {"id": "puppeteer", "url": "https://registry.npmjs.org/puppeteer-core/-/puppeteer-core-25.3.0.tgz",
+             "size": 1118695, "sha256": "a87ed4ec534445f1eef0c00b1d7146e7453786b45b8423e08b8714ea1c87373f"},
         ],
     },
 }
@@ -85,12 +87,12 @@ def component_status(component):
     if not os.path.lexists(managed):
         return {
             "installed": False,
-            "detail": "앱 전용 Bun 1.4.4 / OMP 18.15.0이 없습니다. 사용자 .bun 대신 앱 전용 경로에 준비합니다.",
+            "detail": "앱 전용 Bun 1.4.4 / OMP 19.2.1이 없습니다. 사용자 .bun 대신 앱 전용 경로에 준비합니다.",
         }
     # A partial/corrupt managed install is evidence, not a repair cue.
     home = _setup()._local_app_data() / "HWPReview/NativeOmp/home"
     omp._runtime(managed / "bin/omp.exe", home)
-    return {"installed": True, "detail": "앱 전용 Bun 1.4.4 / OMP 18.15.0의 정확한 21개 런타임 파일을 확인했습니다. 기존 로그인은 유지합니다."}
+    return {"installed": True, "detail": "앱 전용 Bun 1.4.4 / OMP 19.2.1의 정확한 28개 런타임 파일을 확인했습니다. 기존 로그인은 유지합니다."}
 
 
 def _run_microsoft_exe(component, payload, run, record):

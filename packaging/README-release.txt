@@ -28,16 +28,16 @@ Windows Presentation Foundation (WPF) 한 창의 왼쪽 HWPX 라이브 미리보
    한글이 없거나 비호환이면 HWPX 기능만 사용합니다. 상용 한글 자동화 연동은 한컴의 별도 승인이 필요합니다.
 
 설치 후 앱에서 작업하기
-1. 상단 폴더 버튼(Ctrl+O)으로 HWPX가 있는 작업 폴더나 빈 폴더를 엽니다.
-   상단 문서 선택이나 Ctrl+B 서랍에서 작업 폴더의 .hwpx 문서를 고릅니다.
+1. 상단 폴더 버튼(Ctrl+O)으로 작업 폴더를 엽니다. 비어 있어도 됩니다.
+   상단 문서 선택이나 Ctrl+B 서랍에서 .hwpx 또는 읽기 전용 .hwp를 고릅니다.
    파일이 없다면 Ctrl+N 또는 서랍의 [+ 새 HWPX]로 작업 폴더 안에 실제 빈 파일을 만듭니다. 기존 파일은 덮어쓰지 않습니다.
-   최초 열기 시 .hwpreview/originals/<sha256>.hwpx에 불변 원본을 1회 자동 백업하며 example/ 등 보호 경로 덮어쓰기는 차단합니다.
+   처음 열 때 .hwpreview/originals/에 원래 확장자로 원본을 보존합니다. 보호 경로는 작업 원본으로 열지 않습니다.
    AI 첫 사용 시 오른쪽 OMP 터미널에서 /login으로 직접 인증한 뒤 /model로 모델을 고릅니다. 선택 폴더가 실제 OMP 작업 경로이며 변경 시 유휴 세션을 정상 종료하고 같은 앱 프로필로 새 경로에 연결합니다.
    기본 OMP 읽기·쓰기·셸을 사용합니다. 프로젝트의 HWPReview.md는 없을 때만 만들고 기존 파일은 보존합니다. Markdown은 지침이지 보안 경계가 아니며 셸은 사용자 권한으로 프로젝트 밖에도 접근합니다.
 2. 왼쪽 미리보기에서 문서를 스크롤하고 본문 문단을 두 번 클릭하면 해당 위치·발췌 참조가 오른쪽 OMP 터미널 입력(또는 클립보드)으로 전달됩니다.
 3. 상단 [한글에서 열기]는 활성 작업 .hwpx를 Windows 기본 앱으로 엽니다. 다른 앱이 열리면 한글의 [파일 → 열기]에서 같은 파일을 선택하세요.
-   OMP 또는 한글에서 활성 작업 폴더의 .hwpx를 수정·저장(Ctrl+S)하면
-   부모 디렉터리 감시(HwpxLiveWatcher)가 잠금 해제·ZIP/section0.xml 검증·SHA-256 비교 뒤 상주 WebView2 미리보기를 현재 쪽·스크롤·배율 그대로 즉시 갱신하고 .hwpreview/history/에 자동 체크포인트를 누적합니다.
+   OMP나 한글이 작업 폴더에 문서를 저장하면 새 파일도 자동으로 표시됩니다. 같은 문서에서는 쪽·스크롤·배율을 유지합니다.
+   […] → [다른 문서 저장 시 자동 전환]을 끄면 현재 문서만 따라갑니다. 과거 체크포인트를 보는 동안 화면은 고정됩니다.
 4. Ctrl+B 서랍의 체크포인트 타임라인에서 이전 시점을 클릭해 미리보거나 복원할 수 있습니다.
    상단 [새로고침]·[내보내기]로 수동 갱신과 별도 파일 저장이 가능합니다. 최종 배치는 내보낸 .hwpx를 한글에서 직접 열어 확인하세요.
    유휴 상태의 폴더 전환과 창 닫기는 실제 소유 OMP 자식 프로세스의 정상 종료를 기다립니다.
@@ -55,7 +55,7 @@ Windows Presentation Foundation (WPF) 한 창의 왼쪽 HWPX 라이브 미리보
   HWPReview.exe 또는 Setup-Requirements.cmd를 직접 실행하기 전에도 준비해야 합니다.
 
 필수 환경 자동 준비 — 기존 앱 준비 창 하나를 재사용
-- .NET 10 Desktop Runtime x64, WebView2 Runtime, Bun1.4.4/OMP18.15.0, PowerShell7, Propo 글꼴이 필수입니다.
+- .NET 10 Desktop Runtime x64, WebView2 Runtime, Bun1.4.4/OMP19.2.1, PowerShell7, Propo 글꼴이 필수입니다.
   호환 설치는 유지하며 누락분만 고정 공식 배포·크기·SHA-256·해당 Microsoft 서명 조건으로 준비합니다.
   일반 .NET Runtime만으로 Desktop Runtime을 대신할 수 없습니다.
 - .NET은 관리자 UAC가 필요할 수 있습니다. WebView2 Runtime의 원문 약관·기본 SmartScreen 정보 전송·
@@ -126,7 +126,7 @@ Windows Presentation Foundation (WPF) 한 창의 왼쪽 HWPX 라이브 미리보
 - 사람의 원본/결과 시각 검토와 기관 제출·서명 승인은 별도입니다. 다른 PC/한글 버전은 아직 미검증입니다.
 
 실제 OMP 터미널
-- 외부 준비 대상은 고정 Bun1.4.4 Windows x64 일반 빌드, OMP18.15.0과 WebView2 Runtime입니다. 누락분은 같은 필수 준비 경로로 검증하며 동봉 바이너리나 다른 버전으로 대체하지 않습니다.
+- 외부 준비 대상은 고정 Bun1.4.4 Windows x64 일반 빌드, OMP19.2.1과 WebView2 Runtime입니다. 누락분은 같은 필수 준비 경로로 검증하며 동봉 바이너리나 다른 버전으로 대체하지 않습니다.
 - 앱 전용 HOME/프로필/작업/세션을 쓰며 기존 사용자 인증/설정을 복사하지 않습니다. 선택적 초기 안내만 생략하고 로그인·모델 설정은 직접 합니다.
 - 오른쪽 OMP 터미널에서 전송 전에 문맥을 확인하세요. 사용료가 발생할 수 있습니다. 시작·문서 열기·미리보기는 모델 호출이 아닙니다.
   터미널에서 문서를 수정·저장하는 작업은 기존 HWP 도구의 검토·승인·적용과 별개입니다.
@@ -135,7 +135,7 @@ Windows Presentation Foundation (WPF) 한 창의 왼쪽 HWPX 라이브 미리보
 
 정확한 외부 Bun/OMP 준비
 - source ZIP의 packaging/windows-dependencies.json과 packaging/omp-runtime.json을 사용합니다.
-  후자는 frozen 앱의 native-ui/omp-runtime.json에 배치되며 기존21개 파일/크기/SHA256/닫힌 namespace 기준은 같습니다.
+  후자는 frozen 앱의 native-ui/omp-runtime.json에 배치되며 실행기·라우팅·필수 모듈 28개의 경로·크기·SHA256과 패키지 탐색 경로를 검사합니다.
   임의 PATH의 다른 omp.exe로 우회하지 않습니다. 버전 문자열만으로 연결 가능하다고 보지 않습니다.
 - %LOCALAPPDATA%\HWPReview\Dependencies 아래 버전별 앱 전용 root만 허용합니다.
   호환되는 사용자 ~/.bun이 있어도 사용하지 않습니다. 앱 전용 root가 없으면 같은 경로에 준비하며,

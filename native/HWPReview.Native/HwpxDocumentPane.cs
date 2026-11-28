@@ -11,7 +11,7 @@ namespace HWPReview.Native;
 
 internal sealed record DocumentPassageTarget(string Identity, string Sha256, int Page, int SectionIndex, int ParagraphIndex, string Text, bool Truncated);
 
-// Resident local HWPX preview surface consuming immutable authenticated bytes only.
+// Resident local HWP/HWPX preview surface; only host-admitted immutable snapshots.
 // No document, process, OMP, approval, shell, or file-action message handlers exist here.
 internal sealed class HwpxDocumentPane : UserControl, IDisposable
 {
@@ -28,7 +28,7 @@ internal sealed class HwpxDocumentPane : UserControl, IDisposable
     private readonly Border placeholder = new() { Padding = new Thickness(24) };
     private readonly TextBlock placeholderText = new()
     {
-        Text = "작업 폴더를 열고 .hwpx 문서를 선택하면 여기에 라이브 미리보기가 표시됩니다.",
+        Text = "작업 폴더를 열면 저장된 HWP·HWPX 문서가 여기에 표시됩니다.",
         FontSize = 13,
         TextWrapping = TextWrapping.Wrap,
         TextAlignment = TextAlignment.Center,
@@ -69,7 +69,7 @@ internal sealed class HwpxDocumentPane : UserControl, IDisposable
         layout.Children.Add(placeholder);
         Content = layout;
         MinHeight = 200;
-        AutomationProperties.SetName(this, "HWPX 라이브 미리보기");
+        AutomationProperties.SetName(this, "HWP·HWPX 라이브 미리보기");
         AutomationProperties.SetAutomationId(this, "HwpxDocumentPane");
     }
 
@@ -101,33 +101,47 @@ internal sealed class HwpxDocumentPane : UserControl, IDisposable
         if (view is not null) view.Visibility = Visibility.Collapsed;
     }
 
-    public async Task ShowAsync(ReadOnlyMemory<byte> bytes, string expectedSha256, string identity, string label, bool preserveView = false)
+    public async Task ShowAsync(string snapshotPath, string expectedSha256, string identity, string label, bool preserveView = false)
     {
         Dispatcher.VerifyAccess();
         ObjectDisposedException.ThrowIf(disposed, this);
-        if (bytes.Length == 0 || bytes.Length > MaximumBytes || identity.Length is 0 or > 1024 || label.Length > 1024 ||
-            expectedSha256.Length != 64 || expectedSha256.Any(c => !(c is >= '0' and <= '9' or >= 'a' and <= 'f')))
-            throw new InvalidDataException("문서 크기·식별자·SHA256 형식이 올바르지 않습니다.");
-
-        // Snapshot before any await so callers cannot mutate queued bytes.
-        byte[] snapshot = bytes.ToArray();
-        if (Convert.ToHexStringLower(SHA256.HashData(snapshot)) != expectedSha256)
-            throw new InvalidDataException("현재 HWPX 바이트와 SHA256이 다릅니다.");
+        string format = Path.GetExtension(identity).ToLowerInvariant() switch
+        {
+            ".hwpx" => "hwpx", ".hwp" => "hwp", _ => throw new InvalidDataException("지원하지 않는 문서 형식입니다.")
+        };
+        if (!string.Equals(Path.GetExtension(snapshotPath), "." + format, StringComparison.OrdinalIgnoreCase) ||
+            identity.Length is 0 or > 1024 || label.Length > 1024 || expectedSha256.Length != 64 ||
+            expectedSha256.Any(c => !(c is >= '0' and <= '9' or >= 'a' and <= 'f')))
+            throw new InvalidDataException("체크포인트 형식·식별자·SHA-256을 확인하세요.");
 
         int current = ++generation;
         pending?.TrySetCanceled();
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         pending = completion;
-        currentBytes = snapshot;
+        currentBytes = null;
         currentSha256 = expectedSha256;
         currentIdentity = identity;
         currentLabel = label;
         currentPreserveView = preserveView;
         currentFailed = false;
-        if (!preserveView) SetStatus("HWPX를 표시하는 중…");
+        if (!preserveView) SetStatus("문서를 표시하는 중…");
 
         try
         {
+            LaunchDescriptor.RequirePath(snapshotPath, false);
+            byte[] snapshot;
+            using (var stream = new FileStream(snapshotPath, FileMode.Open, FileAccess.Read, FileShare.Read,
+                       4096, FileOptions.Asynchronous | FileOptions.SequentialScan))
+            {
+                long length = stream.Length;
+                if (length is < 1 or > MaximumBytes) throw new InvalidDataException("문서 표시 크기 한도를 벗어났습니다.");
+                snapshot = GC.AllocateUninitializedArray<byte>((int)length);
+                await stream.ReadExactlyAsync(snapshot);
+            }
+            if (current != generation || disposed) return;
+            if (Convert.ToHexStringLower(SHA256.HashData(snapshot)) != expectedSha256)
+                throw new InvalidDataException("체크포인트 바이트와 SHA-256이 다릅니다.");
+            currentBytes = snapshot;
             await EnsureInitializedAsync();
             if (current != generation || disposed) return;
             if (view?.CoreWebView2 is null) throw new IOException("미리보기 WebView2를 초기화하지 못했습니다.");
@@ -138,6 +152,7 @@ internal sealed class HwpxDocumentPane : UserControl, IDisposable
                 type = "show",
                 generation = current,
                 identity,
+                format,
                 sha256 = expectedSha256,
                 preserveView
             }));
@@ -251,7 +266,7 @@ internal sealed class HwpxDocumentPane : UserControl, IDisposable
             args.Response = environment?.CreateWebResourceResponse(Stream.Null, 403, "Forbidden", "Content-Type: text/plain\r\nCache-Control: no-store");
             return;
         }
-        if (args.Request.Uri == Origin + "/document.hwpx")
+        if (args.Request.Uri == Origin + "/document")
         {
             byte[]? snapshot = currentBytes;
             if (snapshot is null)

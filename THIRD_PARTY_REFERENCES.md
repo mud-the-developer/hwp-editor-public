@@ -50,6 +50,12 @@
 
 문서 전체의 읽기 전용 쪽 미리보기에만 사용하며 외부 네트워크·문서 저장·승인·OMP 실행 권한을 주지 않습니다. 글꼴 바이너리나 전체 편집기는 도입하지 않았고 한글 Native 검증을 대체하지 않습니다. 새 frozen/배포본의 실제 구성·대응 소스·고지 감사는 별도입니다.
 
+## 앱 전용 Bun·OMP 런타임
+
+Windows x64 앱은 [Bun 1.4.4 일반 x64 빌드](https://github.com/oven-sh/bun/releases/tag/bun-v1.4.4)와 npm의 [OMP CLI 19.2.1](https://registry.npmjs.org/@oh-my-pi/pi-coding-agent/-/pi-coding-agent-19.2.1.tgz), [native 로더](https://registry.npmjs.org/@oh-my-pi/pi-natives/-/pi-natives-19.2.1.tgz), [Windows x64 애드온](https://registry.npmjs.org/@oh-my-pi/pi-natives-win32-x64/-/pi-natives-win32-x64-19.2.1.tgz)을 앱 전용 경로에서 사용합니다. CLI가 시작할 때 읽는 [puppeteer-core 25.3.0](https://registry.npmjs.org/puppeteer-core/-/puppeteer-core-25.3.0.tgz)의 패키지 정보와 JavaScript 모듈도 설치 기준에 포함합니다. 설치 중 브라우저를 내려받거나 패키지 스크립트를 실행하지 않습니다.
+
+입력 archive의 크기·SHA256과 패키지별 원문 고지 경로는 `packaging/windows-dependencies.json`, 실행 시 검사하는 28개 파일은 `packaging/omp-runtime.json`을 참조하세요. Bun 및 세 OMP 패키지의 고지는 `packaging/licenses/`에 보존합니다. puppeteer-core archive에는 별도 LICENSE 파일이 없으며 OMP CLI 원문 THIRD-PARTY-NOTICES에 해당 버전과 Apache-2.0 표기가 있습니다. 이 검사는 모든 선택 기능의 의존성이나 재배포 적합성 감사를 대신하지 않습니다.
+
 ## 추후 소스/패키지를 실제 도입할 때
 
 1. source commit/release, 파일별 LICENSE/NOTICE, 전체 선택 의존성 조건을 확인합니다.

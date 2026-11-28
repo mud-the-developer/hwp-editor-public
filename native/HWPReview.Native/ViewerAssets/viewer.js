@@ -202,7 +202,7 @@ async function render(index, expectedGeneration = activeGeneration) {
     if (Math.abs(clean.width - info.width) > 1 || Math.abs(clean.height - info.height) > 1) throw new Error("쪽 표시와 위치 좌표가 일치하지 않습니다.");
     const url = URL.createObjectURL(new Blob([clean.markup], { type: "image/svg+xml" }));
     const image = new Image();
-    image.alt = `HWPX ${index + 1}/${pages.length}쪽 로컬 미리보기. 본문을 두 번 클릭하면 OMP 터미널로 참조를 보냅니다.`;
+    image.alt = `${index + 1}/${pages.length}쪽 로컬 미리보기. 본문을 두 번 클릭하면 OMP 터미널로 참조를 보냅니다.`;
     image.draggable = false;
     image.src = url;
     try {
@@ -344,33 +344,36 @@ async function showDocument(message) {
     }
     activeGeneration = generation;
     binding = Object.freeze({ generation, identity: message.identity, sha256: message.sha256 });
+    // Old pixels may remain while loading, but cannot acknowledge or describe new bytes.
+    settled = false;
     failed = false;
     status.textContent = "";
     status.hidden = true;
     delete status.dataset.kind;
-    if (!snapshot) viewport.setAttribute("aria-busy", "true");
+    viewport.setAttribute("aria-busy", "true");
+    updateControls();
     try {
         await engine;
         if (generation !== activeGeneration) return;
-        const response = await fetch("/document.hwpx", { cache: "no-store", credentials: "omit", redirect: "error" });
+        const response = await fetch("/document", { cache: "no-store", credentials: "omit", redirect: "error" });
         if (generation !== activeGeneration) return;
-        if (!response.ok) throw new Error("현재 HWPX 바이트를 읽지 못했습니다.");
+        if (!response.ok) throw new Error("현재 체크포인트를 읽지 못했습니다.");
         const bytes = new Uint8Array(await response.arrayBuffer());
         if (generation !== activeGeneration) return;
-        if (bytes.byteLength < 1 || bytes.byteLength > 64 * 1024 * 1024) throw new Error("HWPX 표시 크기 한도를 넘었습니다.");
+        if (bytes.byteLength < 1 || bytes.byteLength > 64 * 1024 * 1024) throw new Error("문서 표시 크기 한도를 넘었습니다.");
         const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
         if (generation !== activeGeneration) return;
         const hash = Array.from(digest, value => value.toString(16).padStart(2, "0")).join("");
-        if (hash !== binding.sha256) throw new Error("현재 HWPX 해시가 다릅니다.");
+        if (hash !== binding.sha256) throw new Error("현재 체크포인트 해시가 다릅니다.");
         const nextHandle = new HwpDocument(bytes);
-        if (nextHandle.getSourceFormat() !== "hwpx") {
+        if (nextHandle.getSourceFormat() !== message.format) {
             nextHandle.free();
-            throw new Error("이 미리보기는 검증된 HWPX만 표시합니다.");
+            throw new Error("문서의 실제 형식이 검증한 체크포인트와 다릅니다.");
         }
         const count = nextHandle.pageCount();
         if (!Number.isInteger(count) || count < 1 || count > 10000) {
             nextHandle.free();
-            throw new Error("HWPX 쪽 수가 표시 한도를 벗어났습니다.");
+            throw new Error("문서 쪽 수가 표시 한도를 벗어났습니다.");
         }
         const nextPages = [];
         for (let index = 0; index < count; index++) {
@@ -435,6 +438,7 @@ window.chrome.webview.addEventListener("message", event => {
         return;
     }
     if (message?.type !== "show" || !Number.isInteger(message.generation) || message.generation <= activeGeneration ||
+        (message.format !== "hwp" && message.format !== "hwpx") ||
         typeof message.identity !== "string" || message.identity.length < 1 || message.identity.length > 1024 ||
         !/^[a-f0-9]{64}$/u.test(message.sha256)) return;
     showDocument(message);

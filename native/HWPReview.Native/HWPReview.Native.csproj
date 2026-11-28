@@ -37,7 +37,7 @@
     <Compile Include="ConPtySession.cs" />
     <Compile Include="OmpTerminalPane.cs" />
     <Compile Include="HwpxDocumentPane.cs" />
-    <Compile Include="HwpxLiveWatcher.cs" />
+    <Compile Include="WorkspaceDocumentWatcher.cs" />
     <Compile Include="OmpInstalledRuntime.cs" />
     <Compile Include="OmpSessionBridge.cs" />
     <Page Include="Styles.xaml" />

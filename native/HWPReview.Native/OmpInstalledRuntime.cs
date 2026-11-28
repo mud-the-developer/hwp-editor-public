@@ -11,25 +11,33 @@ internal sealed record OmpNativeCandidate(OmpRuntimeFile File, bool Present);
 // on future native staging/optional interactive dependency resolution.
 internal sealed record OmpInstalledRuntime(string BunRoot, string Home, string ManifestSha256, OmpRuntimeFile[] Files, OmpNativeCandidate[] NativeCandidates)
 {
-    private const string ManifestHash = "4eeada4a2dc83c5ca3596bd6ff24631a804cec23f738de3ecf9d486ee8413a2a";
-    private const string Version = "18.15.0";
+    private const string ManifestHash = "5854c2025979e2a1c1ffb6aab0a8340a17385a52ff14d7965fc596809856193a";
+    private const string Version = "19.2.1";
     private const string CliRoot = "install/global/node_modules/@oh-my-pi/pi-coding-agent";
     private const string NativesRoot = "install/global/node_modules/@oh-my-pi/pi-natives";
     private const string LeafRoot = "install/global/node_modules/@oh-my-pi/pi-natives-win32-x64";
+    private const string PuppeteerRoot = "install/global/node_modules/puppeteer-core";
     private const string Addon = "pi_natives.win32-x64-baseline.node";
     private static readonly string[] Notices = ["LICENSE", "README.md", "THIRD-PARTY-NOTICES.txt"];
     private static readonly string[] CliFiles = ["package.json", "CHANGELOG.md", .. Notices];
     private static readonly string[] CliDirectories = ["dist", "src", "scripts", "examples"];
-    private static readonly string[] DistFiles = ["CHANGELOG-a7paazjm.md", "cli.js", "docs-index.generated.txt", "models.json-3tsbab79.zst", "rules.json-6b4dpgdf.zst"];
+    private static readonly string[] DistFiles = [
+        "CHANGELOG-tc7v6ye7.md", "cli.js", "defaults.json-8pmp3tse.zst", "docs-index.generated.txt",
+        "extension.generated.json-c7nv68ms.zst", "models.json-kxrekq5p.zst", "perturbation-pool.json-4gjsg435.txt", "rules.json-sj44r8f3.zst"
+    ];
     private static readonly string[] DistDirectories = ["types"];
     private static readonly string[] NativeRootFiles = ["package.json", .. Notices];
     private static readonly string[] NativeRootDirectories = ["native"];
     private static readonly string[] LeafFiles = ["package.json", Addon, .. Notices];
+    private static readonly string[] PuppeteerShadowFiles = [
+        "lib/package.json", "lib/puppeteer/package.json", "lib/puppeteer/util/package.json",
+        "lib/puppeteer/util/Function.ts", "lib/puppeteer/util/Function.tsx", "lib/puppeteer/util/Function.jsx"
+    ];
     private static readonly string[] NativeMembers =
     [
         "clipboard.js", "clipboard.d.ts", "desktop-adapter.js", "desktop-adapter.d.ts",
-        "desktop.js", "desktop.d.ts", "embedded-addon.js", "index.js", "index.d.ts",
-        "loader-state.js", "loader-state.d.ts", "path.js", "path.d.ts", "vcs.js", "vcs.d.ts",
+        "desktop.js", "desktop.d.ts", "embedded-addon.js", "file-poll.js", "file-poll.d.ts", "index.js", "index.d.ts",
+        "loader-state.js", "loader-state.d.ts", "path.js", "path.d.ts", "sqlite-locks.js", "sqlite-locks.d.ts", "vcs.js", "vcs.d.ts",
         "version-sentinel.js", "version-sentinel.d.ts"
     ];
 
@@ -57,7 +65,7 @@ internal sealed record OmpInstalledRuntime(string BunRoot, string Home, string M
             Text(baseline, "native_addon_relative_path") != LeafRoot + "/" + Addon)
             throw new InvalidDataException("OMP 패키지 기준이 다릅니다.");
         JsonElement expected = baseline.GetProperty("files"), supplied = value.GetProperty("files");
-        if (expected.ValueKind != JsonValueKind.Array || expected.GetArrayLength() != 21 || supplied.ValueKind != JsonValueKind.Array || supplied.GetArrayLength() != expected.GetArrayLength())
+        if (expected.ValueKind != JsonValueKind.Array || expected.GetArrayLength() != 28 || supplied.ValueKind != JsonValueKind.Array || supplied.GetArrayLength() != expected.GetArrayLength())
             throw new InvalidDataException("OMP 런타임 파일 목록이 다릅니다.");
         var files = new OmpRuntimeFile[expected.GetArrayLength()];
         var paths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -108,6 +116,10 @@ internal sealed record OmpInstalledRuntime(string BunRoot, string Home, string M
         ClosedDirectory(Member(BunRoot, NativesRoot), NativeRootFiles, NativeRootDirectories);
         ClosedDirectory(Member(BunRoot, NativesRoot + "/native"), NativeMembers, [], NativeCandidates[6].Present ? Addon : null);
         ClosedDirectory(Member(BunRoot, LeafRoot), LeafFiles, []);
+        ClosedDirectory(Member(BunRoot, PuppeteerRoot), ["package.json", "README.md"], ["lib", "src"]);
+        foreach (string name in PuppeteerShadowFiles)
+            if (CandidateExists(Member(BunRoot, PuppeteerRoot + "/" + name)))
+                throw new InvalidDataException("OMP 필수 모듈 탐색 경로가 가려졌습니다.");
         if (CandidateExists(Member(BunRoot, "install/global/node_modules/@oh-my-pi/node_modules")))
             throw new InvalidDataException("OMP 설치 패키지 탐색 경로가 가려졌습니다.");
         foreach (OmpNativeCandidate candidate in NativeCandidates)

@@ -483,6 +483,7 @@ internal sealed record LaunchDescriptor(string LaunchId, string Executable, stri
         {
             ["HOME"] = home, ["USERPROFILE"] = home, ["APPDATA"] = Path.Combine(home, "AppData", "Roaming"), ["LOCALAPPDATA"] = Path.Combine(home, "AppData", "Local"),
             ["GEMINI_HOME"] = Path.Combine(home, ".gemini"),
+            ["PI_COMPILED"] = "", ["PI_NATIVE_VARIANT"] = "baseline", ["PI_NATIVES_DIR"] = Path.Combine(home, ".omp", "natives"),
             ["XDG_CONFIG_HOME"] = Path.Combine(home, ".config"), ["PI_CONFIG_DIR"] = ".omp", ["TEMP"] = Path.Combine(launchRoot, "tmp"), ["TMP"] = Path.Combine(launchRoot, "tmp"),
             ["TERM"] = "xterm-256color", ["COLORTERM"] = "truecolor",
             ["HWP_OMP_PIPE"] = @"\\.\pipe\" + bridge.PipeName, ["HWP_OMP_TOKEN"] = bridge.Token, ["HWP_OMP_LAUNCH_ID"] = launchId

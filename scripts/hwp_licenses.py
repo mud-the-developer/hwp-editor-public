@@ -90,15 +90,15 @@ SETUP_NOTICES = (
      "Microsoft Edge WebView2 Runtime EULA; not the SDK license", (
         ("packaging/licenses/WebView2-Runtime-156.0.4314.58-EULA.html", "WebView2-Runtime-156.0.4314.58-EULA.html"),
     )),
-    ("omp_runtime", "Bun / oh-my-pi", "1.4.4 / 18.15.0",
+    ("omp_runtime", "Bun / oh-my-pi", "1.4.4 / 19.2.1",
      "Bun MIT/LGPL/linked-library inventory; OMP MIT and original third-party notices", (
         ("packaging/licenses/Bun-1.4.4-LICENSE.md", "Bun-1.4.4-LICENSE.md"),
-        ("packaging/licenses/OMP-18.15.0-LICENSE.txt", "OMP-18.15.0-LICENSE.txt"),
-        ("packaging/licenses/OMP-18.15.0-THIRD-PARTY-NOTICES.txt", "OMP-18.15.0-THIRD-PARTY-NOTICES.txt"),
-        ("packaging/licenses/OMP-Natives-18.15.0-LICENSE.txt", "OMP-Natives-18.15.0-LICENSE.txt"),
-        ("packaging/licenses/OMP-Natives-18.15.0-THIRD-PARTY-NOTICES.txt", "OMP-Natives-18.15.0-THIRD-PARTY-NOTICES.txt"),
-        ("packaging/licenses/OMP-Win32-x64-18.15.0-LICENSE.txt", "OMP-Win32-x64-18.15.0-LICENSE.txt"),
-        ("packaging/licenses/OMP-Win32-x64-18.15.0-THIRD-PARTY-NOTICES.txt", "OMP-Win32-x64-18.15.0-THIRD-PARTY-NOTICES.txt"),
+        ("packaging/licenses/OMP-19.2.1-LICENSE.txt", "OMP-19.2.1-LICENSE.txt"),
+        ("packaging/licenses/OMP-19.2.1-THIRD-PARTY-NOTICES.txt", "OMP-19.2.1-THIRD-PARTY-NOTICES.txt"),
+        ("packaging/licenses/OMP-Natives-19.2.1-LICENSE.txt", "OMP-Natives-19.2.1-LICENSE.txt"),
+        ("packaging/licenses/OMP-Natives-19.2.1-THIRD-PARTY-NOTICES.txt", "OMP-Natives-19.2.1-THIRD-PARTY-NOTICES.txt"),
+        ("packaging/licenses/OMP-Win32-x64-19.2.1-LICENSE.txt", "OMP-Win32-x64-19.2.1-LICENSE.txt"),
+        ("packaging/licenses/OMP-Win32-x64-19.2.1-THIRD-PARTY-NOTICES.txt", "OMP-Win32-x64-19.2.1-THIRD-PARTY-NOTICES.txt"),
     )),
     ("hwp_security", "한글 자동화 보안모듈", "2022-08-19 (x86)",
      "Hancom Automation usage conditions; commercial integration requires separate Hancom approval", (

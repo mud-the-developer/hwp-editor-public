@@ -13,27 +13,31 @@ import stat
 
 from hwp_resources import frozen, resource_root
 
-VERSION = "18.15.0"
+VERSION = "19.2.1"
 BUN_VERSION = "1.4.4"
 LAUNCHER_SHA256 = "a88b6c93260ec1296613d3be63c9b0173a67bf31ddc44512c74322607a86a0c1"
 RUNTIME_MANIFEST = resource_root() / ("native-ui/omp-runtime.json" if frozen() else "packaging/omp-runtime.json")
-RUNTIME_MANIFEST_SHA256 = "4eeada4a2dc83c5ca3596bd6ff24631a804cec23f738de3ecf9d486ee8413a2a"
+RUNTIME_MANIFEST_SHA256 = "5854c2025979e2a1c1ffb6aab0a8340a17385a52ff14d7965fc596809856193a"
 BRIDGE_SOURCE = resource_root() / ("native-ui/bridge/omp-bridge.mjs" if frozen()
                                   else "native/HWPReview.Native/Bridge/omp-bridge.mjs")
 BRIDGE_LIMIT = 1024 * 1024
 CLI_ROOT = "install/global/node_modules/@oh-my-pi/pi-coding-agent"
 NATIVES_ROOT = "install/global/node_modules/@oh-my-pi/pi-natives"
 LEAF_ROOT = "install/global/node_modules/@oh-my-pi/pi-natives-win32-x64"
+PUPPETEER_ROOT = "install/global/node_modules/puppeteer-core"
+PUPPETEER_VERSION = "25.3.0"
 ADDON_NAME = "pi_natives.win32-x64-baseline.node"
 ADDON_RELATIVE = LEAF_ROOT + "/" + ADDON_NAME
-DIST_FILES = ("CHANGELOG-a7paazjm.md", "cli.js", "docs-index.generated.txt",
-              "models.json-3tsbab79.zst", "rules.json-6b4dpgdf.zst")
-NATIVE_JS_FILES = ("clipboard.js", "desktop-adapter.js", "desktop.js", "embedded-addon.js",
-                   "index.js", "loader-state.js", "path.js", "vcs.js", "version-sentinel.js")
+DIST_FILES = ("CHANGELOG-tc7v6ye7.md", "cli.js", "defaults.json-8pmp3tse.zst", "docs-index.generated.txt",
+              "extension.generated.json-c7nv68ms.zst", "models.json-kxrekq5p.zst",
+              "perturbation-pool.json-4gjsg435.txt", "rules.json-sj44r8f3.zst")
+NATIVE_JS_FILES = ("clipboard.js", "desktop-adapter.js", "desktop.js", "embedded-addon.js", "file-poll.js",
+                   "index.js", "loader-state.js", "path.js", "sqlite-locks.js", "vcs.js", "version-sentinel.js")
 NATIVE_TYPES = tuple(name[:-3] + ".d.ts" for name in NATIVE_JS_FILES if name != "embedded-addon.js")
 RUNTIME_FILES = (
     "bin/omp.exe", "bin/omp.bunx", "bin/bun.exe", CLI_ROOT + "/package.json",
     *(CLI_ROOT + "/dist/" + name for name in DIST_FILES),
+    PUPPETEER_ROOT + "/package.json", PUPPETEER_ROOT + "/lib/puppeteer/util/Function.js",
     NATIVES_ROOT + "/package.json",
     *(NATIVES_ROOT + "/native/" + name for name in NATIVE_JS_FILES),
     LEAF_ROOT + "/package.json", ADDON_RELATIVE,
@@ -45,7 +49,8 @@ PROJECT_GUIDANCE = """# HWPReview 작업 안내
 
 일반 shell/read/write 도구와 기본 OMP 기능을 사용할 수 있습니다.
 평소 대화는 자연스러운 한국어로 답하세요.
-작업 폴더의 활성 .hwpx 파일을 직접 수정·저장하면 왼쪽 라이브 미리보기가 자동으로 갱신되고 `.hwpreview/history/`에 체크포인트가 누적됩니다.
+작업 폴더의 .hwpx를 저장하면 왼쪽에 바로 반영됩니다. 새 파일이나 하위 폴더 사본도 표시되므로 .hwpreview/ 안에 결과를 쓰지 마세요.
+구형 .hwp는 서명·보호되지 않은 HWP5만 읽기 전용으로 미리봅니다. 작성·복원·내보내기는 .hwpx를 사용하세요.
 최초 열기 시 `.hwpreview/originals/`에 불변 원본 백업이 자동 생성됩니다.
 `example/`·`.hwpreview/`·기준 원본(`baseline.hwpx` 등)은 보호 경로이므로 직접 덮어쓰지 마세요.
 원본 문서의 서식·표 구조·양식·연결된 리소스를 최대한 보존하세요.
@@ -321,6 +326,13 @@ def _runtime(executable, home):
     _closed_runtime_directory(bun_root / NATIVES_ROOT / "native", (*NATIVE_JS_FILES, *NATIVE_TYPES),
                               optional_files=(ADDON_NAME,))
     _closed_runtime_directory(bun_root / LEAF_ROOT, ("package.json", ADDON_NAME, *notices))
+    # The bundled CLI statically imports puppeteer-core/internal/util/Function.js.
+    # Do not let nested package scopes or alternate source extensions reroute that export.
+    _closed_runtime_directory(bun_root / PUPPETEER_ROOT, ("package.json", "README.md"), ("lib", "src"))
+    for name in ("lib/package.json", "lib/puppeteer/package.json", "lib/puppeteer/util/package.json",
+                 "lib/puppeteer/util/Function.ts", "lib/puppeteer/util/Function.tsx", "lib/puppeteer/util/Function.jsx"):
+        if os.path.lexists(_unlinked(bun_root / PUPPETEER_ROOT / name)):
+            raise ValueError("OMP runtime package routing is shadowed")
     # These nearer package scopes would shadow the bound global native packages.
     shadow = _unlinked(bun_root / "install/global/node_modules/@oh-my-pi/node_modules")
     if os.path.lexists(shadow):
@@ -334,12 +346,18 @@ def _runtime(executable, home):
             packages[row["relative_path"]] = value
         files.append({**row, "path": str(path)})
     cli, natives, leaf = (packages[root + "/package.json"] for root in (CLI_ROOT, NATIVES_ROOT, LEAF_ROOT))
+    puppeteer = packages[PUPPETEER_ROOT + "/package.json"]
+    puppet_exports = puppeteer.get("exports")
     dependencies = cli.get("dependencies")
     optional = natives.get("optionalDependencies")
     exports = natives.get("exports")
     if (cli.get("name") != "@oh-my-pi/pi-coding-agent" or cli.get("version") != VERSION
             or cli.get("type") != "module" or cli.get("bin") != {"omp": "dist/cli.js"}
             or not isinstance(dependencies, dict) or dependencies.get("@oh-my-pi/pi-natives") != VERSION
+            or dependencies.get("puppeteer-core") != PUPPETEER_VERSION
+            or puppeteer.get("name") != "puppeteer-core" or puppeteer.get("version") != PUPPETEER_VERSION
+            or puppeteer.get("type") != "module" or not isinstance(puppet_exports, dict)
+            or puppet_exports.get("./internal/*") != {"import": "./lib/puppeteer/*", "require": "./lib/puppeteer/*"}
             or natives.get("name") != "@oh-my-pi/pi-natives" or natives.get("version") != VERSION
             or natives.get("type") != "module" or natives.get("main") != "./native/index.js"
             or not isinstance(optional, dict) or optional.get("@oh-my-pi/pi-natives-win32-x64") != VERSION
@@ -470,6 +488,8 @@ class OmpTui:
             "LOCALAPPDATA": str(_directory(home / "AppData/Local")),
             # ACP resolves its token files from GEMINI_HOME before the child HOME.
             "GEMINI_HOME": str(gemini_home),
+            # Force the disk loader and the same native candidate directory admitted above.
+            "PI_COMPILED": "", "PI_NATIVE_VARIANT": "baseline", "PI_NATIVES_DIR": str(home / ".omp/natives"),
             "XDG_CONFIG_HOME": str(_directory(home / ".config")), "PI_CONFIG_DIR": ".omp",
             "TEMP": str(temporary), "TMP": str(temporary), "TERM": "xterm-256color",
             "COLORTERM": "truecolor",

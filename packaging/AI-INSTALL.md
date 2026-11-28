@@ -22,7 +22,7 @@
 | --- | --- |
 | .NET 10 Desktop Runtime x64 | 호환된 기존 10.0.x Desktop 설치를 유지합니다. 없으면 고정 Microsoft 설치기를 확인해 실행합니다. 일반 .NET Runtime만으로 대신하지 않으며 시스템 설치에 관리자 UAC가 필요할 수 있습니다. |
 | WebView2 Runtime | 기존 Runtime 등록을 유지합니다. 누락 시 고정 Microsoft Evergreen 설치기를 사용합니다. 원문 Runtime 약관, 기본 SmartScreen 정보 전송 및 자동 업데이트 안내를 확인합니다. 시스템 Edge Updater에 따라 Microsoft가 설치 범위를 결정할 수 있으므로 항상 사용자 전용이라고 약속하지 않습니다. |
-| Bun 1.4.4 / OMP 18.15.0 | 검증된 앱 전용 `Dependencies`만 재사용하며, 없으면 같은 버전별 경로에 설치합니다. 사용자 `~/.bun`은 탐색·재사용하지 않고 개인 프로필·인증·전역 PATH도 바꾸지 않습니다. 패키지 lifecycle script를 실행하지 않고 21개 런타임 파일의 바이트 검사를 통과해야 합니다. 온라인 의존성 해석이 있으므로 오프라인 설치라고 표시하지 않습니다. |
+| Bun 1.4.4 / OMP 19.2.1 | 검증된 앱 전용 `Dependencies`만 재사용하며, 없으면 같은 버전별 경로에 설치합니다. 사용자 `~/.bun`은 탐색·재사용하지 않고 개인 프로필·인증·전역 PATH도 바꾸지 않습니다. 패키지 lifecycle script를 실행하지 않고 28개 런타임 파일의 바이트 검사를 통과해야 합니다. 온라인 의존성 해석이 있으므로 오프라인 설치라고 표시하지 않습니다. |
 | PowerShell 7 | Windows PowerShell 5.1을 유지합니다. 누락 시 고정 MSI의 해시와 Microsoft 서명을 확인한 뒤 설치기/UAC에서 직접 확인합니다. 전역 PATH·원격 기능·Microsoft 자동 업데이트는 설치기 기본값으로 추가하지 않습니다. |
 | D2Coding 계열 Propo 글꼴 | 정확한 Regular/Bold만 현재 사용자 글꼴로 준비합니다. 실제 이름은 **D2KodingLigature Nerd Font Propo**입니다. 기존 파일·등록과 문서·터미널의 기본 글꼴은 바꾸지 않습니다. |
 | Hancom Automation security module (x86) | For compatible installed x86 Hancom only: obtain the pinned official HTTPS archive through the same setup engine after explicit human acknowledgement of file-access confirmation suppression and per-user registration. Preserve valid existing registrations; stop on conflicts. Without compatible Hancom, mark it not applicable, not installed, and retain pure HWPX use. Commercial Automation integration requires separate Hancom approval. |

@@ -25,7 +25,8 @@ internal sealed class MainWindow : Window
     private readonly string nonce;
     private readonly HwpxDocumentPane documentView = new();
     private readonly OmpTerminalPane ompTerminal = new();
-    private readonly HwpxLiveWatcher liveWatcher = new();
+    private WorkspaceDocumentWatcher? liveWatcher;
+    private readonly MenuItem followSaves = new() { Header = "다른 문서 저장 시 자동 전환", IsCheckable = true, IsChecked = true };
 
     private readonly ColumnDefinition drawerColumn = new() { Width = new GridLength(0) };
     private readonly ColumnDefinition drawerSplitterColumn = new() { Width = new GridLength(0) };
@@ -56,6 +57,7 @@ internal sealed class MainWindow : Window
     private readonly Button dismissBannerButton = new();
 
     private readonly List<WorkspaceDocumentItem> documents = [];
+    private readonly Dictionary<string, WorkspaceDocumentItem> documentsByPath = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<CheckpointItem> checkpoints = [];
 
     private string workspaceRoot = "";
@@ -68,6 +70,7 @@ internal sealed class MainWindow : Window
     private bool drawerOpen;
     private bool updatingSelectors;
     private bool busy;
+    private bool closing;
     private bool closingConfirmed;
 
     public MainWindow(OwnedHostClient host, string nonce)
@@ -178,8 +181,8 @@ internal sealed class MainWindow : Window
         documentSwitcher.Margin = new Thickness(2, 0, 6, 0);
         documentSwitcher.FontSize = 12;
         documentSwitcher.VerticalContentAlignment = VerticalAlignment.Center;
-        documentSwitcher.ToolTip = "작업 폴더 내 .hwpx 문서 전환";
-        AutomationProperties.SetName(documentSwitcher, "활성 HWPX 문서 선택");
+        documentSwitcher.ToolTip = "작업 폴더의 HWP·HWPX 문서 전환";
+        AutomationProperties.SetName(documentSwitcher, "활성 문서 선택");
         AutomationProperties.SetAutomationId(documentSwitcher, "DocumentSwitcher");
         left.Children.Add(documentSwitcher);
 
@@ -211,6 +214,8 @@ internal sealed class MainWindow : Window
         syncBadge.VerticalAlignment = VerticalAlignment.Center;
         syncBadge.SetResourceReference(Border.BackgroundProperty, "SoftAccentBrush");
         syncBadgeText.FontSize = 11.5;
+        syncBadgeText.MaxWidth = 175;
+        syncBadgeText.TextTrimming = TextTrimming.CharacterEllipsis;
         syncBadgeText.Text = "폴더를 열어 시작하세요";
         syncBadgeText.SetResourceReference(TextBlock.ForegroundProperty, "AccentBrush");
         syncBadge.Child = syncBadgeText;
@@ -242,6 +247,9 @@ internal sealed class MainWindow : Window
         };
         AutomationProperties.SetName(overflow, "추가 도구 메뉴");
         overflow.Items.Add(CreateMenuItem("새 빈 HWPX 만들기", "Ctrl+N", async () => await NewBlankDocumentAsync()));
+        AutomationProperties.SetAutomationId(followSaves, "FollowSavedDocuments");
+        followSaves.ToolTip = "끄면 현재 문서만 자동 갱신합니다. 다른 파일은 문서 목록에서 선택할 수 있습니다.";
+        overflow.Items.Add(followSaves);
         overflow.Items.Add(CreateMenuItem("수동 체크포인트 저장", "", async () => await RecordManualCheckpointAsync()));
         overflow.Items.Add(new Separator());
         overflow.Items.Add(CreateMenuItem("OMP 시작 / 다시 시작", "", async () => await RestartOmpAsync()));
@@ -296,7 +304,7 @@ internal sealed class MainWindow : Window
 
         documentListBox.Style = (Style)FindResource("DrawerListBox");
         documentListBox.ItemContainerStyle = (Style)FindResource("DrawerListItem");
-        AutomationProperties.SetName(documentListBox, "작업 폴더 HWPX 문서 목록");
+        AutomationProperties.SetName(documentListBox, "작업 폴더 문서 목록");
         Grid.SetRow(documentListBox, 1);
         grid.Children.Add(documentListBox);
 
@@ -422,9 +430,6 @@ internal sealed class MainWindow : Window
         documentView.PassageDoubleClicked += async (_, target) => await ForwardPassageToOmpAsync(target);
         documentView.ErrorRaised += (_, message) => ShowAlertBanner(message, isError: true);
 
-        liveWatcher.DocumentChanged += (_, snapshot) => Dispatcher.BeginInvoke(async () => await HandleLiveFileChangedAsync(snapshot));
-        liveWatcher.WatchWarning += (_, warning) => Dispatcher.BeginInvoke(() => SetSyncBadge(warning, isWarning: true));
-
         ompTerminal.StatusChanged += (_, _) => Dispatcher.BeginInvoke(UpdateOmpStatus);
         ompTerminal.ErrorRaised += (_, message) => Dispatcher.BeginInvoke(() => ShowAlertBanner("OMP: " + message, isError: true));
     }
@@ -522,42 +527,35 @@ internal sealed class MainWindow : Window
                 await StopOmpCoreAsync();
             }
 
-            liveWatcher.Stop();
-            activeDocumentPath = "";
-            activeDocumentName = "";
-            activeLiveSha256 = "";
-            originalSha256 = "";
-            previewingCheckpointId = "";
-            checkpoints.Clear();
-            HideBanner();
+            // Keep watching the current workspace until the host admits the new one.
 
             JsonElement listing = changingFolder
                 ? await host.CallAsync("open_workspace", new { root = fullFolder })
                 : await host.CallAsync("list_workspace", new { });
             workspaceRoot = listing.Text("root", fullFolder);
+            liveWatcher?.Dispose();
+            liveWatcher = null;
+            ClearActiveDocument("작업 폴더의 문서를 확인하고 있습니다.");
+            liveWatcher = new WorkspaceDocumentWatcher(workspaceRoot,
+                () => Dispatcher.BeginInvoke(new Action(() => _ = ProcessWorkspaceChangesAsync())));
+            // Subscribe before the definitive listing so even the first OMP-created file is seen.
+            listing = await host.CallAsync("list_workspace", new { });
             string folderName = listing.Text("name", Path.GetFileName(workspaceRoot));
             drawerWorkspaceLabel.Text = folderName;
             Title = $"HWP Editor — {folderName}";
             PopulateWorkspaceDocuments(listing);
 
-            // Start OMP in this workspace immediately so right panel is live from startup.
-            if (!ompTerminal.IsRunning && !ompTerminal.IsStarting)
-                await StartOmpCoreAsync();
-
-            WorkspaceDocumentItem? firstEditable = documents.FirstOrDefault(item => !item.Protected);
-            if (firstEditable is not null)
+            // The document side works independently of OMP readiness or authentication.
+            Task terminalStartup = StartOmpAsync();
+            try
             {
-                await OpenLiveDocumentCoreAsync(firstEditable);
+                WorkspaceDocumentItem? first = documents.FirstOrDefault(item => !item.Protected);
+                if (first is not null) await OpenLiveDocumentCoreAsync(first);
+                else SetEmptyWorkspace();
             }
-            else if (documents.Count > 0)
+            finally
             {
-                documentView.Clear("이 폴더의 HWPX 파일은 모두 보호 경로(example/ 등)에 있습니다. 작업 폴더로 복사하거나 새 HWPX를 만드세요.");
-                SetSyncBadge("보호 경로만 있음", isWarning: true);
-            }
-            else
-            {
-                documentView.Clear("작업 폴더에 .hwpx 문서가 없습니다. Ctrl+N으로 새 빈 HWPX를 만들거나 파일을 복사해 넣으세요.");
-                SetSyncBadge("문서 없음", isWarning: false);
+                await terminalStartup;
             }
         }
         catch (Exception error)
@@ -571,19 +569,39 @@ internal sealed class MainWindow : Window
         }
     }
 
+    private void ClearActiveDocument(string message)
+    {
+        activeDocumentPath = activeDocumentName = activeLiveSha256 = previewingCheckpointId = "";
+        PopulateCheckpoints(default);
+        HideBanner();
+        documentView.Clear(message);
+    }
+
+    private void SetEmptyWorkspace()
+    {
+        bool protectedOnly = documents.Count != 0;
+        ClearActiveDocument(protectedOnly
+            ? "보호 경로의 파일은 자동으로 열지 않습니다. 작업용 사본을 이 폴더에 저장하세요."
+            : "이 폴더에 HWP·HWPX를 저장하면 여기에 표시됩니다. Ctrl+N으로 빈 HWPX를 만들 수도 있습니다.");
+        SetSyncBadge(protectedOnly ? "보호 경로만 있음" : "첫 문서 저장 대기", isWarning: protectedOnly);
+    }
+
     private void PopulateWorkspaceDocuments(JsonElement listing)
     {
         updatingSelectors = true;
         try
         {
             documents.Clear();
+            documentsByPath.Clear();
             foreach (JsonElement item in listing.Part("documents").Items())
             {
-                documents.Add(new WorkspaceDocumentItem(
+                var document = new WorkspaceDocumentItem(
                     item.Text("path"),
                     item.Text("name"),
                     item.Text("relative_path", item.Text("name")),
-                    item.Flag("protected")));
+                    item.Flag("protected"));
+                documents.Add(document);
+                documentsByPath.Add(document.Path, document);
             }
             documentSwitcher.ItemsSource = null;
             documentSwitcher.ItemsSource = documents;
@@ -631,6 +649,7 @@ internal sealed class MainWindow : Window
         }
         catch (Exception error)
         {
+            SyncDocumentSelectors();
             ShowAlertBanner("문서 열기 실패: " + error.Message, isError: true);
         }
         finally
@@ -642,21 +661,17 @@ internal sealed class MainWindow : Window
 
     private async Task OpenLiveDocumentCoreAsync(WorkspaceDocumentItem item)
     {
-        liveWatcher.Stop();
+        JsonElement opened = await host.CallAsync("open_live_document", new { path = item.Path });
+        await documentView.ShowAsync(opened.Text("file_path"), opened.Text("sha256"), item.Path, item.Name);
         previewingCheckpointId = "";
         HideBanner();
-
-        JsonElement opened = await host.CallAsync("open_live_document", new { path = item.Path });
-        HwpxFileSnapshot snapshot = await HwpxLiveWatcher.ReadValidatedWithRetryAsync(item.Path);
         activeDocumentPath = opened.Text("path", item.Path);
         activeDocumentName = opened.Text("name", item.Name);
-        activeLiveSha256 = snapshot.Sha256;
+        activeLiveSha256 = opened.Text("sha256");
         PopulateCheckpoints(opened);
         SyncDocumentSelectors();
 
-        await documentView.ShowAsync(snapshot.Bytes, snapshot.Sha256, activeDocumentPath, activeDocumentName, preserveView: false);
-        liveWatcher.Start(activeDocumentPath, snapshot.Sha256);
-        SetSyncBadge("실시간 동기화 중", isWarning: false);
+        SetSyncBadge(IsEditableDocument ? "실시간 동기화 중" : "HWP 읽기 전용 · 실시간", isWarning: false);
     }
 
     private void SyncDocumentSelectors()
@@ -756,30 +771,74 @@ internal sealed class MainWindow : Window
         }
     }
 
-    private async Task HandleLiveFileChangedAsync(HwpxFileSnapshot snapshot)
+    private bool IsEditableDocument => activeDocumentPath.EndsWith(".hwpx", StringComparison.OrdinalIgnoreCase);
+
+    private async Task ProcessWorkspaceChangesAsync()
     {
-        if (!string.Equals(snapshot.FilePath, activeDocumentPath, StringComparison.OrdinalIgnoreCase)) return;
+        if (busy || closing || host.Broken || liveWatcher?.TakePending() is not { } batch) return;
+        busy = true;
+        UpdateUiState();
         try
         {
-            activeLiveSha256 = snapshot.Sha256;
-            JsonElement cpResult = await host.CallAsync("record_live_checkpoint", new { path = snapshot.FilePath, reason = "auto" });
-            PopulateCheckpoints(cpResult);
+            if (batch.RefreshList || batch.SavedPaths.Any(path => !documentsByPath.ContainsKey(path)))
+            {
+                PopulateWorkspaceDocuments(await host.CallAsync("list_workspace", new { }));
+                SyncDocumentSelectors();
+            }
+            WorkspaceDocumentItem? newest = null;
+            foreach (string path in batch.SavedPaths)
+                if (documentsByPath.TryGetValue(path, out var item) && !item.Protected) { newest = item; break; }
 
-            if (string.IsNullOrEmpty(previewingCheckpointId))
+            bool history = previewingCheckpointId.Length != 0;
+            bool hasActive = documentsByPath.TryGetValue(activeDocumentPath, out var active) && !active.Protected;
+            bool switchToSave = newest is not null && !history && (followSaves.IsChecked || activeDocumentPath.Length == 0) &&
+                !string.Equals(newest.Path, activeDocumentPath, StringComparison.OrdinalIgnoreCase);
+            if (hasActive && (batch.Reconcile || batch.SavedPaths.Contains(activeDocumentPath, StringComparer.OrdinalIgnoreCase)))
+                await UpdateLiveSnapshotAsync(display: !switchToSave);
+            if (switchToSave)
+                await OpenLiveDocumentCoreAsync(newest!);
+            else if (!hasActive && activeDocumentPath.Length != 0)
             {
-                await documentView.ShowAsync(snapshot.Bytes, snapshot.Sha256, snapshot.FilePath, activeDocumentName, preserveView: true);
-                SetSyncBadge("자동 갱신 · " + DateTime.Now.ToString("HH:mm:ss"), isWarning: false);
+                if (!history) ClearActiveDocument("작업 파일이 이동되었거나 삭제되었습니다. 문서 목록에서 다시 선택하세요.");
+                SetSyncBadge("작업 파일 없음", isWarning: true);
             }
-            else
-            {
-                SetSyncBadge("원본 변경됨 (체크포인트 미리보기 중)", isWarning: true);
-            }
+            else if (!hasActive && batch.Reconcile && documents.FirstOrDefault(d => !d.Protected) is { } first)
+                await OpenLiveDocumentCoreAsync(first);
+            else if (newest is not null && !string.Equals(newest.Path, activeDocumentPath, StringComparison.OrdinalIgnoreCase))
+                SetSyncBadge("다른 문서 저장 · " + newest.Name, isWarning: false);
+
+            if (batch.Warning is not null)
+                SetSyncBadge("감시 알림 · 목록 재확인: " + batch.Warning, isWarning: true);
         }
         catch (Exception error)
         {
-            SetSyncBadge("자동 갱신 오류", isWarning: true);
-            ShowAlertBanner("라이브 미리보기 갱신 실패: " + error.Message, isError: true);
+            SetSyncBadge("저장본 확인 필요", isWarning: true);
+            if (!string.IsNullOrEmpty(previewingCheckpointId)) ShowCheckpointBanner("과거 시점 표시 중 · " + error.Message);
+            else ShowAlertBanner("저장본을 표시하지 못했습니다: " + error.Message, isError: true);
         }
+        finally
+        {
+            busy = false;
+            UpdateUiState();
+        }
+    }
+
+    private async Task UpdateLiveSnapshotAsync(bool display = true, bool force = false)
+    {
+        JsonElement captured = await host.CallAsync("record_live_checkpoint", new { path = activeDocumentPath, reason = "auto" });
+        string sha = captured.Text("sha256");
+        bool changed = sha != activeLiveSha256;
+        activeLiveSha256 = sha;
+        if (changed || force) PopulateCheckpoints(captured);
+        if (previewingCheckpointId.Length != 0)
+        {
+            if (changed) SetSyncBadge("작업 파일 갱신 · 과거 시점 표시 중", isWarning: true);
+            return;
+        }
+        if (!display || (!changed && !force && documentView.RenderedPageCount > 0 && documentView.CurrentSha256 == sha)) return;
+        await documentView.ShowAsync(captured.Text("file_path"), sha, activeDocumentPath, activeDocumentName, preserveView: true);
+        HideBanner();
+        SetSyncBadge("자동 갱신 · " + DateTime.Now.ToString("HH:mm:ss"), isWarning: false);
     }
 
     private async Task RefreshActiveDocumentAsync()
@@ -793,18 +852,15 @@ internal sealed class MainWindow : Window
             PopulateWorkspaceDocuments(listing);
             SyncDocumentSelectors();
 
-            if (!string.IsNullOrEmpty(activeDocumentPath))
+            if (documentsByPath.ContainsKey(activeDocumentPath))
             {
                 previewingCheckpointId = "";
                 HideBanner();
-                HwpxFileSnapshot snapshot = await HwpxLiveWatcher.ReadValidatedWithRetryAsync(activeDocumentPath);
-                activeLiveSha256 = snapshot.Sha256;
-                liveWatcher.UpdateKnownSha(snapshot.Sha256);
-                JsonElement cpResult = await host.CallAsync("record_live_checkpoint", new { path = activeDocumentPath, reason = "auto" });
-                PopulateCheckpoints(cpResult);
-                await documentView.ShowAsync(snapshot.Bytes, snapshot.Sha256, activeDocumentPath, activeDocumentName, preserveView: true);
+                await UpdateLiveSnapshotAsync(force: true);
                 SetSyncBadge("새로고침 · " + DateTime.Now.ToString("HH:mm:ss"), isWarning: false);
             }
+            else if (documents.FirstOrDefault(d => !d.Protected) is { } first) await OpenLiveDocumentCoreAsync(first);
+            else SetEmptyWorkspace();
         }
         catch (Exception error)
         {
@@ -825,15 +881,12 @@ internal sealed class MainWindow : Window
         try
         {
             JsonElement resolved = await host.CallAsync("read_live_checkpoint", new { path = activeDocumentPath, checkpoint_id = item.Id });
-            string filePath = resolved.Text("file_path");
-            string expectedSha = resolved.Text("sha256");
-            HwpxFileSnapshot snapshot = await HwpxLiveWatcher.ReadValidatedWithRetryAsync(filePath);
-            if (!string.Equals(snapshot.Sha256, expectedSha, StringComparison.Ordinal))
-                throw new InvalidDataException("체크포인트 SHA-256 검증이 일치하지 않습니다.");
+            string sha = resolved.Text("sha256");
+            await documentView.ShowAsync(resolved.Text("file_path"), sha, activeDocumentPath,
+                $"{activeDocumentName} ({ReasonLabel(item.Reason)})", preserveView: true);
 
             previewingCheckpointId = item.Id;
-            await documentView.ShowAsync(snapshot.Bytes, snapshot.Sha256, filePath, $"{activeDocumentName} ({ReasonLabel(item.Reason)})", preserveView: true);
-            string shortSha = snapshot.Sha256[..8];
+            string shortSha = sha[..8];
             ShowCheckpointBanner($"체크포인트 미리보기 중 · {FormatTimestamp(item.CreatedAt)} · {ReasonLabel(item.Reason)} ({shortSha})");
             SetSyncBadge("체크포인트 미리보기", isWarning: true);
         }
@@ -850,7 +903,7 @@ internal sealed class MainWindow : Window
 
     private async Task RestorePreviewedCheckpointAsync()
     {
-        if (busy || string.IsNullOrEmpty(activeDocumentPath) || string.IsNullOrEmpty(previewingCheckpointId)) return;
+        if (busy || !IsEditableDocument || string.IsNullOrEmpty(previewingCheckpointId)) return;
         MessageBoxResult answer = MessageBox.Show(
             this,
             "선택한 체크포인트 시점으로 현재 작업 .hwpx 파일을 복원하시겠습니까?\n복원 직전 상태는 자동으로 체크포인트에 백업됩니다.",
@@ -864,13 +917,11 @@ internal sealed class MainWindow : Window
         try
         {
             JsonElement restored = await host.CallAsync("restore_live_checkpoint", new { path = activeDocumentPath, checkpoint_id = previewingCheckpointId });
-            HwpxFileSnapshot snapshot = await HwpxLiveWatcher.ReadValidatedWithRetryAsync(activeDocumentPath);
-            activeLiveSha256 = snapshot.Sha256;
-            liveWatcher.UpdateKnownSha(snapshot.Sha256);
+            activeLiveSha256 = restored.Text("sha256");
             previewingCheckpointId = "";
             HideBanner();
             PopulateCheckpoints(restored);
-            await documentView.ShowAsync(snapshot.Bytes, snapshot.Sha256, activeDocumentPath, activeDocumentName, preserveView: true);
+            await documentView.ShowAsync(restored.Text("file_path"), activeLiveSha256, activeDocumentPath, activeDocumentName, preserveView: true);
             SetSyncBadge("복원 완료 · " + DateTime.Now.ToString("HH:mm:ss"), isWarning: false);
         }
         catch (Exception error)
@@ -960,7 +1011,7 @@ internal sealed class MainWindow : Window
 
     private async Task OpenInHancomAsync()
     {
-        if (busy || string.IsNullOrEmpty(activeDocumentPath)) return;
+        if (busy || !IsEditableDocument) return;
         try
         {
             await host.CallAsync("open_in_hancom", new { path = activeDocumentPath });
@@ -974,7 +1025,7 @@ internal sealed class MainWindow : Window
 
     private async Task ExportDocumentAsync()
     {
-        if (busy || string.IsNullOrEmpty(activeDocumentPath)) return;
+        if (busy || !IsEditableDocument) return;
         string stem = Path.GetFileNameWithoutExtension(activeDocumentName);
         string suffix = string.IsNullOrEmpty(previewingCheckpointId) ? "-export" : "-" + previewingCheckpointId;
         var dialog = new SaveFileDialog
@@ -1219,13 +1270,15 @@ internal sealed class MainWindow : Window
     {
         if (closingConfirmed) return;
         args.Cancel = true;
-        liveWatcher.Stop();
+        if (closing || busy) return;
+        closing = true;
         try
         {
             await StopOmpCoreAsync();
             await ompTerminal.DisposeAsync();
             documentView.Dispose();
-            liveWatcher.Dispose();
+            liveWatcher?.Dispose();
+            liveWatcher = null;
             if (!host.Broken) await host.CallAsync("shutdown", new { });
         }
         catch (Exception error)
@@ -1236,7 +1289,12 @@ internal sealed class MainWindow : Window
                 "종료 확인",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
-            if (choice != MessageBoxResult.Yes) return;
+            if (choice != MessageBoxResult.Yes)
+            {
+                closing = false;
+                UpdateUiState();
+                return;
+            }
         }
         closingConfirmed = true;
         Close();
@@ -1248,11 +1306,12 @@ internal sealed class MainWindow : Window
         bool hasDoc = !string.IsNullOrWhiteSpace(activeDocumentPath);
         openWorkspaceButton.IsEnabled = !busy;
         documentSwitcher.IsEnabled = !busy && documents.Count > 0;
-        openInHancomButton.IsEnabled = !busy && hasDoc;
+        openInHancomButton.IsEnabled = !busy && IsEditableDocument;
         refreshButton.IsEnabled = !busy && hasWorkspace;
-        exportButton.IsEnabled = !busy && hasDoc;
+        exportButton.IsEnabled = !busy && IsEditableDocument;
         manualCheckpointButton.IsEnabled = !busy && hasDoc;
         UpdateOmpStatus();
+        if (!busy && !closing) _ = ProcessWorkspaceChangesAsync();
     }
 
     private void SetSyncBadge(string text, bool isWarning)
@@ -1268,7 +1327,7 @@ internal sealed class MainWindow : Window
         previewBannerText.Text = message;
         previewBanner.SetResourceReference(Border.BackgroundProperty, "WarningBgBrush");
         previewBannerText.SetResourceReference(TextBlock.ForegroundProperty, "WarningTextBrush");
-        restoreBannerButton.Visibility = Visibility.Visible;
+        restoreBannerButton.Visibility = IsEditableDocument ? Visibility.Visible : Visibility.Collapsed;
         returnLiveBannerButton.Visibility = Visibility.Visible;
         dismissBannerButton.Visibility = Visibility.Collapsed;
         previewBanner.Visibility = Visibility.Visible;
